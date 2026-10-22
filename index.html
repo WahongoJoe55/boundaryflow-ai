@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>BoundaryFlow AI</title>
 <style>
 :root{color-scheme:light} body.dark{background:#111827;color:#e7edf7}body.dark .card,body.dark .req,body.dark .metric,body.dark .scope-response,body.dark .history-panel{background:#1b2433;border-color:#344154;color:#e7edf7}body.dark .sub,body.dark .note,body.dark .evidence,body.dark .metric span,body.dark .history-meta{color:#aeb9ca}body.dark textarea,body.dark .project-fields input,body.dark select{background:#111827;color:#e7edf7;border-color:#46536a}body.dark .status,body.dark .savebar,body.dark .task-status,body.dark .decision-cell{background:#202b3c;border-color:#3a475b;color:#dce5f2}body.dark .decision-cell strong,body.dark .section strong{color:#aeb9ca}body.dark .decision-cell span,body.dark .section,body.dark .section span{color:#dce5f2}body.dark .panel{border-top-color:#3a475b}body.dark .confidence-note{color:#aeb9ca}body.dark .response,body.dark .history-item:hover{background:#202b3c}body.dark .step{background:#1b2433;border-color:#3a475b;color:#aeb9ca}body.dark .step.active{background:#202c4d;color:#e7edf7;border-color:#5d76c9}body.dark .badge{background:#303b4d}body.dark .btn.secondary{background:#303b4d;color:#e7edf7}body.dark .task-status select{background:#111827;color:#e7edf7} body.dark #responseStyle{background:#fff!important;color:#172033!important;border-color:#ccd5e1!important} body.dark .controls label{color:#e7edf7!important}
@@ -2239,7 +2239,6 @@ function saveDraftFields(){try{localStorage.setItem(bfScopedKey('boundaryflow_dr
 (function(){
   function ready(){
     var st=document.getElementById('jsStatus');
-    if(st){st.textContent='JavaScript is active — BoundaryFlow AI MVP v1.5.5 is ready.'; st.style.background='#176b4d';}
     document.addEventListener('click',function(ev){
       var b=ev.target.closest('[data-test]'); if(b){ ev.preventDefault(); try{ loadTest(b.getAttribute('data-test')); }catch(e){showErr(e);} return; }
     });
@@ -2350,7 +2349,7 @@ function saveDraftFields(){try{localStorage.setItem(bfScopedKey('boundaryflow_dr
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wire);else wire();
 })();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script>
 (function(){
   'use strict';

@@ -886,8 +886,15 @@ function classify(q,a,context){
       'minor link changes',
       'content changes to existing pages'
     ]) || (
+      // Some agreements list “minor buttons/links” separately from the
+      // existing-page allowance and state the exclusions in another clause.
+      // The target is explicitly an already-listed Services page, so do not
+      // require the words “existing pages” to be repeated beside “links”.
       /\bminor\b/i.test(A) &&
-      /\b(?:button|buttons|link|links|content)\b/i.test(A) &&
+      /\b(?:button|buttons|link|links)\b/i.test(A)
+    ) || (
+      /\bminor\b/i.test(A) &&
+      /\bcontent\b/i.test(A) &&
       /\bexisting pages?\b/i.test(A)
     );
   // Treat the two link phrasings as the same kind of existing-page action only

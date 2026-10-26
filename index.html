@@ -863,11 +863,19 @@ function classify(q,a,context){
   // Services-page content/link modification.
   const cDependency07Source = [raw, context && context.original ? normalize(context.original) : ''].filter(Boolean).join(' ');
   const cDependency07ServicesLink =
-    /\b(?:update|change|edit|revise)\b[\s\S]*\bservices\s+page\b/i.test(cDependency07Source) &&
-    /\bpricing\s+is\s+available\b/i.test(cDependency07Source) &&
-    /\badd\s+(?:a|an|the)\s+link\b/i.test(cDependency07Source) &&
-    /\b(?:it|the\s+new\s+pricing\s+page)\b/i.test(cDependency07Source) &&
-    /\bminor\s+visual\s+and\s+content\s+changes\s+to\s+existing\s+pages?\b/i.test(A);
+    /\bservices\s+page\b/i.test(cDependency07Source) &&
+    /\b(?:link|links)\b/i.test(cDependency07Source) &&
+    /\bpricing\b/i.test(cDependency07Source) &&
+    /\b(?:update|change|edit|revise|point|redirect|add|link)\b/i.test(cDependency07Source) &&
+    hasAny(A,[
+      'minor visual and content changes to existing pages',
+      'minor visual and content changes to existing page',
+      'minor buttons and links on existing pages are included',
+      'minor buttons/links',
+      'minor buttons and links',
+      'minor link changes',
+      'content changes to existing pages'
+    ]);
   if(cDependency07ServicesLink){
     return {
       type:'Content/link change on existing page', status:'Likely included', confidence:'High', risk:'Low',
@@ -1910,13 +1918,22 @@ function clarificationPlan(c,q){
     };
   }
   if(st==='Clarify') {
+    const qText=String(q||'');
+    const linkDependency=/\bservices\s+page\b/i.test(qText) && /\b(?:link|point|redirect)\b/i.test(qText) && /\bpricing\b/i.test(qText);
+    if(linkDependency) return {
+      title:'Approval dependency',
+      needed:'Whether the separately scoped Pricing page has been approved and created.',
+      question:'The agreement allows minor link changes on existing pages, while new pages require separate approval. Would you like to approve the Pricing page first? The Services-page link can be implemented once that destination exists.',
+      why:'The link itself may fit the existing-page allowance, but it depends on a destination page that the agreement treats as separately approved work.',
+      mode:'dependency'
+    };
     const vague=/^Unspecified outcome$/i.test(String(c.type||'')) || /\b(?:work|look|feel) better\b/i.test(String(q||''));
     const pageMatch=String(q||'').match(/\b(?:update|change|edit|revise|rewrite)\s+(?:the\s+)?(?:existing\s+)?(home|homepage|about|services|contact|blog)\s+page\b/i);
     const affectedPage=pageMatch ? normalizePageName(pageMatch[1]) : 'the affected page';
     return {
       title:'More information needed',
       needed:vague ? 'The specific type of change the client wants on '+affectedPage+' — visual/presentation, content, or new functionality.' : 'The specific scope detail or agreed inclusion/exclusion that applies to this request.',
-      question:vague ? 'Could you clarify what you’d like changed on '+affectedPage+'? Are you looking for a visual/presentation change, a content change, or new functionality?' : 'What does the agreement say about this specific deliverable or change? Paste the relevant wording or describe the agreed inclusion/exclusion.',
+      question:vague ? 'Could you clarify what you’d like changed on '+affectedPage+'? Are you looking for a visual/presentation change, a content change, or new functionality?' : 'Could you clarify the specific deliverable or scope detail that remains uncertain? I’ll compare that detail with the agreement already provided rather than asking you to repeat the agreement wording.',
       why:vague ? 'The client described a desired outcome without identifying the actual work. That missing detail matters because visual or content changes may be included, while new functionality may require separate approval.' : 'The current agreement evidence is not strong enough for a safe boundary decision. A targeted scope detail may materially change the result.',
       mode:vague ? 'underlying' : 'context'
     };
@@ -2214,6 +2231,13 @@ function buildFullResponse(rows){
   });
   if(constraints.length){ lines.push('I’ll keep the rest of the agreed work unchanged while we handle the specific requested changes.'); }
   if(claims.length){ lines.push('I’ve noted your view that the work should be included. I’ll assess each underlying request against the agreed scope rather than treating that view alone as confirmation of inclusion.'); }
+  // Dependency-aware client wording: an included link can depend on a separately
+  // approved new destination page. Keep the two scope decisions independent.
+  const hasAdditionalPricingPage = additional.some(x => /\b(?:new\s+)?pricing\s+page\b/i.test(String(x.q||'')) && /\b(?:add|create|build|develop|publish)\b/i.test(String(x.q||'')));
+  const hasIncludedServicesPricingLink = included.some(x => /\bservices\s+page\b/i.test(String(x.q||'')) && /\b(?:link|point|redirect)\b/i.test(String(x.q||'')) && /\bpricing\b/i.test(String(x.q||'')));
+  if(hasAdditionalPricingPage && hasIncludedServicesPricingLink){
+    lines.push('The Services-to-Pricing link is treated separately from creating the Pricing page. The link change fits the existing-page link allowance, but it can be implemented once the Pricing page has been approved and created.');
+  }
   if(additional.length){ lines.push(style==='warm'?'If you’d like to proceed, we can confirm the approval, agreed fee and any timeline adjustment before implementation.':'If you’d like to proceed, we can confirm the approval, agreed fee and any timeline adjustment before implementation.'); }
   else if(clarify.length){ lines.push(style==='warm'?'Once you confirm the specific change, I can confirm whether it fits within the agreed scope.':'Once you confirm the specific change, I can confirm whether it fits within the agreed scope.'); }
   else if(conditional.length){ lines.push('Please confirm the relevant condition before implementation.'); }

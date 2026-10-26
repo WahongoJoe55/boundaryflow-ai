@@ -1,4 +1,11 @@
- <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><script>
+(function(){
+  var theme='light';
+  try { theme=localStorage.getItem('boundaryflow_theme')||'light'; } catch(e) {}
+  if(theme!=='dark') theme='light';
+  document.documentElement.setAttribute('data-bf-theme',theme);
+})();
+</script>
 <title>BoundaryFlow AI</title>
 <style>
 body.bf-auth-checking{min-height:100vh;background:#e9edf2!important;overflow:hidden}
@@ -80,6 +87,28 @@ body.bf-authenticated #bfCloudCard > div:first-child{display:none!important}
 body.bf-authenticated #bfAuthArea{margin-top:0!important}
 @media(max-width:760px){body:not(.bf-authenticated) #bfCloudCard{grid-template-columns:1fr;max-width:520px;border-radius:22px!important}body:not(.bf-authenticated) .bf-login-brand{min-height:0;padding:24px 24px 22px}.bf-brand-message{margin-top:28px}.bf-brand-message h2{font-size:29px;max-width:430px}.bf-brand-message p{max-width:440px}.bf-brand-points{display:none}.bf-brand-foot{margin-top:25px}body:not(.bf-authenticated) .bf-login-main{padding:26px 24px 30px}body:not(.bf-authenticated) .bf-login-heading{margin-bottom:18px}}
 @media(max-width:390px){body:not(.bf-authenticated) .bf-login-main{padding:22px 18px}body:not(.bf-authenticated) #bfSignedOutControls>div+div{grid-template-columns:1fr 1fr}}
+
+/* First-paint theme: keep the auth-restoration screen in the saved theme. */
+html[data-bf-theme="dark"] body.bf-auth-checking {
+  background:#111827!important;
+  color:#e7edf7;
+  color-scheme:dark;
+}
+html[data-bf-theme="dark"] body.bf-auth-checking::before {
+  background:#111827;
+  color:#e7edf7;
+}
+html[data-bf-theme="dark"] body.bf-auth-checking::after {
+  border-color:#344154;
+  border-top-color:#8bb8ff;
+}
+html[data-bf-theme="light"] body.bf-auth-checking,
+html:not([data-bf-theme]) body.bf-auth-checking {
+  color-scheme:light;
+}
+@media(prefers-reduced-motion:reduce) {
+  body { scroll-behavior:auto; }
+}
 </style></head><body class="bf-auth-checking"><div class="wrap">
 <div class="topbar"><div class="brand bf-app-brand"><svg class="bf-app-mark" viewBox="0 0 64 64" role="img" aria-label="BoundaryFlow AI logo"><defs><linearGradient id="bfAppLogoGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8be9ff"/><stop offset="1" stop-color="#4389ff"/></linearGradient></defs><path d="M32 3 56 12v17c0 15.5-9.5 25.7-24 32C17.5 54.7 8 44.5 8 29V12Z" fill="url(#bfAppLogoGrad)"/><path d="M17 25c7-8 13-8 20-2s10 5 14 1M15 35c8-8 14-8 21-2s10 5 14 1M18 44c7-6 12-6 18-1" fill="none" stroke="#123b77" stroke-width="3.5" stroke-linecap="round"/><circle cx="47" cy="17" r="4" fill="#fff"/></svg><span class="bf-app-wordmark">Boundary<span>Flow</span> AI</span> </div><button class="btn secondary theme-btn" id="themeBtn" type="button" aria-label="Toggle light and dark mode">☾ Dark mode</button></div>
 <div class="hero"><div class="eyebrow">BOUNDARYFLOW AI</div><h1>Know what the client is actually asking for.</h1><p class="sub">Turn a client message and agreed scope into clear, evidence-backed boundary decisions — then communicate them professionally.</p><div class="workflow"><span class="step active">1 · Analyze</span><span class="arrow">→</span><span class="step">2 · Explain</span><span class="arrow">→</span><span class="step">3 · Respond</span><span class="arrow">→</span><span class="step">4 · Save</span></div></div>
@@ -2323,6 +2352,7 @@ function saveDraftFields(){try{localStorage.setItem(bfScopedKey('boundaryflow_dr
 (function(){
   function applyTheme(theme){
     var dark=theme==='dark';
+    document.documentElement.setAttribute('data-bf-theme',dark?'dark':'light');
     document.body.classList.toggle('dark',dark);
     var b=document.getElementById('themeBtn');
     if(b){b.textContent=dark?'☀ Light mode':'☾ Dark mode';b.setAttribute('aria-label',dark?'Switch to light mode':'Switch to dark mode');}

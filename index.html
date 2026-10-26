@@ -870,20 +870,26 @@ function classify(q,a,context){
     context && context.original ? normalize(context.original) : '',
     context && context.originalMessage ? normalize(context.originalMessage) : ''
   ].filter(Boolean).join(' ');
-  const agreementAllowsMinorExistingPageLinks = hasAny(A,[
-    'minor visual and content changes to existing pages',
-    'minor visual and content changes to existing page',
-    'minor buttons and links on existing pages are included',
-    'minor buttons/links',
-    'minor buttons and links',
-    'minor link changes',
-    'content changes to existing pages'
-  ]) || (
-    /\bminor\b/i.test(A) &&
-    /\b(?:button|buttons|link|links|content)\b/i.test(A) &&
-    /\bexisting pages?\b/i.test(A) &&
-    !/\b(?:new functionality|integration|integrations)\b/i.test(cDependency07Source)
-  );
+  // Read the agreement itself for an existing-page link allowance. Agreements
+  // often state the allowance and the exclusion in separate clauses, e.g.
+  // “minor visual/content changes to existing pages; minor buttons/links;
+  // no new functionality or integrations.” Do not require “existing pages”
+  // to appear in the same clause as “buttons/links”, and do not inspect the
+  // client message for agreement exclusions.
+  const agreementAllowsMinorExistingPageLinks =
+    hasAny(A,[
+      'minor visual and content changes to existing pages',
+      'minor visual and content changes to existing page',
+      'minor buttons and links on existing pages are included',
+      'minor buttons/links',
+      'minor buttons and links',
+      'minor link changes',
+      'content changes to existing pages'
+    ]) || (
+      /\bminor\b/i.test(A) &&
+      /\b(?:button|buttons|link|links|content)\b/i.test(A) &&
+      /\bexisting pages?\b/i.test(A)
+    );
   // Treat the two link phrasings as the same kind of existing-page action only
   // when the complete message identifies Pricing as the destination and the
   // agreement explicitly allows minor existing-page links/content changes.
@@ -891,8 +897,11 @@ function classify(q,a,context){
     /\bservices\s+page\b/i.test(cDependency07Source) &&
     /\b(?:link|links)\b/i.test(cDependency07Source) &&
     /\bpricing\b/i.test(cDependency07Source) &&
-    /\b(?:update|change|edit|revise|point|redirect|add|link)\b/i.test(cDependency07Source) &&
-    agreementAllowsMinorExistingPageLinks;
+    // The second decomposed request may be only “link it from the Services
+    // page”; the complete message supplies the missing destination/action.
+    /\b(?:update|change|edit|revise|point|redirect|add|link|it)\b/i.test(cDependency07Source) &&
+    agreementAllowsMinorExistingPageLinks &&
+    !/\b(?:whatsapp|crm|analytics|mailchimp|stripe|integration|automation|api|popup|pop-up|modal|dropdown|accordion|toggle)\b/i.test(raw);
   if(cDependency07ServicesLink){
     return {
       type:'Content/link change on existing page', status:'Likely included', confidence:'High', risk:'Low',
@@ -2251,9 +2260,12 @@ function buildFullResponse(rows){
   // Dependency-aware client wording: an included link can depend on a separately
   // approved new destination page. Keep the two scope decisions independent.
   const hasAdditionalPricingPage = additional.some(x => /\b(?:new\s+)?pricing\s+page\b/i.test(String(x.q||'')) && /\b(?:add|create|build|develop|publish)\b/i.test(String(x.q||'')));
-  const hasIncludedServicesPricingLink = included.some(x => /\bservices\s+page\b/i.test(String(x.q||'')) && /\b(?:link|point|redirect)\b/i.test(String(x.q||'')) && /\bpricing\b/i.test(String(x.q||'')));
+  const hasIncludedServicesPricingLink = included.some(x =>
+    /\bservices\s+page\b/i.test(String(x.q||'')) &&
+    /\b(?:link|point|redirect)\b/i.test(String(x.q||''))
+  );
   if(hasAdditionalPricingPage && hasIncludedServicesPricingLink){
-    lines.push('The Services-to-Pricing link is treated separately from creating the Pricing page. The link change fits the existing-page link allowance, but it can be implemented once the Pricing page has been approved and created.');
+    lines.push('The Services-page link change is treated separately from creating the Pricing page. The link itself fits the existing-page link allowance; implementation depends on the Pricing page being approved and created first.');
   }
   if(additional.length){ lines.push(style==='warm'?'If you’d like to proceed, we can confirm the approval, agreed fee and any timeline adjustment before implementation.':'If you’d like to proceed, we can confirm the approval, agreed fee and any timeline adjustment before implementation.'); }
   else if(clarify.length){ lines.push(style==='warm'?'Once you confirm the specific change, I can confirm whether it fits within the agreed scope.':'Once you confirm the specific change, I can confirm whether it fits within the agreed scope.'); }

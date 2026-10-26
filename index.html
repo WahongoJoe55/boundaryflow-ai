@@ -861,7 +861,15 @@ function classify(q,a,context){
   // must be classified before any generic "new page" evidence can fire.
   // The Pricing page is only the link destination; the requested work is the
   // Services-page content/link modification.
-  const cDependency07Source = [raw, context && context.original ? normalize(context.original) : ''].filter(Boolean).join(' ');
+  // Include the complete original client message as context. A short follow-up
+  // such as “link it from the Services page” may omit the destination and the
+  // action wording, even though the preceding sentence identifies the Pricing
+  // page and the full message makes the relationship clear.
+  const cDependency07Source = [
+    raw,
+    context && context.original ? normalize(context.original) : '',
+    context && context.originalMessage ? normalize(context.originalMessage) : ''
+  ].filter(Boolean).join(' ');
   const cDependency07ServicesLink =
     /\bservices\s+page\b/i.test(cDependency07Source) &&
     /\b(?:link|links)\b/i.test(cDependency07Source) &&

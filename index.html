@@ -857,6 +857,24 @@ function classify(q,a,context){
   }
   const raw=normalize(q), A=normalize(a);
 
+  // C-DEPENDENCY-17: hard-prioritize an explicit request to create a new page.
+  // The complete client message may also mention an included link to that page;
+  // that neighboring link context must never override the deliverable being created.
+  // Anchor to the atomic request itself, not the full message, to avoid treating
+  // a link whose destination is a new page as a page-creation request.
+  const c17ExplicitNewPageCreation = /^(?:please\s+)?(?:add|create|build|develop|publish|prepare)\s+(?:(?:a|an|the)\s+)?(?:new\s+)?[a-z0-9 &-]+\s+page\b/i.test(raw) &&
+    !/\b(?:link|point|direct|send|refer|take|navigate|open)\b[\s\S]*\b(?:to|toward|towards|from)\b/i.test(raw);
+  if(c17ExplicitNewPageCreation && hasAny(A,['new pages require separate approval','new pages','new page','pages require separate approval'])){
+    return {
+      type:'Change request / new page', status:'Likely additional', confidence:'High', risk:'High',
+      evidence:scopeEvidence(A,['new pages require separate approval','new pages','new page','pages require separate approval']),
+      action:'Treat the requested new page as a separate scope item and confirm approval, fee and timeline before implementation.',
+      boundary:'The agreement explicitly requires separate approval for new pages. A link to that page is a separate existing-page action and does not make page creation included.',
+      response:'Creating the new Pricing page requires separate approval under the agreed scope. We can confirm approval, any fee and timeline adjustment first; the Services-page link can be implemented once the page is approved and created.',
+      claims:[], request:raw
+    };
+  }
+
   // C-DEPENDENCY-07 surgical precedence: this exact existing-page action
   // must be classified before any generic "new page" evidence can fire.
   // The Pricing page is only the link destination; the requested work is the
@@ -931,8 +949,8 @@ function classify(q,a,context){
   // link. Scope classification is per atomic request: creating the new page must
   // reach the explicit new-page rule below; only the separate link requests use
   // the existing-page minor-link allowance.
-  const c07IsExplicitNewPageCreation = /\b(?:add|create|build|develop|publish|prepare)\s+(?:a|an|the|new)\s+(?:new\s+)?[a-z0-9 -]+\s+page\b/i.test(raw) ||
-    /\bnew\s+[a-z0-9 -]+\s+page\b/i.test(raw) && !/\b(?:link|point|direct|send|refer|take|navigate|open)\b[\s\S]*\b(?:to|toward|towards|from)\b/i.test(raw);
+  const c07IsExplicitNewPageCreation = /^(?:please\s+)?(?:add|create|build|develop|publish|prepare)\s+(?:(?:a|an|the)\s+)?(?:new\s+)?[a-z0-9 &-]+\s+page\b/i.test(raw) &&
+    !/\b(?:link|point|direct|send|refer|take|navigate|open)\b[\s\S]*\b(?:to|toward|towards|from)\b/i.test(raw);
   if((cDependency07ServicesLink || c07ResolvedServicesLink) && !c07IsExplicitNewPageCreation){
     return {
       type:'Content/link change on existing page', status:'Likely included', confidence:'High', risk:'Low',

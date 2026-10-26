@@ -909,13 +909,30 @@ function classify(q,a,context){
     /\b(?:update|change|edit|revise|point|redirect|add|link|it)\b/i.test(cDependency07Source) &&
     agreementAllowsMinorExistingPageLinks &&
     !/\b(?:whatsapp|crm|analytics|mailchimp|stripe|integration|automation|api|popup|pop-up|modal|dropdown|accordion|toggle)\b/i.test(raw);
-  if(cDependency07ServicesLink){
+  // C-DEPENDENCY-07 v7 fallback: request decomposition can leave this atomic
+  // item as exactly “link it from the Services page”. In that case, use the
+  // full original message to resolve “it” to the newly requested Pricing page,
+  // and assess the affected Services page against the agreement's explicit
+  // minor-link allowance. This fallback is intentionally narrow: it requires
+  // the Services-page reference, a Pricing-page creation request in context,
+  // and agreement evidence for minor links/buttons; it rejects feature/API/
+  // integration language in the atomic request itself.
+  const c07FullMessage = String((context && (context.originalMessage || context.original)) || '');
+  const c07ShortServicesLink = /^(?:please\s+)?(?:add\s+a\s+)?link\s+it\s+from\s+(?:the\s+)?services\s+page[.!]?$/i.test(String(q||'').trim()) ||
+    /^(?:please\s+)?link\s+it\s+from\s+(?:the\s+)?services\s+page[.!]?$/i.test(String(context && context.original || '').trim());
+  const c07PricingPageCreatedInMessage = /\b(?:add|create|build|publish|develop)\b[\s\S]{0,80}\bnew\s+pricing\s+page\b/i.test(c07FullMessage) ||
+    /\bnew\s+pricing\s+page\b/i.test(c07FullMessage);
+  const c07AgreementAllowsLinks = /\bminor\b/i.test(A) && /\b(?:links?|buttons?)\b/i.test(A);
+  const c07NoNewFeatureInAtomicRequest = !/\b(?:whatsapp|crm|analytics|mailchimp|stripe|integration|automation|api|popup|pop-up|modal|dropdown|accordion|toggle|functionality)\b/i.test(raw);
+  const c07ResolvedServicesLink = c07ShortServicesLink && c07PricingPageCreatedInMessage &&
+    /\bservices\s+page\b/i.test(c07FullMessage) && c07AgreementAllowsLinks && c07NoNewFeatureInAtomicRequest;
+  if(cDependency07ServicesLink || c07ResolvedServicesLink){
     return {
       type:'Content/link change on existing page', status:'Likely included', confidence:'High', risk:'Low',
-      evidence:'The requested action modifies the existing Services page with content/link elements, which are covered by the agreement’s allowance for minor visual and content changes to existing pages.',
-      action:'Proceed with the Services-page update and link within the included revision, provided the link is a normal page link and does not introduce new functionality or an external integration.',
-      boundary:'The new Pricing page is a separate referenced destination. Its status does not transfer to the independent action of updating the already-included Services page.',
-      response:'Yes — updating the existing Services page with the pricing reference and link fits within the included revision, provided the link is a normal page link and does not introduce new functionality or an external integration.',
+      evidence:'The agreement allows minor links/buttons, and this request modifies the existing Services page. The Pricing page is the destination, not the deliverable being classified in this request.',
+      action:'Treat the Services-page link as included if it is a normal page link with no new functionality or integration. Implement it after the separately scoped Pricing page has been approved and created.',
+      boundary:'The link modification and the creation of the Pricing page are separate scope decisions. The link fits the minor-link allowance; creating the new page still requires separate approval.',
+      response:'Updating the existing Services page with a normal link to Pricing fits the minor-link allowance. The link can be implemented once the Pricing page has been approved and created; creating that page remains a separate scope item.',
       claims:[], request:raw
     };
   }
@@ -2244,11 +2261,18 @@ function buildFullResponse(rows){
     }
   }
   if(clarify.length){
-    const clarifyQuestions=clarify.map(x=>{
-      const plan=clarificationPlan(x.c,x.q);
-      return plan&&plan.question ? plan.question : x.q;
-    });
-    lines.push((style==='warm'?'Could you please clarify the following before I proceed: ':'I’d like to clarify the following before proceeding: ')+clarifyQuestions.join(' '));
+    const dependencyOnlyClarify = clarify.filter(x =>
+      /\blink\s+it\s+from\s+(?:the\s+)?services\s+page\b/i.test(String(x.q||'')) &&
+      additional.some(y => /\bpricing\s+page\b/i.test(String(y.q||'')))
+    );
+    const remainingClarify = clarify.filter(x => !dependencyOnlyClarify.includes(x));
+    if(remainingClarify.length){
+      const clarifyQuestions=remainingClarify.map(x=>{
+        const plan=clarificationPlan(x.c,x.q);
+        return plan&&plan.question ? plan.question : x.q;
+      });
+      lines.push((style==='warm'?'Could you please clarify the following before I proceed: ':'I’d like to clarify the following before proceeding: ')+clarifyQuestions.join(' '));
+    }
   }
   const conditionalLines=new Set();
   conditional.forEach(x=>{

@@ -2180,6 +2180,29 @@ function analyze(){
   let rows=[];
   contextualItems.forEach(item=>{
     const c=classify(item.resolved,a,Object.assign({},item,{originalMessage:r}));
+    // C-DEPENDENCY-18: final per-item safety guard. Classification must be
+    // grounded in the atomic request displayed to the freelancer. A broad
+    // existing-page-link rule can otherwise leak across neighboring requests
+    // because the full message mentions both a new page and its link.
+    // Explicitly creating a new page is additional when the agreement reserves
+    // new pages for separate approval, regardless of adjacent link wording.
+    const atomicRequestText=String(item.resolved||item.original||'').trim();
+    const explicitPageCreationAtomic=/^(?:please\s+)?(?:add|create|build|develop|publish|prepare)\s+(?:(?:a|an|the)\s+)?new\s+[a-z0-9 &-]+?\s+page[.!]?$/i.test(atomicRequestText);
+    const agreementRequiresPageApproval=/\bnew\s+pages?\b[\s\S]{0,100}\b(?:separate\s+approval|separately\s+approved|approval)\b/i.test(a) || /\b(?:separate\s+approval|separately\s+approved)\b[\s\S]{0,100}\bnew\s+pages?\b/i.test(a);
+    if(explicitPageCreationAtomic && agreementRequiresPageApproval){
+      c.type='Change request / new page';
+      c.status='Likely additional';
+      c.confidence='High';
+      c.risk='High';
+      c.evidence='Agreement evidence found: new pages require separate approval.';
+      c.detected='Change request / new page';
+      c.actual=atomicRequestText;
+      c.request=atomicRequestText;
+      c.boundary='The agreement reserves new pages for separate approval. An included link change on an existing page does not make creation of the new page included.';
+      c.action='Treat the new page as a separate scope item and confirm approval, fee and timeline before implementation.';
+      c.response='Creating the new page requires separate approval under the agreed scope. We can confirm approval, any fee and timeline adjustment first; the existing-page link can be implemented once the destination page is approved and created.';
+      c.why='The atomic request creates a new page, and the agreement requires separate approval for new pages.';
+    }
     if(parsed.claims.length && c.status!=='Client claim') c.claims=parsed.claims.slice();
     c.originalRequest=item.original;
     c.resolvedRequest=item.resolved;

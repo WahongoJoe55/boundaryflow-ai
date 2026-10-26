@@ -926,7 +926,14 @@ function classify(q,a,context){
   const c07NoNewFeatureInAtomicRequest = !/\b(?:whatsapp|crm|analytics|mailchimp|stripe|integration|automation|api|popup|pop-up|modal|dropdown|accordion|toggle|functionality)\b/i.test(raw);
   const c07ResolvedServicesLink = c07ShortServicesLink && c07PricingPageCreatedInMessage &&
     /\bservices\s+page\b/i.test(c07FullMessage) && c07AgreementAllowsLinks && c07NoNewFeatureInAtomicRequest;
-  if(cDependency07ServicesLink || c07ResolvedServicesLink){
+  // Do not let a link-related rule classify the page-creation request itself
+  // as included just because the full client message also mentions a Services-page
+  // link. Scope classification is per atomic request: creating the new page must
+  // reach the explicit new-page rule below; only the separate link requests use
+  // the existing-page minor-link allowance.
+  const c07IsExplicitNewPageCreation = /\b(?:add|create|build|develop|publish|prepare)\s+(?:a|an|the|new)\s+(?:new\s+)?[a-z0-9 -]+\s+page\b/i.test(raw) ||
+    /\bnew\s+[a-z0-9 -]+\s+page\b/i.test(raw) && !/\b(?:link|point|direct|send|refer|take|navigate|open)\b[\s\S]*\b(?:to|toward|towards|from)\b/i.test(raw);
+  if((cDependency07ServicesLink || c07ResolvedServicesLink) && !c07IsExplicitNewPageCreation){
     return {
       type:'Content/link change on existing page', status:'Likely included', confidence:'High', risk:'Low',
       evidence:'The agreement allows minor links/buttons, and this request modifies the existing Services page. The Pricing page is the destination, not the deliverable being classified in this request.',

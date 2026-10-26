@@ -870,20 +870,29 @@ function classify(q,a,context){
     context && context.original ? normalize(context.original) : '',
     context && context.originalMessage ? normalize(context.originalMessage) : ''
   ].filter(Boolean).join(' ');
+  const agreementAllowsMinorExistingPageLinks = hasAny(A,[
+    'minor visual and content changes to existing pages',
+    'minor visual and content changes to existing page',
+    'minor buttons and links on existing pages are included',
+    'minor buttons/links',
+    'minor buttons and links',
+    'minor link changes',
+    'content changes to existing pages'
+  ]) || (
+    /\bminor\b/i.test(A) &&
+    /\b(?:button|buttons|link|links|content)\b/i.test(A) &&
+    /\bexisting pages?\b/i.test(A) &&
+    !/\b(?:new functionality|integration|integrations)\b/i.test(cDependency07Source)
+  );
+  // Treat the two link phrasings as the same kind of existing-page action only
+  // when the complete message identifies Pricing as the destination and the
+  // agreement explicitly allows minor existing-page links/content changes.
   const cDependency07ServicesLink =
     /\bservices\s+page\b/i.test(cDependency07Source) &&
     /\b(?:link|links)\b/i.test(cDependency07Source) &&
     /\bpricing\b/i.test(cDependency07Source) &&
     /\b(?:update|change|edit|revise|point|redirect|add|link)\b/i.test(cDependency07Source) &&
-    hasAny(A,[
-      'minor visual and content changes to existing pages',
-      'minor visual and content changes to existing page',
-      'minor buttons and links on existing pages are included',
-      'minor buttons/links',
-      'minor buttons and links',
-      'minor link changes',
-      'content changes to existing pages'
-    ]);
+    agreementAllowsMinorExistingPageLinks;
   if(cDependency07ServicesLink){
     return {
       type:'Content/link change on existing page', status:'Likely included', confidence:'High', risk:'Low',

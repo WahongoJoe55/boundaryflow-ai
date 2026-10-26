@@ -2170,13 +2170,13 @@ function buildFullResponse(rows){
     return '<div class="scope-response"><h3>Full-scope client response</h3><div class="note">Generated from BoundaryFlow’s decisions. Choose a communication style without changing the underlying scope analysis.</div><div class="response">'+esc(lines.join(' '))+'</div><div class="copybar"><button class="btn accent" data-copy-all="1">Copy full response</button><button class="btn secondary" data-save="1">Save analysis</button></div></div>';
   }
   if(included.length){
-    if(clarify.length){
-      lines.push(style==='warm'
-        ? 'Based on your clarification, I understand the requested change to be a minor visual or content update to the existing page, which fits within the current scope.'
-        : 'Based on your clarification, I understand the requested change to be a minor visual or content update to the existing page, which fits within the current scope.');
-    } else {
-      lines.push((style==='warm'?'These changes can be handled within the current scope. ':'These changes fit within the current scope: ')+joinRequests(included)+'.');
-    }
+    // State only the actual requests classified as included. Do not invent a
+    // prior clarification or generic description that may conflict with other
+    // requests in the same client message.
+    const includedItems=joinRequests(included);
+    lines.push(style==='warm'
+      ? 'The following change appears to fit within the current scope: '+includedItems+'.'
+      : 'The following request is classified as likely included under the agreed scope: '+includedItems+'.');
   }
   if(additional.length){
     const additionalClarified=additional.some(x=>x.c.status==='Likely additional' && x.c.clarification && x.c.clarification.answer);
@@ -2190,9 +2190,7 @@ function buildFullResponse(rows){
         lines.push('Thanks for clarifying. '+understood+' That introduces new functionality beyond the agreed scope, so it would need separate approval before implementation.');
       }
     } else {
-      lines.push(style==='firm'
-        ? 'The requested change is outside the agreed scope and would need separate approval before implementation.'
-        : 'The requested change is outside the agreed scope and would need separate approval before implementation.');
+      lines.push('The following request'+(additional.length===1?' is':'s are')+' classified as likely additional work and would need separate approval before implementation: '+joinRequests(additional)+'.');
     }
   }
   if(clarify.length){
@@ -2215,7 +2213,7 @@ function buildFullResponse(rows){
     }
   });
   if(constraints.length){ lines.push('I’ll keep the rest of the agreed work unchanged while we handle the specific requested changes.'); }
-  if(claims.length){ lines.push('I understand your expectation that this is included in the current revision. I’ll confirm that against the specific underlying deliverable before treating it as in-scope.'); }
+  if(claims.length){ lines.push('I’ve noted your view that the work should be included. I’ll assess each underlying request against the agreed scope rather than treating that view alone as confirmation of inclusion.'); }
   if(additional.length){ lines.push(style==='warm'?'If you’d like to proceed, we can confirm the approval, agreed fee and any timeline adjustment before implementation.':'If you’d like to proceed, we can confirm the approval, agreed fee and any timeline adjustment before implementation.'); }
   else if(clarify.length){ lines.push(style==='warm'?'Once you confirm the specific change, I can confirm whether it fits within the agreed scope.':'Once you confirm the specific change, I can confirm whether it fits within the agreed scope.'); }
   else if(conditional.length){ lines.push('Please confirm the relevant condition before implementation.'); }

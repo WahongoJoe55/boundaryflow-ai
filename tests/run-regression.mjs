@@ -30,7 +30,8 @@ try {
     return route.abort();
   });
   const page=await context.newPage();
-  page.on('pageerror',error=>console.error('Browser page error:',error.message));
+  page.on('pageerror',error=>console.error('Browser page error:',error.stack||error.message));
+  page.on('console',message=>{if(message.type()==='error')console.error('Browser console error:',message.text());});
   const response=await page.goto('http://127.0.0.1:4173/tests/engine-regression-runner.html',{waitUntil:'domcontentloaded'});
   if(!response?.ok()) throw new Error('Regression runner failed to load.');
   await page.locator('#run').click();

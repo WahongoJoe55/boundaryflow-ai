@@ -88,3 +88,18 @@ Before a production version is promoted:
 4. Add a regression case for every confirmed defect.
 5. Re-run the complete matrix after each engine change.
 6. Keep the production `main` branch unchanged until the candidate is reviewed and accepted.
+
+| BF-L01 | Record original scope baseline with provenance. | Add a baseline record with source date. | Verify source type, date and recorded timestamp. |
+| BF-L02 | Append amendment without replacing baseline. | Add an amendment after baseline. | Both entries remain separate and chronological. |
+| BF-L03 | Require a project name. | Attempt a write with no project name. | Reject ambiguous project association. |
+| BF-L04 | Require record details. | Attempt an approval with empty details. | Reject incomplete evidence records. |
+| BF-L05 | Distinguish client assertion from approval. | Record a client assertion. | Display that an assertion does not establish approval. |
+| BF-L06 | Isolate project ledgers. | Add a record to Alpha, then open Beta. | Beta remains empty. |
+| BF-L07 | Isolate account ledgers. | Add under Account A, then switch to B. | Account B cannot read A's record. |
+| BF-L08 | Append revision events. | Record two revisions. | Preserve both in original order. |
+| BF-L09 | Require signed-in context. | Attempt a write without user ID. | Reject unauthenticated writes. |
+| BF-L10 | Escape untrusted content. | Record markup-like title and details. | No injected HTML elements are rendered. |
+
+## Ledger release gate
+
+The ledger is browser-local and append-only. It is not cloud-synced, independently authenticated, or a replacement for original agreements and approval records. Any future cloud persistence requires a separately reviewed tenant-scoped schema and RLS migration. No local ledger records are silently uploaded.

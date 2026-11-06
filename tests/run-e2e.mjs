@@ -44,6 +44,8 @@ try{
   page.on('pageerror',e=>pageErrors.push(e.stack||e.message));
   const response=await page.goto('http://127.0.0.1:4174/index.html',{waitUntil:'domcontentloaded'});
   if(!response?.ok())throw new Error('Candidate application did not load.');
+  // Enter the authenticated workspace presentation with a synthetic test identity; no real sign-in or cloud client is used.
+  await page.evaluate(()=>{document.body.classList.remove('bf-auth-checking');document.body.classList.add('bf-authenticated')});
   await page.locator('#analyzeBtn').waitFor({state:'visible',timeout:10000});
   await page.waitForFunction(()=>typeof window.analyze==='function'&&typeof window.bfLedgerAdd==='function');
   check('Candidate application loads with analysis and ledger controls',true);

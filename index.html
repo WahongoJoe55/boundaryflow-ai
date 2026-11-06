@@ -3725,7 +3725,7 @@ function bfLedgerAnalysisContext(baseScope){
 }
 function bfLedgerAdd(record){
  if(!window.__bfUserId)throw new Error('Sign in before recording project evidence.');
- if(!bfLedgerProjectName())throw new Error('Enter a project / client name before adding a ledger record.');
+ if(!bfLedgerProjectName())throw new Error('Enter a project name before adding a ledger record.');
  const title=String(record&&record.title||'').trim(),detail=String(record&&record.detail||'').trim();
  if(!title||!detail)throw new Error('A short title and the relevant wording/details are required.');
  if(title.length>120||detail.length>6000)throw new Error('The title or details exceed the allowed length.');

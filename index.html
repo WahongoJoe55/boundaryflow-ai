@@ -2327,7 +2327,7 @@ function classify(q,a,context){
     /\bhomepage\b/i.test(s);
   const existingPageLookRefinement = /\b(?:make|keep|leave)\s+(?:the\s+)?(?:home(?:page)?|about|services|contact|blog|faq)\s+page\s+look\s+(?:cleaner|polished|polished?er|neater|tidier|better)\b/i.test(s);
   if(existingPageVisualTarget &&
-     (existingPageLookRefinement || hasAny(s,['more polished','more premium','more modern','polish the','make the services page look','make the homepage look','improve the ' + revisionPageLabel.toLowerCase() + ' layout','improve the layout','visual improvement','visual improvements'])) &&
+     (existingPageLookRefinement || hasAny(s,['more polished','more premium','more modern','polish the','make the services page look','make the homepage look','improve the homepage layout','improve the layout','visual improvement','visual improvements'])) &&
      hasAny(A,['reasonable content and visual changes to existing pages','reasonable visual improvements to existing pages','visual improvements to existing pages','minor visual adjustments to existing pages','small visual and layout corrections','small visual','minor visual'])){
     return {
       type:'Visual/presentation change', status:'Likely included', confidence:'High',

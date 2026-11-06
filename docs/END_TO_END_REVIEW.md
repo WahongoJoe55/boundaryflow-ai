@@ -2,14 +2,14 @@
 
 ## Candidate automated verification
 
-- GitHub Actions run: #154
-- Result: **18 / 18 checks passed**
-- Candidate commit: `ee779aab8c634f6dc62e859309419ee2e1d072d4`
-- Run: https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/42279266602
+- GitHub Actions run: #156
+- Result: **21 / 21 browser checks passed** and **69 / 69 reasoning/ledger regression scenarios passed**
+- Candidate commit: `f3dab7a9db83924eb4af05f0728adbf55e8f2fa5`
+- Run: https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/42281143366
 - Mode: local browser execution against the actual candidate `index.html`, with deterministic simulated account identities.
 - External network access was blocked except for a stubbed Supabase library response. No real sign-in, Supabase queries, cloud writes, or production records were used.
 
-The engine/ledger regression suite also completed successfully: **69 / 69 scenarios passed** in the same workflow run. This run included the updated `Client Request Context` label and the expanded 12-step visual guide in the candidate HTML. Three additional browser assertions for guide structure/content and a guide screenshot were added to `tests/run-e2e.mjs` immediately afterward; those new assertions are awaiting a fresh workflow run and are not included in the 18/18 result above.
+The engine/ledger regression suite also completed successfully: **69 / 69 scenarios passed** in the same workflow run. The 21 browser checks include the updated `Client Request Context` label, the complete 12-step visual guide, explanations of ledger purpose/storage/export limitations, and a guide screenshot. All three guide-specific assertions passed.
 
 ## Scenarios exercised
 
@@ -32,7 +32,7 @@ The engine/ledger regression suite also completed successfully: **69 / 69 scenar
 17. Returning to the original account restores its ledger.
 18. No uncaught browser JavaScript errors occurred.
 
-The follow-up E2E test revision additionally checks that the updated 12-step guide opens, explains ledger purpose/storage/export limits, uses the clearer request-context terminology, and captures a guide screenshot. These assertions require a fresh run before they can be reported as passed.
+The guide-specific checks are now included in the successful 21/21 browser result above.
 
 ## Separate live production smoke test — 6 November 2026
 
@@ -65,4 +65,4 @@ The browser-level candidate workflow passed for the analysis engine, project-loc
 
 ## Release decision
 
-**Keep this pull request in draft. Do not merge or deploy yet.** Candidate automated tests pass, and the deployed production build passed the narrow live sync/persistence/retry check. Before release, update the development branch against the current base, inspect the resulting combined diff, and run an appropriate candidate-specific live smoke test if the candidate changes cloud-related behavior. Any release must be explicitly approved before merging or deploying.
+**Keep this pull request in draft. Do not merge or deploy yet.** Candidate automated tests pass, and the deployed production build passed the narrow live sync/persistence/retry check. The latest base comparison shows the development branch is 118 commits ahead and 1 behind main. The sole base-only commit (80a80694) adds a separate BoundaryFlow_AI_v89_test.html test build; it does not modify production index.html or conflict with the candidate. GitHub currently reports the PR as mergeable. Keep the PR in draft until the combined diff is reviewed and release approval is given. Run an appropriate candidate-specific live smoke test if candidate cloud-related behavior changes. Any release must be explicitly approved before merging or deploying.

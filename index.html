@@ -3015,6 +3015,7 @@ function renderResults(){
   document.getElementById('out').innerHTML=fullResponse+
     '<div class="metrics"><div class="metric"><b>'+rows.filter(x=>String(x.c&&x.c.status||'').toLowerCase()!=='client claim').length+'</b><span>Requests detected</span></div><div class="metric"><b>'+i+'</b><span>Likely included</span></div><div class="metric"><b>'+cf+'</b><span>Clarify / conflict</span></div><div class="metric"><b>'+x+'</b><span>Likely additional</span></div><div class="metric"><b>'+cl+'</b><span>Client claims</span></div><div class="metric"><b>'+h+'</b><span>High-confidence requests</span></div></div>'+
     (distinctClaims.length?'<div class="card" style="margin-top:12px"><b>Separate client claim</b><p class="note">'+esc(distinctClaims.map(function(v){return v;}).join(' '))+'</p><p class="note">This claim is recorded separately and assessed in relation to the relevant request. It does not change the request’s classification by itself.</p></div>':'')+
+    bfR2Panel(window.bfReasoningV2)+
     rows.map((z,n)=>{
     let rr=risk(z.c.status);
     return '<div class="req"><div class="top"><div><b>'+(String(z.c.status).toLowerCase()==='client claim'?'Client claim '+rows.slice(0,n+1).filter(function(v){return String(v.c.status).toLowerCase()==='client claim';}).length:'Request '+rows.slice(0,n+1).filter(function(v){return String(v.c.status).toLowerCase()!=='client claim' && v.c.type!=='Constraint / instruction';}).length)+'</b><div class="reqtext">'+esc(cleanRequest(z.q))+'</div></div></div>'+ 
@@ -3032,6 +3033,136 @@ function renderResults(){
       '<div class="section"><strong>Suggested client response</strong><div class="response" data-individual-response="'+n+'">'+esc(practicalClientResponse(z))+'</div></div><button class="btn secondary" data-copy="'+n+'">Copy response</button></div></div>';
   }).join('');
 }
+
+/* BoundaryFlow Reasoning Layer v2 — evidence diagnostics.
+   This layer never authenticates documents, silently resolves conflicts,
+   counts individual edits as revision rounds, or invents commercial terms. */
+function bfR2Normalize(s){return String(s||'').toLowerCase().replace(/[’]/g,"'").replace(/\s+/g,' ').trim();}
+function bfR2Clauses(s){return String(s||'').split(/(?<=[.!?;])\s+|\n+/).map(x=>x.trim()).filter(Boolean);}
+function bfR2Number(s){const v=String(s||'').toLowerCase();const m=v.match(/\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\b/);if(!m)return null;const map={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10};return /^\d+$/.test(m[1])?Number(m[1]):map[m[1]];}
+function bfR2Evidence(text){
+ const clauses=bfR2Clauses(text),out=[];
+ const patterns=[
+  {tier:1,label:'Signed agreement / executed contract',re:/\b(?:signed|executed)\s+(?:agreement|contract|statement of work|sow)\b|\b(?:agreement|contract|sow)\b[^.!?]{0,50}\b(?:signed|executed)\b/i},
+  {tier:2,label:'Signed amendment / approved change order',re:/\b(?:signed|approved|authori[sz]ed)\s+(?:amendment|variation|change order|change request)\b|\b(?:amendment|variation|change order)\b[^.!?]{0,70}\b(?:signed|approved|authori[sz]ed)\b/i},
+  {tier:3,label:'Written approval / email confirmation',re:/\b(?:email|e-mail|written message|written confirmation)\b[^.!?]{0,100}\b(?:approve|approved|authori[sz]e|authori[sz]ed|confirm|confirmed)\b|\b(?:approve|approved|authori[sz]e|authori[sz]ed|confirm|confirmed)\b[^.!?]{0,100}\b(?:email|e-mail|written)\b/i},
+  {tier:4,label:'Meeting notes / call record',re:/\b(?:meeting notes?|call notes?|minutes of (?:the )?meeting|record of (?:the )?call)\b/i},
+  {tier:5,label:'Client assertion / unsupported claim',re:/\b(?:client says|client claims|i thought|we discussed|as discussed|you promised|we agreed on the call)\b/i}
+ ];
+ clauses.forEach((clause,index)=>patterns.forEach(p=>{if(p.re.test(clause))out.push({tier:p.tier,label:p.label,clause,index,verification:'Source type is inferred from supplied wording only; authenticity, signatures, sender identity and authority are not verified.'});}));
+ return out;
+}
+function bfR2TopicState(clause){
+ const s=bfR2Normalize(clause);
+ const excluded=/\b(?:excluded|not included|outside (?:the )?(?:scope|agreement)|requires? separate approval|subject to separate approval|only with written approval)\b/.test(s);
+ const included=/\b(?:included|within (?:the )?scope|part of (?:the )?(?:scope|agreement)|covered by (?:the )?agreement)\b/.test(s);
+ if(excluded&&included)return 'mixed';
+ if(excluded)return 'excluded';
+ if(included)return 'included';
+ return '';
+}
+function bfR2Topics(clause){
+ const s=bfR2Normalize(clause),topics=[];
+ const map=[
+  ['new pages',/\bnew\s+pages?\b|\bpage creation\b/],
+  ['new functionality',/\bnew functionality\b|\bnew features?\b|\bbooking form\b/],
+  ['integrations',/\bintegrations?\b|\bthird.party connections?\b/],
+  ['revisions',/\brevision rounds?\b|\brevisions?\b/],
+  ['SEO',/\bseo\b|\bsearch engine optimisation\b|\bkeyword research\b/],
+  ['migration',/\bmigrat(?:e|ion|ing)\b|\bdata import\b/],
+  ['maintenance',/\bmaintenance\b|\bpost.launch support\b/],
+  ['training',/\btraining\b|\bwalkthrough session\b/],
+  ['source files',/\bsource files?\b|\beditable working files?\b/],
+  ['content sections',/\bcontent sections?\b|\btestimonial sections?\b/],
+  ['workshops',/\bworkshops?\b|\bstrategy sessions?\b/]
+ ];
+ map.forEach(([name,re])=>{if(re.test(s))topics.push(name);});
+ return topics;
+}
+function bfR2Contradictions(text){
+ const clauses=bfR2Clauses(text),hits=[];
+ for(let i=0;i<clauses.length;i++){
+  const stateA=bfR2TopicState(clauses[i]);if(!stateA||stateA==='mixed')continue;
+  const topicsA=bfR2Topics(clauses[i]);
+  for(let j=i+1;j<clauses.length;j++){
+   const stateB=bfR2TopicState(clauses[j]);if(!stateB||stateB==='mixed'||stateA===stateB)continue;
+   const common=topicsA.filter(t=>bfR2Topics(clauses[j]).includes(t));
+   if(!common.length)continue;
+   const later=clauses[j],supersedes=/\b(?:supersedes|replaces|amends|overrides)\b/i.test(later);
+   hits.push({topic:common[0],earlier:clauses[i],later,kind:supersedes?'Possible superseding term':'Conflicting scope statements',resolution:supersedes?'The later clause expressly uses superseding language, but authority, date and approval still need verification.':'Do not choose one clause automatically. Check document dates, signatures, approval conditions and whether the later record validly changes the earlier term.'});
+  }
+ }
+ return hits;
+}
+function bfR2Revision(text,message){
+ const a=String(text||''),m=String(message||'');
+ const allowanceClauses=bfR2Clauses(a).filter(x=>/\brevision rounds?\b/i.test(x)&&/\b(?:included|allowed|provided|maximum|up to)\b/i.test(x));
+ let allowance=null;
+ allowanceClauses.forEach(x=>{const n=bfR2Number(x);if(n!==null)allowance=n;});
+ const usedMatches=[...m.matchAll(/\b(?:first|one|second|two|third|three|fourth|four|fifth|five|\d+)\s+(?:included\s+)?revision rounds?\s+(?:has\s+been\s+|have been\s+|was\s+|were\s+)?(?:used|completed|exhausted)\b/gi)];
+ let completed=null;
+ if(usedMatches.length){completed=0;usedMatches.forEach(x=>{const n=bfR2Number(x[0]);if(n!==null)completed=Math.max(completed,n);});}
+ const currentMatch=m.match(/\b(?:second|third|fourth|fifth|\d+)(?:\s+included)?\s+revision round\b/i);
+ const current=currentMatch?bfR2Number(currentMatch[0]):null;
+ return {allowance,completed,current,remaining:allowance!==null&&completed!==null?Math.max(0,allowance-completed):null,confidence:allowance!==null&&completed!==null?'Explicit text count; verify against the project history.':'Insufficient explicit usage records to calculate remaining rounds.',warning:allowance!==null&&completed===null?'The agreement states an allowance, but the supplied message does not establish how many rounds have actually been completed.':(allowance===null?'No numeric revision-round allowance was found.':'Do not count individual edits as separate revision rounds.')};
+}
+function bfR2Dependencies(message,rows){
+ const text=String(message||''),edges=[];
+ const rules=[
+  {re:/\b(?:after|once|when|following)\s+([^,.;!?]{3,100})[,;:]?\s*(?:then\s+)?(?:please\s+)?([^.!?]{3,120})/ig,kind:'sequence'},
+  {re:/\b([^,.;!?]{3,100})\s+(?:depends on|is dependent on|is conditional on)\s+([^.!?]{3,100})/ig,kind:'dependency'},
+  {re:/\b(?:only after|subject to|provided that)\s+([^,.;!?]{3,100})/ig,kind:'condition'}
+ ];
+ rules.forEach(rule=>{let m;while((m=rule.re.exec(text))){edges.push({kind:rule.kind,source:m[1].trim(),target:(m[2]||'').trim(),evidence:m[0].trim(),status:'Inferred from wording; confirm before treating as a delivery commitment.'});}});
+ if(rows&&rows.length>1){
+  const created=rows.find(x=>/\b(?:create|build|develop|publish)\b[\s\S]{0,70}\bnew\b[\s\S]{0,50}\bpage\b/i.test(String(x.q||'')));
+  const linked=rows.find(x=>x!==created&&/\b(?:link|button)\b/i.test(String(x.q||'')));
+  if(created&&linked&&!edges.some(e=>/after|once|depend/i.test(e.evidence)))edges.push({kind:'likely prerequisite',source:String(linked.q||''),target:String(created.q||''),evidence:'The link destination appears to be the newly requested page.',status:'Likely dependency inferred from the two requests; approval and creation must precede linking.'});
+ }
+ return edges;
+}
+function bfR2Commercial(text,message,rows){
+ const source=String(text||'')+' '+String(message||'');
+ const generated=(rows||[]).flatMap(x=>[x.c&&x.c.action,x.c&&x.c.response].filter(Boolean)).join(' ');
+ const amountRe=/(?:[$£€]\s?\d[\d,]*(?:\.\d{1,2})?|\b(?:USD|GBP|EUR|KES|KSh)\s?\d[\d,]*(?:\.\d{1,2})?)/gi;
+ const dateRe=/\b(?:by|before|within|in)\s+(?:\d+\s+(?:business\s+)?days?|monday|tuesday|wednesday|thursday|friday|saturday|sunday|\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?)\b/gi;
+ const sourceAmounts=source.match(amountRe)||[],generatedAmounts=generated.match(amountRe)||[];
+ const sourceDates=source.match(dateRe)||[],generatedDates=generated.match(dateRe)||[];
+ const ungroundedAmounts=generatedAmounts.filter(v=>!sourceAmounts.some(s=>bfR2Normalize(s)===bfR2Normalize(v)));
+ const ungroundedDates=generatedDates.filter(v=>!sourceDates.some(s=>bfR2Normalize(s)===bfR2Normalize(v)));
+ return {ungroundedAmounts,ungroundedDates,warning:ungroundedAmounts.length||ungroundedDates.length?'Potential unsupported commercial detail detected in a generated action/response. Remove it or ground it in supplied evidence.':'No unsupported numeric fee or explicit deadline was detected by this safeguard. This is a pattern check, not a guarantee.'};
+}
+function bfR2Inspect(agreement,message,rows){
+ const clauses=bfR2Clauses(agreement);
+ return {
+  version:'2.0.0',
+  evidence:bfR2Evidence(agreement),
+  contradictions:bfR2Contradictions(agreement),
+  revisions:bfR2Revision(agreement,message),
+  dependencies:bfR2Dependencies(message,rows),
+  commercial:bfR2Commercial(agreement,message,rows),
+  limits:['Document labels are not authentication.','A single pasted message cannot establish the complete project revision history.','Detected dependencies are suggestions, not verified delivery commitments.','A missing numeric fee or deadline must remain unspecified.'],
+  clauseCount:clauses.length
+ };
+}
+function bfR2Panel(data){
+ if(!data)return '';
+ const esc2=s=>esc(String(s||''));
+ const section=(title,body)=>'<div class="section"><strong>'+title+'</strong>'+body+'</div>';
+ const list=(arr,empty)=>arr&&arr.length?'<ul>'+arr.map(x=>'<li>'+esc2(x)+'</li>').join('')+'</ul>':'<p class="note">'+esc2(empty)+'</p>';
+ const ev=(data.evidence||[]).map(x=>x.label+' — '+x.clause+' ('+x.verification+')');
+ const con=(data.contradictions||[]).map(x=>x.topic+': '+x.earlier+' / '+x.later+' — '+x.resolution);
+ const dep=(data.dependencies||[]).map(x=>x.kind+': '+x.evidence+' — '+x.status);
+ const r=data.revisions||{},c=data.commercial||{};
+ return '<div class="card" style="margin-top:14px"><b>Reasoning safeguards · v'+esc2(data.version)+'</b><p class="note">Evidence and consistency checks. These flags do not authenticate documents or replace your review.</p>'+
+ section('Evidence sources found',list(ev,'No clearly labelled source types were detected. Paste or label the actual record if available.'))+
+ section('Potential agreement contradictions',list(con,'No opposing included/excluded statements were detected for the topics this check recognises.'))+
+ section('Revision allowance snapshot','<p class="note">Allowance: '+esc2(r.allowance===null?'Not established':r.allowance)+' · Completed: '+esc2(r.completed===null?'Not established':r.completed)+' · Current round mentioned: '+esc2(r.current===null?'Not established':r.current)+' · Remaining: '+esc2(r.remaining===null?'Cannot calculate':r.remaining)+'</p><p class="note">'+esc2(r.warning)+'</p>')+
+ section('Dependencies and sequence',list(dep,'No explicit dependency wording was detected.'))+
+ section('Commercial safeguards',list([...(c.ungroundedAmounts||[]).map(x=>'Unverified amount: '+x),...(c.ungroundedDates||[]).map(x=>'Unverified deadline: '+x),c.warning],'No commercial safeguard messages.'))+
+ section('Important limitations',list(data.limits,''))+'</div>';
+}
+
 function analyze(){
   let a=document.getElementById('a').value.trim(), r=document.getElementById('r').value.trim();
   if(!a||!r){document.getElementById('status').textContent='Please provide both fields.';return}
@@ -3292,6 +3423,7 @@ function analyze(){
   });
   const detectedRequests=rows.filter(x=>String(x.c&&x.c.status||'').toLowerCase()!=='client claim').length;
   document.getElementById('status').textContent='Analysis complete. '+detectedRequests+' request item'+(detectedRequests===1?'':'s')+' detected. '+(parsed.claims.length?(parsed.claims.length===1?'Client claim was':'Client claims were')+' separated from the requested work.':'No separate scope claim was detected.');
+  window.bfReasoningV2=bfR2Inspect(a,r,rows);
   renderResults();
 }
 function buildFullResponse(rows){

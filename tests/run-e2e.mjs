@@ -111,6 +111,28 @@ try{
   check('Portfolio revision usage is matched to the correct page',portfolio?.allowance===2&&portfolio?.completed===1&&portfolio?.remaining===1,JSON.stringify(portfolio||null));
   check('Analysis visibly explains ledger provenance and unverified claims',/user-recorded/i.test(alpha.output)&&/client assertions/i.test(alpha.output));
   check('Professional-language diagnostics remain internal while the visible decision stays factual',alpha.rows.some(x=>x.hasInternalLanguageAnalysis)&&! /Client Request Context|Related professional terms|Action language|Boundary dimensions in this exchange/i.test(alpha.output)&&! /language-context/i.test(await page.locator('#out').innerHTML()));
+  const specificity=await page.evaluate(()=>{
+    const cases=[
+      {name:'Careers page',status:'Conditional',request:'Create a new Careers page',expected:'careers page'},
+      {name:'Portfolio page',status:'Clarify',request:'Update the Portfolio page layout after the included revision',expected:'portfolio page'},
+      {name:'Contact form',status:'Conditional',request:'Fix the Contact form submit button',expected:'contact form'}
+    ];
+    return cases.map(x=>{
+      const base=window.clarificationPlan({status:x.status},x.request);
+      const plan=window.preserveClarificationSubject(base,{status:x.status},x.request);
+      return {name:x.name,expected:x.expected,needed:plan.needed||'',question:plan.question||'',why:plan.why||'',title:plan.title||''};
+    });
+  });
+  check('Careers-page clarification preserves the named page in its title, explanation and question',(()=>{const x=specificity[0];return [x.title,x.needed,x.question,x.why].join(' ').toLowerCase().includes('careers page')})(),JSON.stringify(specificity[0]));
+  check('Portfolio-page clarification preserves the named page in its title, explanation and question',(()=>{const x=specificity[1];return [x.title,x.needed,x.question,x.why].join(' ').toLowerCase().includes('portfolio page')})(),JSON.stringify(specificity[1]));
+  check('Contact-form clarification preserves the named form',(()=>{const x=specificity[2];return [x.title,x.needed,x.question,x.why].join(' ').toLowerCase().includes('contact form')})(),JSON.stringify(specificity[2]));
+  const genericSpecificity=await page.evaluate(()=>{
+    const request='Please review the current work';
+    const base=window.clarificationPlan({status:'Conditional'},request);
+    return window.preserveClarificationSubject(base,{status:'Conditional'},request);
+  });
+  check('Generic request does not acquire an invented deliverable name',! /careers|portfolio|contact form|booking page/i.test([genericSpecificity.title,genericSpecificity.needed,genericSpecificity.question,genericSpecificity.why].join(' ')));
+
 
   // Capture the real candidate UI for human visual review; test identities and cloud remain simulated.
   fs.mkdirSync(path.join(root,'test-results'),{recursive:true});

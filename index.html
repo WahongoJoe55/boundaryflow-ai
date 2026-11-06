@@ -3050,7 +3050,7 @@ function bfR2Evidence(text){
   {tier:5,label:'Client assertion / unsupported claim',re:/\b(?:client says|client claims|i thought|we discussed|as discussed|you promised|we agreed on the call)\b/i}
  ];
  clauses.forEach((clause,index)=>patterns.forEach(p=>{if(p.re.test(clause))out.push({tier:p.tier,label:p.label,clause,index,verification:'Source type is inferred from supplied wording only; authenticity, signatures, sender identity and authority are not verified.'});}));
- return out;
+ return out.sort((a,b)=>a.tier-b.tier||a.index-b.index);
 }
 function bfR2TopicState(clause){
  const s=bfR2Normalize(clause);
@@ -3082,8 +3082,13 @@ function bfR2Topics(clause){
 function bfR2Contradictions(text){
  const clauses=bfR2Clauses(text),hits=[];
  for(let i=0;i<clauses.length;i++){
-  const stateA=bfR2TopicState(clauses[i]);if(!stateA||stateA==='mixed')continue;
+  const stateA=bfR2TopicState(clauses[i]);
   const topicsA=bfR2Topics(clauses[i]);
+  if(stateA==='mixed'){
+   topicsA.forEach(topic=>hits.push({topic,earlier:clauses[i],later:clauses[i],kind:'Conflicting scope statements in one clause',resolution:'The same clause contains both included and excluded language. Preserve the conflict and ask which specific deliverable or condition each phrase governs.'}));
+   continue;
+  }
+  if(!stateA)continue;
   for(let j=i+1;j<clauses.length;j++){
    const stateB=bfR2TopicState(clauses[j]);if(!stateB||stateB==='mixed'||stateA===stateB)continue;
    const common=topicsA.filter(t=>bfR2Topics(clauses[j]).includes(t));

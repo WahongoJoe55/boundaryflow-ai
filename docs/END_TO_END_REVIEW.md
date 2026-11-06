@@ -2,14 +2,14 @@
 
 ## Candidate automated verification
 
-- GitHub Actions run: #150
+- GitHub Actions run: #154
 - Result: **18 / 18 checks passed**
-- Candidate commit: `bdf27a6dfed277073df39fe563fb7d26c2f0348d`
-- Run: https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/42274699873
+- Candidate commit: `ee779aab8c634f6dc62e859309419ee2e1d072d4`
+- Run: https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/42279266602
 - Mode: local browser execution against the actual candidate `index.html`, with deterministic simulated account identities.
 - External network access was blocked except for a stubbed Supabase library response. No real sign-in, Supabase queries, cloud writes, or production records were used.
 
-The engine/ledger regression suite also completed successfully: **69 / 69 scenarios passed** in the same workflow run.
+The engine/ledger regression suite also completed successfully: **69 / 69 scenarios passed** in the same workflow run. This run included the updated `Client Request Context` label and the expanded 12-step visual guide in the candidate HTML. Three additional browser assertions for guide structure/content and a guide screenshot were added to `tests/run-e2e.mjs` immediately afterward; those new assertions are awaiting a fresh workflow run and are not included in the 18/18 result above.
 
 ## Scenarios exercised
 
@@ -31,6 +31,8 @@ The engine/ledger regression suite also completed successfully: **69 / 69 scenar
 16. Switching account identity isolates the same project name.
 17. Returning to the original account restores its ledger.
 18. No uncaught browser JavaScript errors occurred.
+
+The follow-up E2E test revision additionally checks that the updated 12-step guide opens, explains ledger purpose/storage/export limits, uses the clearer request-context terminology, and captures a guide screenshot. These assertions require a fresh run before they can be reported as passed.
 
 ## Separate live production smoke test — 6 November 2026
 

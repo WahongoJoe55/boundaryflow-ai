@@ -1055,6 +1055,31 @@ function scopeEvidence(A, terms){
   return hits.length ? 'Agreement evidence found: '+hits.join(', ')+'.' : 'No explicit agreement evidence was found for this specific item.';
 }
 
+function explicitExcludedTopic(q,a){
+  // Conservative, evidence-first topic matching. A request is marked additional
+  // only when the agreement contains an explicit exclusion for the same work
+  // category. Generic words such as "extra", "feature" or "support" are not
+  // enough on their own to establish a boundary.
+  const topics=[
+    {label:'post-launch maintenance/support',request:/\b(?:post[- ]launch|ongoing|website|site)\s+(?:maintenance|support|care|servicing)\b|\b(?:maintain|maintaining)\s+(?:the\s+)?(?:website|site)\b/i,agreement:/\b(?:post[- ]launch|ongoing|website|site)\s+(?:maintenance|support|care|servicing)\b|\bmaintenance\b/i},
+    {label:'editable/source files',request:/\b(?:source files?|working files?|editable files?|figma files?|photoshop files?|psd files?|illustrator files?)\b/i,agreement:/\b(?:source files?|working files?|editable files?|figma files?|photoshop files?|psd files?|illustrator files?)\b/i},
+    {label:'data/content migration',request:/\b(?:data|content|customer|client|product|record)\s+migrat(?:e|ion|ing)\b|\bmigrat(?:e|ion|ing)\s+(?:the\s+)?(?:data|content|customers?|clients?|products?|records)\b|\bimport\s+(?:the\s+)?(?:existing\s+)?(?:data|content|customers?|clients?|products?|records)\b/i,agreement:/\b(?:data|content|customer|client|product|record)\s+migrat(?:e|ion|ing)\b|\bmigrat(?:e|ion|ing)\b/i},
+    {label:'SEO/keyword research',request:/\b(?:seo|search engine optim(?:i[sz]ation|i[sz]e)|keyword research|backlink(?:ing)?|technical seo)\b/i,agreement:/\b(?:seo|search engine optim(?:i[sz]ation|i[sz]e)|keyword research|backlink(?:ing)?|technical seo)\b/i},
+    {label:'staff training',request:/\b(?:staff|team|user|client)?\s*(?:training|train(?:ing)? session|walkthrough|onboarding session)\b/i,agreement:/\b(?:staff|team|user)?\s*(?:training|train(?:ing)? session|walkthrough|onboarding session)\b/i},
+    {label:'third-party integration',request:/\b(?:integrat(?:e|ion|ing)|connect(?:ion|ing)?|sync(?:ing)?|api|crm|mailchimp|hubspot|xero|quickbooks|stripe)\b/i,agreement:/\b(?:third[- ]party\s+)?integrat(?:e|ion|ing)|\bexternal\s+systems?\b/i},
+    {label:'additional meetings/workshops',request:/\b(?:additional|extra|another|further|second)\s+(?:discovery\s+)?(?:meetings?|workshops?|consultation sessions?|strategy sessions?)\b/i,agreement:/\b(?:additional|extra|further)\s+(?:discovery\s+)?(?:meetings?|workshops?|consultation sessions?|strategy sessions?)\b/i},
+    {label:'original copywriting/content creation',request:/\b(?:write|writing|draft|drafting|author|authoring|copywriting|create)\b[\s\S]{0,100}\b(?:copy|content|articles?|blog posts?|product descriptions?|page text)\b|\b(?:copywriting|original content creation)\b/i,agreement:/\b(?:original\s+)?(?:copywriting|content creation|writing new|writing original|drafting new)\b/i}
+  ];
+  const exclusion=/\b(?:excluded|not included|isn't included|is not covered|not covered|outside (?:the )?(?:agreed )?scope|out of scope|requires? separate approval|separately quoted|separate quote|additional fee|required as an extra)\b/i;
+  const clauses=String(a||'').split(/(?<=[.!?;])\s+|\n+/).map(x=>x.trim()).filter(Boolean);
+  for(const topic of topics){
+    if(!topic.request.test(q)) continue;
+    const clause=clauses.find(x=>exclusion.test(x)&&topic.agreement.test(x));
+    if(clause) return {label:topic.label,clause};
+  }
+  return null;
+}
+
 function isScopeClaim(q){
   return /^(?:this|that|it|everything|all of (?:this|that|it)|these changes)\b.*\b(?:covered|included|within|part of|under)\b.*\b(?:revision|scope|agreement|contract)\b/i.test(q.trim()) || /\b(?:please|can you|could you)\s+consider\s+(?:this|that|it|everything|all of this)\s+(?:part of|included in)\b/i.test(q.trim());
 }
@@ -2331,6 +2356,27 @@ function classify(q,a,context){
         ? 'Yes — this looks like a responsive adjustment within the current scope, assuming it does not introduce new functionality.'
         : 'Yes — this looks like a visual/presentation adjustment within the current scope, assuming it does not introduce new functionality.',
       claims:split.claims, request:s
+    };
+  }
+
+  // Cross-service boundary matcher: recognise common freelance work categories
+  // only when the same category is explicitly excluded by the agreement.
+  // This is deliberately placed after specific rules so it cannot override
+  // better-established page, revision, form, payment or approval logic.
+  const explicitExclusion=explicitExcludedTopic(s,A);
+  if(explicitExclusion){
+    const topic=explicitExclusion.label;
+    return {
+      type:'Explicitly excluded work item',
+      status:'Likely additional',
+      confidence:'High',
+      risk:'High',
+      evidence:'The agreement expressly excludes '+topic+': "'+explicitExclusion.clause+'". The request matches that work category.',
+      action:'Treat '+topic+' as a separate scope item. Confirm the exact deliverable, approval, fee and timeline in writing before starting.',
+      boundary:'The decision is based on an explicit exclusion in the supplied agreement, not on the client describing the work as small, routine or urgent. If a later written variation exists, review that record before relying on this boundary.',
+      response:'The requested '+topic+' is expressly excluded by our current agreement. I can prepare a separate change proposal setting out the deliverables, fee and timeline for your approval before we proceed.',
+      claims:split.claims,
+      request:s
     };
   }
 

@@ -3560,7 +3560,7 @@ function analyze(){
       if(revisionUsage.completed===null){
         c.status='Clarify'; c.confidence='Medium'; c.risk='Medium';
         c.evidence='The agreement allows '+revisionAllowance+' rounds of revisions per page, but the ledger contains no completed revision-round record that can be reliably matched to the '+revisionPageLabel+'. Other pages’ revision events are not counted against it.';
-        c.boundary='The ' + revisionPageLabel.toLowerCase() + ' layout is an existing deliverable, but the agreement limits revisions to two rounds per page. The current record does not establish how many ' + revisionPageLabel.toLowerCase() + ' rounds have been used.';
+        c.boundary='The ' + revisionPageLabel.toLowerCase() + ' layout is an existing deliverable, but the agreement limits revisions to '+revisionAllowance+' rounds per page. The current record does not establish how many ' + revisionPageLabel.toLowerCase() + ' rounds have been used.';
         c.action='Check the ' + revisionPageLabel + ' revision history and record each completed consolidated round against the '+revisionPageLabel+'. Do not count edits or another page’s rounds as ' + revisionPageLabel.toLowerCase() + ' rounds.';
         c.response='I can review the ' + revisionPageLabel.toLowerCase() + ' feedback. The agreement includes '+revisionAllowance+' revision rounds per page, but I cannot yet confirm how many ' + revisionPageLabel.toLowerCase() + ' rounds have been used. Let’s check the ' + revisionPageLabel + ' revision history before deciding whether this feedback falls within the allowance.';
         c.why='Per-page allowances require per-page history. A revision event recorded for another page cannot establish usage for the requested page.';
@@ -3569,7 +3569,7 @@ function analyze(){
         c.evidence='The agreement allows '+revisionAllowance+' revision rounds per page. The project ledger records '+revisionUsage.completed+' completed ' + revisionPageLabel.toLowerCase() + ' rounds; these are user-recorded events and have not been independently authenticated.';
         c.boundary='The '+revisionUsage.completed+' recorded ' + revisionPageLabel.toLowerCase() + ' rounds appear to exhaust the stated per-page allowance of '+revisionAllowance+'. A further round is likely additional, subject to checking the original project history and any later variation.';
         c.action='Check the original ' + revisionPageLabel.toLowerCase() + ' feedback and approval history, then agree any additional revision scope, fee and timeline before implementation.';
-        c.response='The project record shows that both included ' + revisionPageLabel.toLowerCase() + ' revision rounds have been completed. This further round would therefore need to be agreed separately before I proceed.';
+        c.response='The project record shows that the '+revisionAllowance+' included ' + revisionPageLabel.toLowerCase() + ' revision rounds have been completed. This further round would therefore need to be agreed separately before I proceed.';
         c.why='The recorded completed rounds for this page meet or exceed the stated per-page allowance.';
       }else{
         c.status='Clarify'; c.confidence='Medium'; c.risk='Medium';
@@ -3577,7 +3577,7 @@ function analyze(){
         c.boundary='The recorded history suggests '+revisionRemaining+' ' + revisionPageLabel.toLowerCase() + ' revision round(s) may remain. Whether the current feedback fits a remaining round depends on the agreed feedback-submission and consolidation process.';
         c.action='Confirm that this feedback is the next consolidated ' + revisionPageLabel.toLowerCase() + ' revision round and check whether any later ' + revisionPageLabel.toLowerCase() + ' changes have already been delivered.';
         c.response='The project record shows '+revisionUsage.completed+' of the '+revisionAllowance+' included ' + revisionPageLabel.toLowerCase() + ' revision rounds completed. Could you confirm whether these changes are the consolidated feedback for the next remaining round? I’ll check that before proceeding.';
-        c.why='One round is recorded as completed, but the remaining allowance depends on whether the current feedback forms the next consolidated round.';
+        c.why='The recorded usage is below the stated allowance, but the remaining entitlement depends on whether the current feedback forms a consolidated round.';
       }
     }
     c.languageAnalysis=bfLanguageAnalysis(v89q,v89a);

@@ -85,7 +85,7 @@ The next 12 scenarios exercise the new diagnostics layer. These are advisory che
 
 Before a production version is promoted:
 
-1. Run all 67 scenarios against the exact candidate build.
+1. Run all 69 scenarios against the exact candidate build.
 2. Record the actual detected request rows and classifications.
 3. Investigate every mismatch; do not weaken an expected result merely to make a test pass.
 4. Add a regression case for every confirmed defect.
@@ -125,3 +125,6 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 | BF-L23 | Project switching does not reuse prior project evidence. | Add an approval to Project Alpha, then analyse the same request under Project Beta. | Beta analysis contains no Alpha records. |
 
 | BF-L24 | Variable per-page revision allowances use the stated number. | Record one Portfolio-page round against a three-round allowance. | One completed and two remaining rounds are reported. |
+
+| BF-L25 | Related-item metadata associates a revision event with its page. | Record the page name in Related item rather than title/detail. | The matching page allowance uses the recorded revision event. |
+| BF-L26 | Page names in approval titles are matched to the requested deliverable. | Record a written approval title naming the Careers page. | The request remains Conditional pending original approval verification. |

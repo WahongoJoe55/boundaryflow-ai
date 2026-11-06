@@ -52,6 +52,42 @@ Expected: B cannot read A's records. A UI-level absence is necessary but not suf
 ### 4. Cross-account direct access / RLS
 Use Supabase SQL Editor only with read-only queries and the existing authenticated test setup. Verify RLS is enabled for `projects`, `agreements`, `analyses`, and `profiles`; inspect each policy's command, role, USING and WITH CHECK expressions. Confirm policies bind rows to `auth.uid()` and enforce parent-project ownership where applicable.
 
+Start with these **read-only** catalog queries in Supabase SQL Editor. They inspect policy configuration; they do not alter data or schema.
+
+```sql
+-- RLS enabled/forced state for the four application tables
+select
+  n.nspname as schema_name,
+  c.relname as table_name,
+  c.relrowsecurity as rls_enabled,
+  c.relforcerowsecurity as rls_forced
+from pg_class c
+join pg_namespace n on n.oid = c.relnamespace
+where n.nspname = 'public'
+  and c.relname in ('projects', 'agreements', 'analyses', 'profiles')
+  and c.relkind = 'r'
+order by c.relname;
+
+-- Every policy, including command, roles, USING and WITH CHECK expressions
+select
+  schemaname,
+  tablename,
+  policyname,
+  permissive,
+  roles,
+  cmd,
+  qual as using_expression,
+  with_check as with_check_expression
+from pg_policies
+where schemaname = 'public'
+  and tablename in ('projects', 'agreements', 'analyses', 'profiles')
+order by tablename, policyname;
+```
+
+Review the returned definitions, not just policy names. For each table, check the applicable SELECT, INSERT, UPDATE and DELETE policies. For child tables (`agreements`, `analyses`), verify both the row's `user_id` and the ownership of the referenced project are constrained consistently. An UPDATE policy normally needs a suitable `USING` expression for the old row and `WITH CHECK` expression for the new row. A policy name containing "own" does not prove its expression is correct.
+
+If either query returns no row for one of the expected tables, stop and inspect the actual schema before drawing a conclusion. Do not run a migration or change a policy as part of this review.
+
 Do not test this by changing JWT claims in the live project or issuing cross-account update/delete statements against real data. If direct policy simulation is needed, use a separate disposable Supabase project with a copied schema and synthetic rows.
 
 Expected: all four tables have RLS enabled; authenticated users can read/write only their own rows; child rows cannot be attached to another user's project; no anonymous access is granted.

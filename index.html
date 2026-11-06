@@ -2547,7 +2547,7 @@ function claimDeliverableLabel(requestText){
   if(booking && payment) return 'the online booking and payment functionality';
   if(booking) return 'the online booking functionality';
   if(payment) return 'the payment functionality';
-  const namedForm=subject.match(/\b([A-Za-z][A-Za-z0-9&'-]*(?:\s+[A-Za-z][A-Za-z0-9&'-]*){0,2})\s+(?:contact|booking|enquiry|inquiry|checkout)?\s*form\b/i);
+  const namedForm=subject.match(/\b(contact|booking|enquiry|inquiry|checkout)\s+form\b/i);
   if(namedForm) return 'the '+namedForm[0].trim().replace(/\s+/g,' ');
   if(form) return 'the requested form';
   const page=subject.match(/\b([A-Za-z][A-Za-z0-9&'-]*(?:\s+[A-Za-z][A-Za-z0-9&'-]*){0,2})\s+page\b/i);
@@ -2569,6 +2569,8 @@ function preserveClarificationSubject(plan,c,q){
   };
   const next=Object.assign({},plan);
   ['title','needed','question','why'].forEach(key=>{next[key]=replaceText(next[key]);});
+  if(typeof next.title==='string' && /^(?:let’s|let's) clarify this$/i.test(next.title.trim())) next.title='Clarify '+subject.replace(/^the\s+/i,'');
+  if(typeof next.why==='string' && !next.why.toLowerCase().includes(subject.toLowerCase())) next.why+=' This determines whether '+subject+' is included in the agreed work or needs separate approval.';
   if(Array.isArray(next.outcomes)) next.outcomes=next.outcomes.map(replaceText);
   return next;
 }

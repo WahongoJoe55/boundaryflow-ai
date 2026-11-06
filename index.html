@@ -3405,9 +3405,10 @@ function analyze(){
     const agreementRequiresPageApproval=/\bnew\s+pages?\b[\s\S]{0,100}\b(?:separate\s+approval|separately\s+approved|approval)\b/i.test(a) || /\b(?:separate\s+approval|separately\s+approved)\b[\s\S]{0,100}\bnew\s+pages?\b/i.test(a);
     const pageSubjectMatch=atomicRequestText.match(/\bnew\s+([a-z0-9][a-z0-9 &-]*?)\s+page\b/i);
     const pageSubject=pageSubjectMatch?String(pageSubjectMatch[1]).trim().toLowerCase():'';
-    const ledgerPageRecords=pageSubject?ledgerContext.used.filter(x=>x.status==='approved'&&x.type!=='baseline'&&String(x.detail||'').toLowerCase().includes(pageSubject)): [];
-    const negativeApprovalWording=x=>/\b(?:not approved|not authorised|not authorized|not agreed|not accepted|declined|rejected|excluded|not included|outside scope)\b/i.test(String(x&&x.detail||''));
-    const approvedLedgerRecord=ledgerPageRecords.length===1&&!negativeApprovalWording(ledgerPageRecords[0])&&/\b(?:included|in scope|approved|authorised|authorized|agreed)\b/i.test(String(ledgerPageRecords[0].detail||''))?ledgerPageRecords[0]:null;
+    const ledgerRecordText=x=>[x&&x.title,x&&x.detail,x&&x.related].map(v=>String(v||'')).join(' ');
+    const ledgerPageRecords=pageSubject?ledgerContext.used.filter(x=>x.status==='approved'&&x.type!=='baseline'&&ledgerRecordText(x).toLowerCase().includes(pageSubject)): [];
+    const negativeApprovalWording=x=>/\b(?:not approved|not authorised|not authorized|not agreed|not accepted|declined|rejected|excluded|not included|outside scope)\b/i.test(ledgerRecordText(x));
+    const approvedLedgerRecord=ledgerPageRecords.length===1&&!negativeApprovalWording(ledgerPageRecords[0])&&/\b(?:included|in scope|approved|authorised|authorized|agreed)\b/i.test(ledgerRecordText(ledgerPageRecords[0]))?ledgerPageRecords[0]:null;
     if(explicitPageCreationAtomic && agreementRequiresPageApproval && ledgerPageRecords.length>1){
       c.type='Conflicting project ledger records'; c.status='Clarify'; c.confidence='Low'; c.risk='High';
       c.evidence='More than one user-recorded approved ledger entry refers to this page. BoundaryFlow will not choose between multiple records or infer which one is current.';
@@ -3914,7 +3915,7 @@ function bfLedgerAnalysisContext(baseScope){
  return {
   projectName:bfLedgerProjectName(),totalEntries:entries.length,analysisScope,analysisMessage,
   used:used.map(x=>({id:x.id,title:x.title,detail:x.detail,type:x.type,sourceType:x.sourceType,status:x.status,sourceDate:x.sourceDate,related:x.related})),
-  revisionEvents:revisions.map(x=>({title:x.title,detail:x.detail,status:x.status,sourceType:x.sourceType,sourceDate:x.sourceDate})),
+  revisionEvents:revisions.map(x=>({title:x.title,detail:x.detail,status:x.status,sourceType:x.sourceType,sourceDate:x.sourceDate,related:x.related})),
   completedRevisionRounds,
   unverifiedClaims:entries.filter(x=>x.sourceType==='client_claim').map(x=>({title:x.title,detail:x.detail,status:x.status,sourceType:x.sourceType})),
   pending:entries.filter(x=>['proposed','awaiting_approval'].includes(x.status)).map(x=>({title:x.title,detail:x.detail,status:x.status,sourceType:x.sourceType})),

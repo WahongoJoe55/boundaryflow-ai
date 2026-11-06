@@ -22,11 +22,13 @@ jobs:
         run: npm install --no-save playwright@1.56.1
       - name: Run isolated engine regression suite
         run: node tests/run-regression.mjs
-      - name: Upload regression report
+      - name: Run browser end-to-end workflow review
+        run: node tests/run-e2e.mjs
+      - name: Upload regression and end-to-end reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: boundaryflow-engine-regression-results
-          path: test-results/engine-regression-results.json
+          path: test-results/*.json
           if-no-files-found: ignore
           retention-days: 14

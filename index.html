@@ -1085,8 +1085,12 @@ function classify(q,a,context){
   // excluding creation of original articles.
   const suppliedArticlesContext=/\b(?:attached|provided|supplied)\s+(?:three|3|\d+)\s+(?:finished|final|completed)\s+blog\s+articles?\b/i.test(fullMessage) ||
     /\b(?:finished|final|completed)\s+blog\s+articles?\b[\s\S]{0,50}\b(?:attached|provided|supplied)\b/i.test(fullMessage);
-  const suppliedArticleAllowance=/\bupload\s+and\s+format\s+up\s+to\s+five\s+blog\s+articles\s+supplied\s+in\s+final,?\s+publication-ready\s+form\s+by\s+the\s+client\b/i.test(A) ||
-    (/\bup\s+to\s+five\s+blog\s+articles\b/i.test(A) && /\bsupplied\b/i.test(A) && /\bpublication-ready\b/i.test(A));
+  const suppliedArticleAllowance=(
+    /\bup\s+to\s+five\b[\s\S]{0,70}\bblog\s+articles?\b/i.test(A) &&
+    /\bsupplied\s+by\s+the\s+client\b/i.test(A) &&
+    /\b(?:final|publication-ready)\b/i.test(A) &&
+    /\bincluded\b/i.test(A)
+  ) || /\bupload\s+and\s+format\s+up\s+to\s+five\s+blog\s+articles\s+supplied\s+in\s+final,?\s+publication-ready\s+form\s+by\s+the\s+client\b/i.test(A);
   if(suppliedArticlesContext && suppliedArticleAllowance && /\b(?:upload|publish|post)\b/i.test(raw) && /\b(?:format|formatted|formatting)\b/i.test(raw)){
     return {type:'Upload and format client-supplied articles',status:'Likely included',confidence:'High',risk:'Low',
       evidence:'The agreement includes uploading and formatting up to five client-supplied articles in final, publication-ready form. The client says the three articles are finished and attached.',
@@ -1104,13 +1108,18 @@ function classify(q,a,context){
       boundary:'Uploading finished client-supplied articles is included up to the stated limit; writing new articles is expressly excluded.',
       response:'Writing two new blog articles is outside the agreed scope. I can provide a separate proposal covering the articles, fee and delivery timeline.',claims:[],request:raw};
   }
-  const spellingCorrection=/\b(?:correct|fix)\b[\s\S]{0,90}\bspelling\s+mistake\b/i.test(raw) && /\bservices\s+page\b/i.test(raw);
-  if(spellingCorrection && /\bminor\s+visual\s+and\s+content\s+corrections?\b/i.test(A)){
+  const spellingCorrection=/\b(?:correct|fix)\b[\s\S]{0,100}\bspelling\s+(?:error|mistake|issue|typo)\b/i.test(raw);
+  const spellingTarget=raw.match(/\b(?:existing\s+)?(home(?:page)?|about|services|contact|blog|faq)\s+page\b/i);
+  const minorContentCorrectionIncluded=/\bminor\b[\s\S]{0,90}\b(?:content\s+)?(?:edits?|changes?|corrections?)\b/i.test(A) &&
+    /\b(?:included|within\s+the\s+scope|part\s+of\s+the\s+scope)\b/i.test(A) &&
+    /\b(?:existing\s+)?pages?\b/i.test(A);
+  if(spellingCorrection && spellingTarget && minorContentCorrectionIncluded){
+    const spellingPage=normalizePageName(spellingTarget[1]);
     return {type:'Minor content correction to existing page',status:'Likely included',confidence:'High',risk:'Low',
-      evidence:'The agreement includes minor visual and content corrections to existing pages within the included revision round.',
-      action:'Correct the spelling mistake in the existing Services page during the included revision.',
-      boundary:'A spelling correction is a minor content correction to an existing page, expressly included by the agreement.',
-      response:'The Services-page spelling correction fits within the included revision.',claims:[],request:raw};
+      evidence:'The agreement includes minor content edits/corrections to existing pages. The request is a spelling correction on the existing '+spellingPage+' page.',
+      action:'Correct the spelling on the existing '+spellingPage+' page within the included revision allowance.',
+      boundary:'A spelling correction is a minor content edit to an existing page, which the agreement includes.',
+      response:'The spelling correction on the existing '+spellingPage+' page fits within the included minor content edits.',claims:[],request:raw};
   }
 
   // REGRESSION-04 v29: high-priority atomic-request rules. These run before
@@ -1902,8 +1911,8 @@ function classify(q,a,context){
   const explicitButtonLinkAction = /\b(?:add|include|put|place|update|change|edit|adjust)\b[\s\S]*\b(?:button|link)\b/i.test(s) &&
     /(?:\b(?:button|link)\b[\s\S]*(?:\blink(?:ing)?\b[\s\S]*\bto\b|\b(?:open|opens|take|takes|point|points|navigate|navigates|direct|directs)\b[\s\S]*\b(?:page|url)\b)|\b(?:link|button)\b[\s\S]*\bdirect(?:ing)?\s+(?:visitors|users)\s+to\b)/i.test(s) &&
     !hasAny(s,['whatsapp','crm','analytics','mailchimp','stripe','integration','automation','api','when clicked','popup','pop-up','modal','dropdown','accordion','toggle']);
-  if(explicitAffectedExistingPage && explicitButtonLinkAction && hasAny(A,['minor visual and content changes to existing pages','minor visual and content changes to existing page','minor visual changes to existing pages','content changes to existing pages']) &&
-     !/\b(?:create|build)\s+(?:a|an|the)?\s*new\s+[a-z0-9 -]+\s+page\b/i.test(s)){
+  if(explicitAffectedExistingPage && explicitButtonLinkAction && hasAny(A,['minor visual and content changes to existing pages','minor visual and content changes to existing page','minor visual changes to existing pages','content changes to existing pages','minor links and buttons on existing pages','minor links and buttons']) &&
+     !/\b(?:create|build)\s+(?:a|an|the)?\s*new\s+[a-z0-9 -]+\s+page\b/i.test(raw)){
     const affected=normalizePageName(explicitAffectedExistingPage[1]);
     return {
       type:'Content/link change on existing page', status:'Likely included', confidence:'High', risk:'Low',
@@ -2967,7 +2976,9 @@ function analyze(){
   let rawItems=parsed.requests.length ? parsed.requests : (parsed.claims.length ? [r] : extract(r));
   // Ignore conversational acknowledgements and vague transition phrases; they
   // are context, not deliverables or scope decisions.
-  rawItems=rawItems.filter(x=>!/^\s*(?:thanks for completing the first revision|thanks for completing the revision|thanks for sharing the first version|thanks for sharing the first draft|i have a few more changes|i have some more changes|i have three requests|i have \d+ requests|i have (?:two|three|four|five|several) things (?:i['’]d|i would|we['’]d|we would) like to (?:address|discuss|change)|i have attached (?:one|two|three|four|five|several|\d+) (?:finished |final |completed )?(?:blog )?articles?)[.!?]?\s*$/i.test(String(x)));
+  rawItems=rawItems.filter(x=>!/^\s*(?:thanks for completing the first revision|thanks for completing the revision|thanks for sharing the first version|thanks for sharing the first draft|i have a few more changes|i have some more changes|i have three requests|i have \d+ requests|i have (?:two|three|four|five|several) things (?:i['’]d|i would|we['’]d|we would) like to (?:address|discuss|change)|i have attached (?:one|two|three|four|five|several|\d+) (?:finished |final |completed )?(?:blog )?articles?|(?:the\s+)?(?:first|initial|included) revision round has already been used)[.!?]?\s*$/i.test(String(x)));
+  // Empty punctuation fragments are decomposition artefacts, not client requests.
+  rawItems=rawItems.filter(x=>! /^[\s.,;:!?…—-]+$/.test(String(x)));
   // Negative scope constraints are context about the requested work, not deliverables.
   rawItems=rawItems.filter(x=>!/^\s*(?:no|there are no|we do not need|we don't need|we are not requesting|we are not asking for)\s+(?:any\s+)?(?:new\s+)?(?:sections?|functionality|features?|integrations?|pages?)\b[\s\S]*\b(?:required|needed|requested|included)\b[.!?]?\s*$/i.test(String(x)));
   // Split a coordinated sentence when it contains two distinct content actions

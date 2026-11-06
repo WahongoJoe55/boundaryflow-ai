@@ -55,7 +55,7 @@ try{
   const guideSteps=await page.locator('#userGuide .guide-step').count();
   check('User guide opens and presents the complete 12-step visual walkthrough',guideSteps===12&&/Project Evidence & Change Ledger/i.test(guideText)&&/Additional information/i.test(guideText)&&/History/i.test(guideText),`steps=${guideSteps}`);
   check('User guide explains ledger purpose, local-only storage and export limitations',/running record/i.test(guideText)&&/not cloud-synced/i.test(guideText)&&/Export ledger/i.test(guideText));
-  check('Request context uses clear Client Request Context terminology',/Client Request Context/i.test(guideText)&&! /Language & work context/i.test(guideText));
+  check('User Guide explains request-language analysis is internal and not client-facing',/in the background/i.test(guideText)&&/deliberately not displayed/i.test(guideText)&&!/Client Request Context/i.test(guideText));
   fs.mkdirSync(path.join(root,'test-results'),{recursive:true});
   await page.screenshot({path:path.join(root,'test-results','boundaryflow-user-guide-desktop.png'),fullPage:true,animations:'disabled'});
   await page.locator('#closeGuide').click();
@@ -82,7 +82,7 @@ try{
     await page.locator('#analyzeBtn').click();
     await page.waitForFunction(()=>Array.isArray(window.rows)&&window.rows.length>0&&document.getElementById('out')?.innerText.length>0);
     return page.evaluate(()=>({
-      rows:(window.rows||[]).map(x=>({request:x.q,status:x.c?.status,type:x.c?.type})),
+      rows:(window.rows||[]).map(x=>({request:x.q,status:x.c?.status,type:x.c?.type,hasInternalLanguageAnalysis:!!x.c?.languageAnalysis})),
       meta:window.bfLedgerAnalysisMeta?{
         projectName:window.bfLedgerAnalysisMeta.projectName,
         totalEntries:window.bfLedgerAnalysisMeta.totalEntries,
@@ -110,6 +110,7 @@ try{
   check('Specific Careers approval remains Conditional pending source verification',careers?.status==='Conditional',JSON.stringify(careers||null));
   check('Portfolio revision usage is matched to the correct page',portfolio?.allowance===2&&portfolio?.completed===1&&portfolio?.remaining===1,JSON.stringify(portfolio||null));
   check('Analysis visibly explains ledger provenance and unverified claims',/user-recorded/i.test(alpha.output)&&/client assertions/i.test(alpha.output));
+  check('Professional-language diagnostics remain internal while the visible decision stays factual',alpha.rows.some(x=>x.hasInternalLanguageAnalysis)&&! /Client Request Context|Related professional terms|Action language|Boundary dimensions in this exchange/i.test(alpha.output)&&! /language-context/i.test(await page.locator('#out').innerHTML()));
 
   // Capture the real candidate UI for human visual review; test identities and cloud remain simulated.
   fs.mkdirSync(path.join(root,'test-results'),{recursive:true});

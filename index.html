@@ -3039,7 +3039,7 @@ function renderResults(){
    counts individual edits as revision rounds, or invents commercial terms. */
 function bfR2Normalize(s){return String(s||'').toLowerCase().replace(/[’]/g,"'").replace(/\s+/g,' ').trim();}
 function bfR2Clauses(s){return String(s||'').split(/(?<=[.!?;])\s+|\n+/).map(x=>x.trim()).filter(Boolean);}
-function bfR2Number(s){const v=String(s||'').toLowerCase();const m=v.match(/\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\b/);if(!m)return null;const map={one:1,first:1,two:2,second:2,three:3,third:3,four:4,fourth:4,five:5,fifth:5,six:6,sixth:6,seven:7,seventh:7,eight:8,eighth:8,nine:9,ninth:9,ten:10,tenth:10};return /^\d+$/.test(m[1])?Number(m[1]):map[m[1]];}
+function bfR2Number(s){const v=String(s||'').toLowerCase();const m=v.match(/\b(\d+|one|first|two|second|three|third|four|fourth|five|fifth|six|sixth|seven|seventh|eight|eighth|nine|ninth|ten|tenth)\b/);if(!m)return null;const map={one:1,first:1,two:2,second:2,three:3,third:3,four:4,fourth:4,five:5,fifth:5,six:6,sixth:6,seven:7,seventh:7,eight:8,eighth:8,nine:9,ninth:9,ten:10,tenth:10};return /^\d+$/.test(m[1])?Number(m[1]):map[m[1]];}
 function bfR2Evidence(text,origin){
  const clauses=bfR2Clauses(text),out=[];
  const patterns=[
@@ -3047,7 +3047,7 @@ function bfR2Evidence(text,origin){
   {tier:2,label:'Signed amendment / approved change order',re:/\b(?:signed|approved|authori[sz]ed)\s+(?:amendment|variation|change order|change request)\b|\b(?:amendment|variation|change order)\b[^.!?]{0,70}\b(?:signed|approved|authori[sz]ed)\b/i},
   {tier:3,label:'Written approval / email confirmation',re:/\b(?:email|e-mail|written message|written confirmation)\b[^.!?]{0,100}\b(?:approve|approved|authori[sz]e|authori[sz]ed|confirm|confirmed)\b|\b(?:approve|approved|authori[sz]e|authori[sz]ed|confirm|confirmed)\b[^.!?]{0,100}\b(?:email|e-mail|written)\b/i},
   {tier:4,label:'Meeting notes / call record',re:/\b(?:meeting notes?|call notes?|minutes of (?:the )?meeting|record of (?:the )?call)\b/i},
-  {tier:5,label:'Client assertion / unsupported claim',re:/\b(?:client says|client claims|i thought|we discussed|as discussed|you promised|we agreed on the call)\b/i}
+  {tier:5,label:'Client assertion / unsupported claim',re:/\b(?:client says|client claims|i thought|we discussed|we agreed|as discussed|you promised|you said|we were told|i was told|we agreed on the call)\b/i}
  ];
  clauses.forEach((clause,index)=>patterns.forEach(p=>{if(p.re.test(clause))out.push({tier:p.tier,label:p.label,clause,index,origin:origin||'Supplied text',verification:'Source type is inferred from supplied wording only; authenticity, signatures, sender identity and authority are not verified.'});}));
  return out.sort((a,b)=>a.tier-b.tier||a.index-b.index);
@@ -3365,7 +3365,7 @@ function analyze(){
     // heuristic. This does not include keyword research or ongoing SEO.
     const seoMetadataRequestFinal=/\b(?:seo\s+metadata|meta\s+(?:titles?|descriptions?)|page\s+titles?)\b/i.test(requestTextForRevision);
     const seoMetadataIncludedFinal=/\b(?:seo\s+metadata|meta\s+(?:titles?|descriptions?)|page\s+titles?)\b/i.test(a) &&
-      /\b(?:include|included|covers?|covered|comprises?|consists of)\b/i.test(a);
+      /\b(?:include|includes|included|cover|covers|covered|comprise|comprises|consists of)\b/i.test(a);
     if(seoMetadataRequestFinal && seoMetadataIncludedFinal &&
        !/\b(?:keyword research|backlink|ongoing seo|seo campaign)\b/i.test(requestTextForRevision)){
       c.type='Included SEO metadata deliverable'; c.detected=c.type;

@@ -34,6 +34,14 @@
 | BF-R14 | No clause identifies the underlying work. | I thought this was included in the current revision. | Client claim / underlying request missing; ask what specific work is being discussed. |
 | BF-R15 | The agreement is silent on whether a requested structural change is included. | Make the existing Services page more engaging and reorganise its sections. | Clarify unless the supplied agreement gives specific support; do not invent an allowance. |
 | BF-R16 | The agreement requires written approval for changes beyond the agreed deliverables. | We discussed this on a call, so please treat the new feature as approved. | Preserve the statement as a claim; a claimed conversation is not the written approval record. |
+| BF-R17 | Search engine optimisation and keyword research are excluded. | Please do keyword research and optimise the Services page for search engines. | Likely additional; match the specific SEO work to the express exclusion. |
+| BF-R18 | Exported assets are included; editable source/working files are not. | Please send the editable design source files. | Likely additional; distinguish exported deliverables from editable working files. |
+| BF-R19 | Initial launch is included; ongoing maintenance/support is excluded. | Provide ongoing website maintenance and support after launch. | Likely additional; do not imply that launch includes ongoing care. |
+| BF-R20 | Migration of customer records and legacy content is excluded. | Migrate existing customer records and blog content. | Likely additional; identify migration as a distinct workstream. |
+| BF-R21 | Written handover documentation is included; live staff training is excluded. | Run a live training session for staff. | Likely additional; distinguish documentation from live training. |
+| BF-R22 | SEO metadata and page titles for five pages are included; no keyword-research exclusion is stated. | Add the agreed SEO metadata to the five pages. | Do not infer an exclusion; use Clarify if the exact included work is unresolved. |
+| BF-R23 | Keyword research and SEO are expressly excluded. | Could you just do a quick bit of SEO and keyword research as a tiny favour? | Likely additional; minimising language does not change the written exclusion. |
+| BF-R24 | One discovery workshop is included; additional workshops require a separate fee and approval. | Schedule another strategy workshop for the next phase. | Likely additional; evaluate the allowance and the extra workshop separately. |
 
 ## Language coverage to add and verify
 

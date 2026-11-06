@@ -2570,7 +2570,7 @@ function preserveClarificationSubject(plan,c,q){
   };
   const next=Object.assign({},plan);
   ['title','needed','question','why'].forEach(key=>{next[key]=replaceText(next[key]);});
-  if(typeof next.title==='string' && /^(?:let’s|let's) clarify this$/i.test(next.title.trim())) next.title='Clarify '+subject.replace(/^the\s+/i,'');
+  if(typeof next.title==='string' && /^(?:(?:let’s|let's) clarify this|more information needed|more details needed|clarification needed)$/i.test(next.title.trim())) next.title='Clarify '+subject.replace(/^the\s+/i,'');
   if(typeof next.why==='string'){
     if(!next.why.toLowerCase().includes(subject.toLowerCase())) next.why+=' This determines whether work involving '+subject+' is included in the agreed work or needs separate approval.';
     next.why=next.why.charAt(0).toUpperCase()+next.why.slice(1);

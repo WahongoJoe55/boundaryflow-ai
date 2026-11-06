@@ -3039,8 +3039,8 @@ function renderResults(){
    counts individual edits as revision rounds, or invents commercial terms. */
 function bfR2Normalize(s){return String(s||'').toLowerCase().replace(/[’]/g,"'").replace(/\s+/g,' ').trim();}
 function bfR2Clauses(s){return String(s||'').split(/(?<=[.!?;])\s+|\n+/).map(x=>x.trim()).filter(Boolean);}
-function bfR2Number(s){const v=String(s||'').toLowerCase();const m=v.match(/\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\b/);if(!m)return null;const map={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10};return /^\d+$/.test(m[1])?Number(m[1]):map[m[1]];}
-function bfR2Evidence(text){
+function bfR2Number(s){const v=String(s||'').toLowerCase();const m=v.match(/\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\b/);if(!m)return null;const map={one:1,first:1,two:2,second:2,three:3,third:3,four:4,fourth:4,five:5,fifth:5,six:6,sixth:6,seven:7,seventh:7,eight:8,eighth:8,nine:9,ninth:9,ten:10,tenth:10};return /^\d+$/.test(m[1])?Number(m[1]):map[m[1]];}
+function bfR2Evidence(text,origin){
  const clauses=bfR2Clauses(text),out=[];
  const patterns=[
   {tier:1,label:'Signed agreement / executed contract',re:/\b(?:signed|executed)\s+(?:agreement|contract|statement of work|sow)\b|\b(?:agreement|contract|sow)\b[^.!?]{0,50}\b(?:signed|executed)\b/i},
@@ -3049,7 +3049,7 @@ function bfR2Evidence(text){
   {tier:4,label:'Meeting notes / call record',re:/\b(?:meeting notes?|call notes?|minutes of (?:the )?meeting|record of (?:the )?call)\b/i},
   {tier:5,label:'Client assertion / unsupported claim',re:/\b(?:client says|client claims|i thought|we discussed|as discussed|you promised|we agreed on the call)\b/i}
  ];
- clauses.forEach((clause,index)=>patterns.forEach(p=>{if(p.re.test(clause))out.push({tier:p.tier,label:p.label,clause,index,verification:'Source type is inferred from supplied wording only; authenticity, signatures, sender identity and authority are not verified.'});}));
+ clauses.forEach((clause,index)=>patterns.forEach(p=>{if(p.re.test(clause))out.push({tier:p.tier,label:p.label,clause,index,origin:origin||'Supplied text',verification:'Source type is inferred from supplied wording only; authenticity, signatures, sender identity and authority are not verified.'});}));
  return out.sort((a,b)=>a.tier-b.tier||a.index-b.index);
 }
 function bfR2TopicState(clause){
@@ -3156,7 +3156,7 @@ function bfR2Inspect(agreement,message,rows){
  const clauses=bfR2Clauses(agreement);
  return {
   version:'2.0.0',
-  evidence:bfR2Evidence(agreement),
+  evidence:[...bfR2Evidence(agreement,'Agreement / scope text'),...bfR2Evidence(message,'Latest client message')].sort((a,b)=>a.tier-b.tier||a.index-b.index),
   contradictions:bfR2Contradictions(agreement),
   revisions:bfR2Revision(agreement,message),
   dependencies:bfR2Dependencies(message,rows),
@@ -3360,6 +3360,23 @@ function analyze(){
     // client item. Never let context resolution pull a neighboring request
     // into this request's displayed underlying text.
     c.request=String(item.original||'').trim() || c.request;
+    // Final evidence-first guard: expressly included SEO metadata for the
+    // stated pages must not be swept into a generic "five pages/new deliverable"
+    // heuristic. This does not include keyword research or ongoing SEO.
+    const seoMetadataRequestFinal=/\b(?:seo\s+metadata|meta\s+(?:titles?|descriptions?)|page\s+titles?)\b/i.test(requestTextForRevision);
+    const seoMetadataIncludedFinal=/\b(?:seo\s+metadata|meta\s+(?:titles?|descriptions?)|page\s+titles?)\b/i.test(a) &&
+      /\b(?:include|included|covers?|covered|comprises?|consists of)\b/i.test(a);
+    if(seoMetadataRequestFinal && seoMetadataIncludedFinal &&
+       !/\b(?:keyword research|backlink|ongoing seo|seo campaign)\b/i.test(requestTextForRevision)){
+      c.type='Included SEO metadata deliverable'; c.detected=c.type;
+      c.status='Likely included'; c.confidence='High'; c.risk='Low';
+      c.evidence='The agreement expressly includes SEO metadata/page titles for the stated pages. The request asks for that named included item.';
+      c.actual=requestTextForRevision; c.request=requestTextForRevision;
+      c.boundary='This decision covers only the SEO metadata expressly named in the agreement. It does not automatically include keyword research, backlink work or an ongoing SEO campaign.';
+      c.action='Complete the agreed SEO metadata for the specified pages. Confirm any quantity or content limits if the requested work exceeds the stated allowance.';
+      c.response='The SEO metadata for the agreed pages is included. I’ll complete the specified metadata within the agreed page allowance; any separate keyword research or ongoing SEO work would need to be scoped independently.';
+      c.why='The specific SEO metadata item is expressly included in the supplied agreement.';
+    }
     rows.push({q:item.original,c});
   });
 

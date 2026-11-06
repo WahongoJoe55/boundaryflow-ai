@@ -17,9 +17,9 @@ main{max-width:1100px;margin:0 auto;padding:28px 18px 60px}.eyebrow{font-size:11
 <h1>Engine regression runner</h1>
 <p class="intro">Runs the v87 analysis engine against a fixed set of scope scenarios and checks the actual classifications returned by the application. This page does not save analyses, change Supabase data, or modify your production workspace.</p>
 <div class="panel">
- <div class="actions"><button id="run" class="btn primary">Run all 67 tests</button><button id="download" class="btn secondary" disabled>Download results (CSV)</button><span id="runStatus" class="status">Ready. The application engine loads in a hidden frame when you start the tests.</span></div>
+ <div class="actions"><button id="run" class="btn primary">Run all 69 tests</button><button id="download" class="btn secondary" disabled>Download results (CSV)</button><span id="runStatus" class="status">Ready. The application engine loads in a hidden frame when you start the tests.</span></div>
  <div class="summary">
-  <div class="metric"><strong id="total">67</strong><span>Scenarios</span></div>
+  <div class="metric"><strong id="total">69</strong><span>Scenarios</span></div>
   <div class="metric"><strong id="passed">—</strong><span>Passed</span></div>
   <div class="metric"><strong id="failed">—</strong><span>Failed</span></div>
   <div class="metric"><strong id="rate">—</strong><span>Pass rate</span></div>
@@ -112,6 +112,10 @@ const cases=[
 
 
 ,{id:'BF-L24',title:'Three-round per-page allowance uses the stated numeric limit',agreement:'Three rounds of revisions per page are included.',message:'Please update the Portfolio page layout after the previous feedback.',reasoningProbe:w=>w.bfLedgerRevisionUsage({revisionEvents:[{title:'First revision round - Portfolio page',detail:'First revision round completed for the Portfolio page.',status:'delivered'}]},'Update the Portfolio page layout','Three rounds of revisions per page are included.'),reasoningCheck:(_d,_w,_r,p)=>p.scope==='per_page'&&p.allowance===3&&p.completed===1&&p.remaining===2&&p.page==='portfolio',expect:'Calculate one completed and two remaining rounds against the three-round Portfolio-page allowance, without hard-coding a two-round limit.'}
+
+
+,{id:'BF-L25',title:'Related-item metadata associates a revision with its page',agreement:'Two rounds of revisions per page are included.',message:'Update the Portfolio page layout.',reasoningProbe:w=>w.bfLedgerRevisionUsage({revisionEvents:[{title:'First revision round',detail:'First consolidated round completed.',related:'Portfolio page',status:'delivered'}]},'Update the Portfolio page layout','Two rounds of revisions per page are included.'),reasoningCheck:(_d,_w,_r,p)=>p.scope==='per_page'&&p.page==='portfolio'&&p.completed===1&&p.remaining===1,expect:'Use the ledger Related item field to associate a completed revision round with the correct page.'},
+{id:'BF-L26',title:'Approval matching recognises page names in the ledger title',agreement:'New pages require separate approval.',message:'Create a new Careers page.',setup:w=>{w.window.__bfUserId='ledger-title-match';w.document.getElementById('projectName').value='Ledger Title Match';w.localStorage.removeItem(w.bfLedgerKey());w.bfLedgerAdd({type:'amendment',title:'Careers page approval',detail:'Included in the agreed scope following written approval.',sourceType:'amendment',status:'approved'});return true;},reasoningCheck:(_d,w,rows,p)=>p===true&&rows.some(x=>x.status==='Conditional'&&x.type==='Potentially approved new page'),expect:'Match the page using the ledger title while retaining Conditional status until the original approval is verified.'}
 
 ];
 let lastResults=[];

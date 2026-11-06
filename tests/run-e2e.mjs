@@ -31,7 +31,7 @@ try{
     Object.defineProperty(window,'__bfUserId',{configurable:true,enumerable:true,get(){return current},set(value){if(value)current=String(value)}});
     window.confirm=()=>true;
     document.addEventListener('DOMContentLoaded',()=>document.body.classList.remove('bf-auth-checking'),{once:true});
-    try{localStorage.clear()}catch(e){}
+    try{if(sessionStorage.getItem('__bf_e2e_seed')!=='1'){localStorage.clear();sessionStorage.setItem('__bf_e2e_seed','1')}}catch(e){}
   });
   await context.route('**/*',route=>{
     const url=new URL(route.request().url());

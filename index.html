@@ -2547,12 +2547,30 @@ function claimDeliverableLabel(requestText){
   if(booking && payment) return 'the online booking and payment functionality';
   if(booking) return 'the online booking functionality';
   if(payment) return 'the payment functionality';
+  const namedForm=subject.match(/\b([A-Za-z][A-Za-z0-9&'-]*(?:\s+[A-Za-z][A-Za-z0-9&'-]*){0,2})\s+(?:contact|booking|enquiry|inquiry|checkout)?\s*form\b/i);
+  if(namedForm) return 'the '+namedForm[0].trim().replace(/\s+/g,' ');
   if(form) return 'the requested form';
   const page=subject.match(/\b([A-Za-z][A-Za-z0-9&'-]*(?:\s+[A-Za-z][A-Za-z0-9&'-]*){0,2})\s+page\b/i);
   if(page) return 'the '+page[1].trim()+' page';
   const concise=subject.replace(/\s+(?:showing|including|with|that|which)\b.*$/i,'').trim();
   if(concise && concise.length<=70) return 'the '+concise.replace(/^(?:a|an|the)\s+/i,'');
   return 'the requested deliverable';
+}
+function preserveClarificationSubject(plan,c,q){
+  if(!plan || typeof plan!=='object') return plan;
+  const subject=claimDeliverableLabel(q||(c&&c.request)||'');
+  // Preserve an explicitly named work item without guessing when extraction is uncertain.
+  if(!subject || subject==='the requested deliverable') return plan;
+  const generic=/\b(?:this|the) request\b|\bthis deliverable\b|\bthe requested deliverable\b/ig;
+  const replaceText=value=>{
+    if(typeof value!=='string' || !value) return value;
+    if(value.toLowerCase().includes(subject.toLowerCase())) return value;
+    return value.replace(generic,subject);
+  };
+  const next=Object.assign({},plan);
+  ['title','needed','question','why'].forEach(key=>{next[key]=replaceText(next[key]);});
+  if(Array.isArray(next.outcomes)) next.outcomes=next.outcomes.map(replaceText);
+  return next;
 }
 function claimAwareClarificationPlan(c,q,basePlan){
   if(!basePlan) return basePlan;
@@ -2762,7 +2780,7 @@ function renderClarificationBox(z,n){
   // A client-claim card is informational and remains distinct from the underlying work request.
   // Do not show an empty clarification form for the claim itself.
   if(String(z&&z.c&&z.c.status||'').trim().toLowerCase()==='client claim') return '';
-  let plan=claimAwareClarificationPlan(z.c,z.q,clarificationPlan(z.c,z.q));
+  let plan=preserveClarificationSubject(claimAwareClarificationPlan(z.c,z.q,clarificationPlan(z.c,z.q)),z.c,z.q);
   const prior=z.c.clarification||null;
   if(prior && prior.conflictDetected){
     plan={title:'Written approval needed to resolve scope conflict',why:prior.why,needed:prior.missing,question:prior.question,outcomes:[

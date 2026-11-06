@@ -85,7 +85,7 @@ The next 12 scenarios exercise the new diagnostics layer. These are advisory che
 
 Before a production version is promoted:
 
-1. Run all 64 scenarios against the exact candidate build.
+1. Run all 66 scenarios against the exact candidate build.
 2. Record the actual detected request rows and classifications.
 3. Investigate every mismatch; do not weaken an expected result merely to make a test pass.
 4. Add a regression case for every confirmed defect.
@@ -120,3 +120,6 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 
 | BF-L20 | Conflicting approved ledger records are not resolved silently. | Record two conflicting approval entries for one page. | Classify Clarify and require original records to be checked. |
 | BF-L21 | Negative approval wording cannot be overridden by a manually approved status. | Record an entry marked Approved whose text says the page is not approved. | Classify Clarify and flag the status/text conflict. |
+
+| BF-L22 | Per-page revision history is evaluated separately for each request. | Record one completed Home-page round and analyse About- and Home-page requests together. | About history remains unknown; Home history shows one completed round. |
+| BF-L23 | Project switching does not reuse prior project evidence. | Add an approval to Project Alpha, then analyse the same request under Project Beta. | Beta analysis contains no Alpha records. |

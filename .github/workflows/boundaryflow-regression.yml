@@ -29,6 +29,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: boundaryflow-engine-regression-results
-          path: test-results/*.json
+          path: test-results/*
           if-no-files-found: ignore
           retention-days: 14

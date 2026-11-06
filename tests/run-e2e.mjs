@@ -123,9 +123,9 @@ try{
       return {name:x.name,expected:x.expected,needed:plan.needed||'',question:plan.question||'',why:plan.why||'',title:plan.title||''};
     });
   });
-  check('Careers-page clarification preserves the named page in its title, explanation and question',(()=>{const x=specificity[0];return [x.title,x.needed,x.question,x.why].join(' ').toLowerCase().includes('careers page')})(),JSON.stringify(specificity[0]));
-  check('Portfolio-page clarification preserves the named page in its title, explanation and question',(()=>{const x=specificity[1];return [x.title,x.needed,x.question,x.why].join(' ').toLowerCase().includes('portfolio page')})(),JSON.stringify(specificity[1]));
-  check('Contact-form clarification preserves the named form',(()=>{const x=specificity[2];return [x.title,x.needed,x.question,x.why].join(' ').toLowerCase().includes('contact form')})(),JSON.stringify(specificity[2]));
+  check('Careers-page clarification names the page in every user-facing clarification field',(()=>{const x=specificity[0];return [x.title,x.needed,x.question,x.why].every(v=>String(v||'').toLowerCase().includes('careers page'))})(),JSON.stringify(specificity[0]));
+  check('Portfolio-page clarification names the page in every user-facing clarification field',(()=>{const x=specificity[1];return [x.title,x.needed,x.question,x.why].every(v=>String(v||'').toLowerCase().includes('portfolio page'))})(),JSON.stringify(specificity[1]));
+  check('Contact-form clarification names the form in every user-facing clarification field',(()=>{const x=specificity[2];return [x.title,x.needed,x.question,x.why].every(v=>String(v||'').toLowerCase().includes('contact form'))})(),JSON.stringify(specificity[2]));
   const genericSpecificity=await page.evaluate(()=>{
     const request='Please review the current work';
     const base=window.clarificationPlan({status:'Conditional'},request);

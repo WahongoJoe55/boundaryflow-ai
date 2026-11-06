@@ -82,7 +82,7 @@ The next 12 scenarios exercise the new diagnostics layer. These are advisory che
 
 Before a production version is promoted:
 
-1. Run all 40 scenarios against the exact candidate build.
+1. Run all 56 scenarios against the exact candidate build.
 2. Record the actual detected request rows and classifications.
 3. Investigate every mismatch; do not weaken an expected result merely to make a test pass.
 4. Add a regression case for every confirmed defect.
@@ -106,3 +106,7 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 
 | BF-L11 | Client assertion cannot be marked approved. | Attempt to assign approved status to a client-claim source. | Reject the status transition. |
 | BF-L12 | Display recorded request status and source. | Add an awaiting-approval change request. | Show status and source type in the timeline. |
+| BF-L13 | Approved amendment is recorded in the project ledger. | Analyse a new Careers page request with a user-recorded approved amendment. | Apply the amendment as supplemental context and retain provenance caution. |
+| BF-L14 | A client claim is recorded in the project ledger. | Analyse a new Careers page request with a client assertion in the ledger. | Keep the claim visible but exclude it from scope facts and preserve the underlying boundary. |
+| BF-L15 | An amendment is awaiting approval. | Analyse a new Careers page request with a pending amendment. | Do not apply the pending amendment to the scope classification. |
+| BF-L16 | The first revision round is recorded as completed. | Analyse a later About-page edit. | Use the user-recorded revision event in the allowance assessment while showing that the record is not independently verified. |

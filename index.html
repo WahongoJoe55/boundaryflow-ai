@@ -1063,14 +1063,14 @@ function explicitExcludedTopic(q,a){
   const topics=[
     {label:'post-launch maintenance/support',request:/\b(?:post[- ]launch|ongoing|website|site)\s+(?:maintenance|support|care|servicing)\b|\b(?:maintain|maintaining)\s+(?:the\s+)?(?:website|site)\b/i,agreement:/\b(?:post[- ]launch|ongoing|website|site)\s+(?:maintenance|support|care|servicing)\b|\bmaintenance\b/i},
     {label:'editable/source files',request:/\b(?:source files?|working files?|editable files?|figma files?|photoshop files?|psd files?|illustrator files?)\b/i,agreement:/\b(?:source files?|working files?|editable files?|figma files?|photoshop files?|psd files?|illustrator files?)\b/i},
-    {label:'data/content migration',request:/\b(?:data|content|customer|client|product|record)\s+migrat(?:e|ion|ing)\b|\bmigrat(?:e|ion|ing)\s+(?:the\s+)?(?:data|content|customers?|clients?|products?|records)\b|\bimport\s+(?:the\s+)?(?:existing\s+)?(?:data|content|customers?|clients?|products?|records)\b/i,agreement:/\b(?:data|content|customer|client|product|record)\s+migrat(?:e|ion|ing)\b|\bmigrat(?:e|ion|ing)\b/i},
+    {label:'data/content migration',request:/\b(?:data|content|customer|client|product|record)\s+migrat(?:e|ion|ing)\b|\bmigrat(?:e|ion|ing)\s+(?:(?:the|existing|legacy|old)\s+){0,3}(?:data|content|customers?|clients?|products?|records)\b|\bimport\s+(?:(?:the|existing|legacy|old)\s+){0,3}(?:data|content|customers?|clients?|products?|records)\b/i,agreement:/\b(?:data|content|customer|client|product|record)\s+migrat(?:e|ion|ing)\b|\bmigrat(?:e|ion|ing)\b/i},
     {label:'SEO/keyword research',request:/\b(?:seo|search engine optim(?:i[sz]ation|i[sz]e)|keyword research|backlink(?:ing)?|technical seo)\b/i,agreement:/\b(?:seo|search engine optim(?:i[sz]ation|i[sz]e)|keyword research|backlink(?:ing)?|technical seo)\b/i},
     {label:'staff training',request:/\b(?:staff|team|user|client)?\s*(?:training|train(?:ing)? session|walkthrough|onboarding session)\b/i,agreement:/\b(?:staff|team|user)?\s*(?:training|train(?:ing)? session|walkthrough|onboarding session)\b/i},
     {label:'third-party integration',request:/\b(?:integrat(?:e|ion|ing)|connect(?:ion|ing)?|sync(?:ing)?|api|crm|mailchimp|hubspot|xero|quickbooks|stripe)\b/i,agreement:/\b(?:third[- ]party\s+)?integrat(?:e|ion|ing)|\bexternal\s+systems?\b/i},
-    {label:'additional meetings/workshops',request:/\b(?:additional|extra|another|further|second)\s+(?:discovery\s+)?(?:meetings?|workshops?|consultation sessions?|strategy sessions?)\b/i,agreement:/\b(?:additional|extra|further)\s+(?:discovery\s+)?(?:meetings?|workshops?|consultation sessions?|strategy sessions?)\b/i},
+    {label:'additional meetings/workshops',request:/\b(?:additional|extra|another|further|second)\s+(?:(?:discovery|strategy)\s+)?(?:meetings?|workshops?|consultation sessions?)\b|\b(?:additional|extra|another|further|second)\s+strategy\s+sessions?\b/i,agreement:/\b(?:additional|extra|further)\s+(?:(?:discovery|strategy)\s+)?(?:meetings?|workshops?|consultation sessions?)\b|\b(?:additional|extra|further)\s+strategy\s+sessions?\b/i},
     {label:'original copywriting/content creation',request:/\b(?:write|writing|draft|drafting|author|authoring|copywriting|create)\b[\s\S]{0,100}\b(?:copy|content|articles?|blog posts?|product descriptions?|page text)\b|\b(?:copywriting|original content creation)\b/i,agreement:/\b(?:original\s+)?(?:copywriting|content creation|writing new|writing original|drafting new)\b/i}
   ];
-  const exclusion=/\b(?:excluded|not included|isn't included|is not covered|not covered|outside (?:the )?(?:agreed )?scope|out of scope|requires? separate approval|separately quoted|separate quote|additional fee|required as an extra)\b/i;
+  const exclusion=/\b(?:excluded|not included|isn't included|is not covered|not covered|outside (?:the )?(?:agreed )?scope|out of scope|requires? separate approval|separately quoted|separate quote|additional fee|separate fee|required as an extra)\b/i;
   const clauses=String(a||'').split(/(?<=[.!?;])\s+|\n+/).map(x=>x.trim()).filter(Boolean);
   for(const topic of topics){
     if(!topic.request.test(q)) continue;
@@ -2377,6 +2377,27 @@ function classify(q,a,context){
       response:'The requested '+topic+' is expressly excluded by our current agreement. I can prepare a separate change proposal setting out the deliverables, fee and timeline for your approval before we proceed.',
       claims:split.claims,
       request:s
+    };
+  }
+
+  // Explicitly included SEO metadata must not be promoted to a new deliverable
+  // merely because the agreement also mentions a page-count allowance.
+  // Specific included evidence is checked before broad new-page/deliverable heuristics.
+  const seoMetadataRequest=/\b(?:seo\s+metadata|meta\s+(?:titles?|descriptions?)|page\s+titles?)\b/i.test(s);
+  const seoMetadataIncluded=/\b(?:seo\s+metadata|meta\s+(?:titles?|descriptions?)|page\s+titles?)\b/i.test(A) &&
+    /\b(?:include|included|covers?|covered|comprises?|consists of)\b/i.test(A);
+  if(seoMetadataRequest && seoMetadataIncluded){
+    return {
+      type:'Included SEO metadata deliverable',
+      status:'Likely included',
+      confidence:'High',
+      risk:'Low',
+      evidence:'The agreement expressly includes SEO metadata/page titles for the stated pages. The request asks for that named included item.',
+      action:'Complete the agreed SEO metadata for the specified pages. Confirm any quantity or content limits if the requested work exceeds the stated allowance.',
+      boundary:'This decision covers the SEO metadata expressly named in the agreement; it does not automatically include keyword research, backlink work or an ongoing SEO campaign.',
+      response:'The SEO metadata for the agreed pages is included. I’ll complete the specified metadata within the agreed page allowance; any separate keyword research or ongoing SEO work would need to be scoped independently.',
+      claims:split.claims,
+      request:raw
     };
   }
 

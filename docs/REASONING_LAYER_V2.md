@@ -48,7 +48,7 @@ These are source labels inferred from wording. BoundaryFlow does not authenticat
 
 ## Regression coverage
 
-The regression matrix contains 67 scenarios: 43 reasoning-engine cases and 24 project-ledger integrity / analysis-integration cases. The Playwright runner must execute exactly 67 cases and fail on a count mismatch. The runner checks the actual application build in isolated regression mode; CI blocks non-local network requests and does not use Save, Sync or History.
+The regression matrix contains 69 scenarios: 43 reasoning-engine cases and 26 project-ledger integrity / analysis-integration cases. The Playwright runner must execute exactly 69 cases and fail on a count mismatch. The runner checks the actual application build in isolated regression mode; CI blocks non-local network requests and does not use Save, Sync or History.
 
 ## Release requirements
 
@@ -91,7 +91,7 @@ This is a conservative local integration, not a contract-priority engine or lega
 
 ## Ledger regression coverage
 
-Twenty-four ledger tests verify baseline provenance, amendment append behavior, required project and record fields, client-claim labelling, project/account isolation, append-only revision events, signed-in write context, safe rendering of untrusted text, and controlled ledger-to-analysis context. The complete automated suite now contains 67 cases.
+Twenty-six ledger tests verify baseline provenance, amendment append behavior, required project and record fields, client-claim labelling, project/account isolation, append-only revision events, signed-in write context, safe rendering of untrusted text, and controlled ledger-to-analysis context. The complete automated suite now contains 69 cases.
 
 
 ## 8. Page-specific revision accounting safeguards
@@ -101,3 +101,5 @@ Twenty-four ledger tests verify baseline provenance, amendment append behavior, 
 - A delivered revision event with no ordinal round or no identifiable page is retained in the ledger but is not silently assigned to a page allowance.
 - The app does not infer that a feedback message is a consolidated round merely because it contains several edits; that must be confirmed against the agreed revision process.
 - User-recorded events remain unverified history and must be checked against the original project record.
+
+- Page matching for approval and revision records uses the ledger title, detail and Related item field; this is still a text match, not document authentication.

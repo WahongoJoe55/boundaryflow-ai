@@ -68,7 +68,7 @@ try{
     await page.locator('#a').fill(scope);
     await page.locator('#r').fill(message);
     await page.locator('#analyzeBtn').click();
-    await page.waitForFunction(()=>document.getElementById('status')?.textContent.includes('Analysis complete'));
+    await page.waitForFunction(()=>Array.isArray(window.rows)&&window.rows.length>0&&document.getElementById('out')?.innerText.length>0);
     return page.evaluate(()=>({
       rows:(window.rows||[]).map(x=>({request:x.q,status:x.c?.status,type:x.c?.type})),
       meta:window.bfLedgerAnalysisMeta?{

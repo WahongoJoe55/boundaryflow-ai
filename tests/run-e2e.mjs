@@ -50,6 +50,16 @@ try{
   await page.waitForFunction(()=>typeof window.analyze==='function'&&typeof window.bfLedgerAdd==='function');
   check('Candidate application loads with analysis and ledger controls',true);
 
+  await page.locator('#guideBtn').click();
+  const guideText=await page.locator('#userGuide').innerText();
+  const guideSteps=await page.locator('#userGuide .guide-step').count();
+  check('User guide opens and presents the complete 12-step visual walkthrough',guideSteps===12&&/Project Evidence & Change Ledger/i.test(guideText)&&/Additional information/i.test(guideText)&&/History/i.test(guideText),`steps=${guideSteps}`);
+  check('User guide explains ledger purpose, local-only storage and export limitations',/running record/i.test(guideText)&&/not cloud-synced/i.test(guideText)&&/Export ledger/i.test(guideText));
+  check('Request context uses clear Client Request Context terminology',/Client Request Context/i.test(guideText)&&! /Language & work context/i.test(guideText));
+  fs.mkdirSync(path.join(root,'test-results'),{recursive:true});
+  await page.screenshot({path:path.join(root,'test-results','boundaryflow-user-guide-desktop.png'),fullPage:true,animations:'disabled'});
+  await page.locator('#closeGuide').click();
+
   async function select(id,value){await page.locator('#'+id).selectOption(value)}
   async function addRecord({type,title,detail,source='email',status='not_specified',related=''}) {
     await select('bfLedgerType',type);

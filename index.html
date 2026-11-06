@@ -3201,8 +3201,16 @@ function bfR2Panel(data){
  const ev=(data.evidence||[]).map(x=>x.label+' — '+x.clause+' ('+x.verification+')');
  const con=(data.contradictions||[]).map(x=>x.topic+': '+x.earlier+' / '+x.later+' — '+x.resolution);
  const dep=(data.dependencies||[]).map(x=>x.kind+': '+x.evidence+' — '+x.status);
- const r=data.revisions||{},c=data.commercial||{};
- return '<div class="card" style="margin-top:14px"><b>Reasoning safeguards · v'+esc2(data.version)+'</b><p class="note">Evidence and consistency checks. These flags do not authenticate documents or replace your review.</p>'+
+ const r=data.revisions||{},c=data.commercial||{},ledger=window.bfLedgerAnalysisMeta||null;
+ const ledgerSummary=ledger&&ledger.totalEntries?section('Project ledger context',
+  '<p class="note">Project: '+esc2(ledger.projectName)+' · '+ledger.totalEntries+' user-recorded ledger entr'+(ledger.totalEntries===1?'y':'ies')+'. Ledger context is local to this signed-in account and project.</p>'+
+  (ledger.used.length?'<p class="note"><b>Used as supplemental scope context (not independently authenticated):</b></p><ul>'+ledger.used.map(x=>'<li>'+esc2(x.title)+' — '+esc2(x.type)+' · '+esc2(x.sourceType)+' · '+esc2(x.status)+(x.sourceDate?' · source date '+esc2(x.sourceDate):'')+'</li>').join('')+'</ul>':'<p class="note">No baseline or approved supplemental scope records qualified for use in this analysis.</p>')+
+  (ledger.revisionEvents.length?'<p class="note"><b>Revision history (user-recorded):</b></p><ul>'+ledger.revisionEvents.map(x=>'<li>'+esc2(x.title)+' — '+esc2(x.status)+' · '+esc2(x.detail)+'</li>').join('')+'</ul>':'')+
+  (ledger.unverifiedClaims.length?'<p class="note"><b>Excluded from scope facts — client assertions:</b> '+ledger.unverifiedClaims.map(x=>esc2(x.title)).join('; ')+'. These remain claims, not approval proof.</p>':'')+
+  (ledger.pending.length?'<p class="note"><b>Not applied — pending/proposed records:</b> '+ledger.pending.map(x=>esc2(x.title)+' ('+esc2(x.status)+')').join('; ')+'.</p>':'')+
+  (ledger.excluded.length?'<p class="note"><b>Not applied — declined/superseded records:</b> '+ledger.excluded.map(x=>esc2(x.title)+' ('+esc2(x.status)+')').join('; ')+'.</p>':'')+
+  '<p class="note">User-entered status and source labels are not authentication. Check original documents, sender authority, dates and complete project history before relying on a record.</p>') : '';
+ return '<div class="card" style="margin-top:14px"><b>Reasoning safeguards · v'+esc2(data.version)+'</b><p class="note">Evidence and consistency checks. These flags do not authenticate documents or replace your review.</p>'+ledgerSummary+
  section('Evidence sources found',list(ev,'No clearly labelled source types were detected. Paste or label the actual record if available.'))+
  section('Potential agreement contradictions',list(con,'No opposing included/excluded statements were detected for the topics this check recognises.'))+
  section('Revision allowance snapshot','<p class="note">Allowance: '+esc2(r.allowance===null?'Not established':r.allowance)+' · Completed: '+esc2(r.completed===null?'Not established':r.completed)+' · Current round mentioned: '+esc2(r.current===null?'Not established':r.current)+' · Remaining: '+esc2(r.remaining===null?'Cannot calculate':r.remaining)+'</p><p class="note">'+esc2(r.warning)+'</p>')+
@@ -3214,6 +3222,9 @@ function bfR2Panel(data){
 function analyze(){
   let a=document.getElementById('a').value.trim(), r=document.getElementById('r').value.trim();
   if(!a||!r){document.getElementById('status').textContent='Please provide both fields.';return}
+  const ledgerContext=bfLedgerAnalysisContext(a);
+  a=ledgerContext.analysisScope;
+  window.bfLedgerAnalysisMeta=ledgerContext;
 
   // Main analysis path: extract scope/entitlement claims BEFORE decomposing the
   // remaining work. Each actionable clause is then classified independently.
@@ -3236,7 +3247,7 @@ function analyze(){
     return m ? [m[1].trim(),m[2].trim()] : [v];
   });
   const contextualItems=resolveRequestContext(rawItems,r);
-  const revisionAlreadyUsed = /\b(?:already\s+used|used\s+our|completed\s+the\s+first|finished\s+the\s+first)\b[^.!?]{0,100}\b(?:included\s+)?revision\b/i.test(r) || /\b(?:first|one)\s+revision\s+(?:has\s+been\s+)?(?:used|completed)\b/i.test(r);
+  const revisionAlreadyUsed = ledgerContext.completedRevisionRounds.length>0 || /\b(?:already\s+used|used\s+our|completed\s+the\s+first|finished\s+the\s+first)\b[^.!?]{0,100}\b(?:included\s+)?revision\b/i.test(r) || /\b(?:first|one)\s+revision\s+(?:has\s+been\s+)?(?:used|completed)\b/i.test(r);
   const additionalRoundApprovalRequired = /\badditional\s+revision\s+rounds?\b[^.!?]{0,100}\b(?:approval|approve)\b/i.test(a) || /\badditional\s+revision\s+rounds?\s+require\s+approval\b/i.test(a);
   let rows=[];
   contextualItems.forEach(item=>{
@@ -3489,7 +3500,7 @@ function analyze(){
   });
   const detectedRequests=rows.filter(x=>String(x.c&&x.c.status||'').toLowerCase()!=='client claim').length;
   document.getElementById('status').textContent='Analysis complete. '+detectedRequests+' request item'+(detectedRequests===1?'':'s')+' detected. '+(parsed.claims.length?(parsed.claims.length===1?'Client claim was':'Client claims were')+' separated from the requested work.':'No separate scope claim was detected.');
-  window.bfReasoningV2=bfR2Inspect(a,r,rows);
+  window.bfReasoningV2=bfR2Inspect(a,ledgerContext.analysisMessage,rows);
   renderResults();
 }
 function buildFullResponse(rows){
@@ -3683,6 +3694,35 @@ document.addEventListener('change',e=>{if(e.target&&e.target.id==='responseStyle
 function bfLedgerProjectName(){return String(document.getElementById('projectName')?.value||'').trim()}
 function bfLedgerKey(){const name=bfLedgerProjectName();return name?bfScopedKey('boundaryflow_project_ledger_v1_'+bfHash(name.toLocaleLowerCase())):null}
 function bfLedgerRead(){const key=bfLedgerKey();if(!key||!window.__bfUserId)return[];try{const v=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(v)?v:[]}catch(e){return[]}}
+function bfLedgerAnalysisContext(baseScope){
+ const entries=bfLedgerRead();
+ const active=entries.filter(x=>!['superseded','declined'].includes(String(x.status||'').toLowerCase()));
+ const baseline=active.filter(x=>x.type==='baseline'&&x.sourceType==='agreement');
+ const approved=active.filter(x=>['amendment','approval','client_decision'].includes(x.type)&&x.status==='approved'&&['agreement','amendment','email'].includes(x.sourceType)&&x.sourceType!=='client_claim');
+ const used=[...baseline,...approved];
+ const revisions=active.filter(x=>x.type==='revision');
+ const completedRevisionRounds=revisions.filter(x=>x.status==='delivered').map(x=>{
+  const m=String(x.title||'')+' '+String(x.detail||'');
+  const match=m.match(/\b(?:first|one|second|two|third|three|fourth|four|fifth|five|\d+)\s+(?:included\s+)?revision round\b/i);
+  return match?bfR2Number(match[0]):null;
+ }).filter(x=>Number.isFinite(x)&&x>0);
+ const revisionNotes=revisions.filter(x=>x.status==='delivered').map(x=>'User-recorded completed revision event: '+String(x.title||'')+'. '+String(x.detail||''));
+ const analysisMessage=String(window.document.getElementById('r')?.value||'').trim()+(revisionNotes.length?'\n\n[PROJECT LEDGER REVISION HISTORY — user-recorded, not independently authenticated]\n'+revisionNotes.join('\n'):'');
+ const additions=used.map(x=>{
+  const label=x.type==='baseline'?'User-recorded original scope baseline':'User-recorded approved supplemental scope record';
+  return '['+label+'; source: '+String(x.sourceType||'not established')+'; status: '+String(x.status||'not specified')+'; source date: '+String(x.sourceDate||'not supplied')+'; not independently authenticated]\n'+String(x.detail||'');
+ });
+ const analysisScope=String(baseScope||'')+(additions.length?'\n\n[SUPPLEMENTAL PROJECT LEDGER CONTEXT — user-entered records; verify the original document and authority before relying on them. These records do not independently establish signature, identity, authority, chronology or legal effect.]\n'+additions.join('\n\n'):'');
+ return {
+  projectName:bfLedgerProjectName(),totalEntries:entries.length,analysisScope,analysisMessage,
+  used:used.map(x=>({id:x.id,title:x.title,type:x.type,sourceType:x.sourceType,status:x.status,sourceDate:x.sourceDate,related:x.related})),
+  revisionEvents:revisions.map(x=>({title:x.title,detail:x.detail,status:x.status,sourceType:x.sourceType,sourceDate:x.sourceDate})),
+  completedRevisionRounds,
+  unverifiedClaims:entries.filter(x=>x.sourceType==='client_claim').map(x=>({title:x.title,detail:x.detail,status:x.status,sourceType:x.sourceType})),
+  pending:entries.filter(x=>['proposed','awaiting_approval'].includes(x.status)).map(x=>({title:x.title,detail:x.detail,status:x.status,sourceType:x.sourceType})),
+  excluded:entries.filter(x=>['superseded','declined'].includes(x.status)).map(x=>({title:x.title,status:x.status}))
+ };
+}
 function bfLedgerAdd(record){
  if(!window.__bfUserId)throw new Error('Sign in before recording project evidence.');
  if(!bfLedgerProjectName())throw new Error('Enter a project / client name before adding a ledger record.');

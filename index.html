@@ -6,6 +6,11 @@
   var theme='light';
   try { theme=localStorage.getItem('boundaryflow_theme')==='dark'?'dark':'light'; } catch(e) {}
   document.documentElement.setAttribute('data-bf-theme',theme);
+  // Isolated regression mode: prevent this test frame from writing browser storage.
+  if(new URLSearchParams(location.search).get('bf_regression')==='1'){
+    window.__BF_REGRESSION_MODE=true;
+    try{['setItem','removeItem','clear'].forEach(function(k){Storage.prototype[k]=function(){return undefined;};});}catch(e){}
+  }
 })();
 </script>
 <title>BoundaryFlow AI · v87</title>
@@ -3525,14 +3530,17 @@ function saveDraftFields(){try{localStorage.setItem(bfScopedKey('boundaryflow_dr
 <script>
 (function(){
   function wire(){
-    // Auto-save analysis after every successful Analyze action, without creating duplicates.
-    if(typeof analyze==='function' && !window.__bfAnalyzeWrapped){
-      const originalAnalyze=analyze; window.__bfAnalyzeWrapped=true;
-      window.analyze=function(){originalAnalyze();if(window.rows&&window.rows.length)autoSaveCurrentAnalysis();};
+    // Regression mode intentionally disables autosave and draft persistence.
+    if(!window.__BF_REGRESSION_MODE){
+      // Auto-save analysis after every successful Analyze action, without creating duplicates.
+      if(typeof analyze==='function' && !window.__bfAnalyzeWrapped){
+        const originalAnalyze=analyze; window.__bfAnalyzeWrapped=true;
+        window.analyze=function(){originalAnalyze();if(window.rows&&window.rows.length)autoSaveCurrentAnalysis();};
+      }
+      ['a','r','projectName'].forEach(id=>{const el=document.getElementById(id);if(el&&!el.__bfDraft){el.__bfDraft=true;let t;el.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(saveDraftFields,250);});}});
+      const ts=document.getElementById('taskStatus');if(ts&&!ts.__bfAuto){ts.__bfAuto=true;ts.addEventListener('change',()=>{if(window.rows&&window.rows.length){autoSaveCurrentAnalysis();}})}
+      const rs=document.getElementById('responseStyle');if(rs&&!rs.__bfAuto){rs.__bfAuto=true;rs.addEventListener('change',()=>{if(window.rows&&window.rows.length){saveDraftFields();autoSaveCurrentAnalysis();}})}
     }
-    ['a','r','projectName'].forEach(id=>{const el=document.getElementById(id);if(el&&!el.__bfDraft){el.__bfDraft=true;let t;el.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(saveDraftFields,250);});}});
-    const ts=document.getElementById('taskStatus');if(ts&&!ts.__bfAuto){ts.__bfAuto=true;ts.addEventListener('change',()=>{if(window.rows&&window.rows.length){autoSaveCurrentAnalysis();}})}
-    const rs=document.getElementById('responseStyle');if(rs&&!rs.__bfAuto){rs.__bfAuto=true;rs.addEventListener('change',()=>{if(window.rows&&window.rows.length){saveDraftFields();autoSaveCurrentAnalysis();}})}
     document.addEventListener('click',function(ev){
       const d=ev.target.closest('[data-delete-history]');if(d){ev.preventDefault();ev.stopPropagation();deleteHistory(Number(d.getAttribute('data-delete-history')));}
     },true);

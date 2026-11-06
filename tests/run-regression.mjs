@@ -46,7 +46,7 @@ try {
   const passed=results.filter(x=>x.result==='PASS').length;
   const failed=results.length-passed;
   console.log(JSON.stringify({total:results.length,passed,failed,results},null,2));
-  if(results.length!==56 || failed>0) process.exitCode=1;
+  if(results.length!==59 || failed>0) process.exitCode=1;
 } catch(error) {
   console.error(error);
   process.exitCode=1;

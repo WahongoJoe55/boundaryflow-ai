@@ -101,6 +101,13 @@ try{
   check('Portfolio revision usage is matched to the correct page',portfolio?.allowance===2&&portfolio?.completed===1&&portfolio?.remaining===1,JSON.stringify(portfolio||null));
   check('Analysis visibly explains ledger provenance and unverified claims',/user-recorded/i.test(alpha.output)&&/client assertions/i.test(alpha.output));
 
+  // Capture the real candidate UI for human visual review; test identities and cloud remain simulated.
+  fs.mkdirSync(path.join(root,'test-results'),{recursive:true});
+  await page.screenshot({path:path.join(root,'test-results','boundaryflow-candidate-desktop.png'),fullPage:true,animations:'disabled'});
+  await page.setViewportSize({width:390,height:844});
+  await page.screenshot({path:path.join(root,'test-results','boundaryflow-candidate-mobile.png'),fullPage:true,animations:'disabled'});
+  await page.setViewportSize({width:1440,height:1000});
+
   const saveButton=page.locator('[data-save]').first();
   await saveButton.waitFor({state:'visible',timeout:10000});
   await saveButton.click();

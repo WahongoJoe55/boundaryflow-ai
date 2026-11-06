@@ -1,0 +1,38 @@
+name: BoundaryFlow engine regression tests
+
+on:
+  push:
+    branches:
+      - work/engine-regression-suite-v1
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  engine-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out candidate branch
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install browser test dependency
+        run: npm install --no-save playwright
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run isolated engine regression suite
+        run: node tests/run-regression.mjs
+      - name: Upload regression report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: boundaryflow-engine-regression-results
+          path: test-results/engine-regression-results.json
+          if-no-files-found: ignore
+          retention-days: 14

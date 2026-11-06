@@ -17,7 +17,7 @@ main{max-width:1100px;margin:0 auto;padding:28px 18px 60px}.eyebrow{font-size:11
 <h1>Engine regression runner</h1>
 <p class="intro">Runs the v87 analysis engine against a fixed set of scope scenarios and checks the actual classifications returned by the application. This page does not save analyses, change Supabase data, or modify your production workspace.</p>
 <div class="panel">
- <div class="actions"><button id="run" class="btn primary">Run all 28 tests</button><button id="download" class="btn secondary" disabled>Download results (CSV)</button><span id="runStatus" class="status">Ready. The application engine loads in a hidden frame when you start the tests.</span></div>
+ <div class="actions"><button id="run" class="btn primary">Run all 40 tests</button><button id="download" class="btn secondary" disabled>Download results (CSV)</button><span id="runStatus" class="status">Ready. The application engine loads in a hidden frame when you start the tests.</span></div>
  <div class="summary">
   <div class="metric"><strong id="total">28</strong><span>Scenarios</span></div>
   <div class="metric"><strong id="passed">—</strong><span>Passed</span></div>
@@ -27,7 +27,7 @@ main{max-width:1100px;margin:0 auto;padding:28px 18px 60px}.eyebrow{font-size:11
  <p class="foot">A failed expectation identifies a case for investigation; it does not by itself prove the engine is wrong. Review the actual request rows and evidence before changing a rule.</p>
 </div>
 <section class="panel"><h2 style="margin:0 0 8px">Scenario results</h2><div id="results"><p class="status">No tests have run yet.</p></div></section>
-<p class="foot">Development branch: <b>work/engine-regression-suite-v1</b> · Baseline source: v87 on main. Test execution is local to this browser tab.</p>
+<p class="foot">Development branch: <b>work/engine-regression-suite-v1</b> · Candidate source: development branch; isolated regression mode. Test execution is local to this browser tab.</p>
 </main>
 <iframe id="engine" title="BoundaryFlow analysis engine" src="../index.html?bf_regression=1" aria-hidden="true"></iframe>
 <script>
@@ -62,6 +62,20 @@ const cases=[
 {id:'BF-R26',title:'Migration wording with intervening modifiers',agreement:'Migration of existing customer records and legacy content is excluded from the project.',message:'Please migrate the existing customer records and legacy blog content into the new website.',check:r=>has(r,'likely additional'),expect:'Recognise migration even when words such as existing and legacy occur between the verb and object.'},
 {id:'BF-R27',title:'Another strategy workshop beyond allowance',agreement:'One discovery workshop is included. Additional workshops and strategy sessions require a separate fee and approval.',message:'Could we arrange another strategy workshop for the next phase?',check:r=>has(r,'likely additional'),expect:'Recognise strategy workshop as an additional workshop under the allowance.'},
 {id:'BF-R28',title:'Migration not addressed by agreement',agreement:'The project includes building a new website and transferring the agreed page designs. The agreement does not mention customer-record or content migration.',message:'Please migrate the existing customer records into the new website.',check:r=>has(r,'clarify')&&!has(r,'likely additional'),expect:'Do not invent an exclusion when migration is not addressed.'}
+
+{id:'BF-R29',title:'Opposing included and excluded terms',agreement:'New pages are included in the project. New pages are excluded unless separately approved in writing.',message:'Create a new Careers page.',reasoningCheck:d=>d.contradictions.some(x=>x.topic==='new pages'),expect:'Flag opposing scope statements about the same work category.'},
+{id:'BF-R30',title:'Later term expressly supersedes earlier term',agreement:'The signed agreement says new pages are excluded. A later signed amendment expressly supersedes that term and says new pages are included.',message:'Create a new Careers page.',reasoningCheck:d=>d.contradictions.some(x=>x.kind==='Possible superseding term'),expect:'Recognise superseding language but preserve the need to verify authority and chronology.'},
+{id:'BF-R31',title:'Revision allowance and completed round are explicit',agreement:'One revision round is included. Additional revision rounds require written approval.',message:'The first revision round has been used. Please make the changes in the second revision round.',reasoningCheck:d=>d.revisions.allowance===1&&d.revisions.completed===1&&d.revisions.current===2&&d.revisions.remaining===0,expect:'Calculate only the explicitly stated allowance and completed round.'},
+{id:'BF-R32',title:'Revision usage history is missing',agreement:'Two revision rounds are included.',message:'Please revise the About page heading.',reasoningCheck:d=>d.revisions.allowance===2&&d.revisions.completed===null&&d.revisions.remaining===null,expect:'Do not infer how many rounds have been used from an absent history.'},
+{id:'BF-R33',title:'Explicit task sequence',agreement:'The project includes the agreed pages and minor links.',message:'After the Careers page is approved, add the navigation link to it.',reasoningCheck:d=>d.dependencies.some(x=>x.kind==='sequence'),expect:'Detect the approval-before-link sequence and label it as inferred.'},
+{id:'BF-R34',title:'New page and link dependency',agreement:'New pages require separate approval. Minor links on existing pages are included.',message:'Create a new Careers page. Add a button on the Contact page linking to it.',reasoningCheck:d=>d.dependencies.some(x=>x.kind==='likely prerequisite'),expect:'Connect the destination-page creation and existing-page link without merging their scope decisions.'},
+{id:'BF-R35',title:'Evidence source types are distinguished',agreement:'Signed agreement: New pages are excluded. Approved change order: The Careers page is approved. Email confirmation: The client approved the revised page title. Meeting notes: The team discussed the launch sequence.',message:'The client says this was agreed on the call.',reasoningCheck:d=>[1,2,3,4].every(t=>d.evidence.some(x=>x.tier===t)),expect:'Distinguish signed agreement, approved change order, email confirmation and meeting notes; do not claim authentication.'},
+{id:'BF-R36',title:'Unsupported entitlement statement remains a claim',agreement:'New functionality is excluded unless approved in writing.',message:'We discussed the booking feature on the call and you promised it was included.',reasoningCheck:d=>d.evidence.some(x=>x.tier===5),expect:'Identify a client assertion as an assertion, not proof or a verified contradiction.'},
+{id:'BF-R37',title:'Commercial safeguard removes unsupported amount and deadline',agreement:'New page creation requires separate approval.',message:'Create a new Careers page.',reasoningProbe:w=>{const probe=[{c:{action:'Charge $500 within 5 days.',response:'The work will cost KSh 2,000 and be delivered by Friday.'}}];w.bfR2ApplyCommercialGuard(probe,'New page creation requires separate approval.','Create a new Careers page.');return probe[0].c.action.includes('[fee to be agreed]')&&probe[0].c.action.includes('[delivery timing to be agreed]')&&probe[0].c.response.includes('[fee to be agreed]')&&probe[0].c.response.includes('[delivery timing to be agreed]');},reasoningCheck:(_d,w,_r,probe)=>probe===true,expect:'Unsupported fees and deadlines are replaced with terms to be agreed, not invented.'},
+{id:'BF-R38',title:'Commercial safeguard preserves supplied figures',agreement:'The approved change order states a fee of $500 and delivery within 5 business days.',message:'Proceed with the approved change order for $500 within 5 business days.',reasoningCheck:(d,w)=>!d.commercial.ungroundedAmounts.length&&!d.commercial.ungroundedDates.length,expect:'Do not strip commercial details that are explicitly supplied as evidence.'},
+{id:'BF-R39',title:'Evidence hierarchy includes verification limits',agreement:'Signed agreement: SEO metadata for five pages is included.',message:'The client says the PDF is signed and approved.',reasoningCheck:d=>d.evidence.some(x=>x.tier===1&&x.verification.includes('not verified')),expect:'Source labels do not authenticate signatures, identity, authority or document integrity.'},
+{id:'BF-R40',title:'No fee or deadline invented in an additional-work response',agreement:'New integrations require separate written approval. No fee or deadline is stated.',message:'Connect the website to the external CRM.',reasoningCheck:(d,w,rows)=>rows.every(x=>!/\b(?:[$£€]\s?\d|(?:USD|GBP|EUR|KES|KSh)\s?\d|within\s+\d+\s+days|by\s+(?:monday|tuesday|wednesday|thursday|friday))\b/i.test(String(x.request||'')+' '+String(x.status||'')))&&d.commercial.ungroundedAmounts.length===0,expect:'Do not fabricate commercial amounts or delivery commitments where none were provided.'}
+
 ];
 let lastResults=[];
 const norm=s=>String(s||'').toLowerCase();
@@ -88,7 +102,7 @@ function readRows(w){
 }
 function render(results){
  const el=document.getElementById('results');
- el.innerHTML=results.map(x=>'<article class="case"><div class="casehead"><div><b>'+escape(x.id)+' · '+escape(x.title)+'</b><div class="detail">Expected: '+escape(x.expect)+'</div></div><span class="'+(x.pass?'pass':'fail')+'">'+(x.pass?'PASS':'FAIL')+'</span></div><div class="casebody"><p><b>Actual classifications:</b> '+escape(x.actual.map(a=>a.status+' — '+a.type).join(' | ')||'No rows returned')+'</p><p class="detail">Detected requests: '+escape(x.actual.map(a=>a.request).join(' · ')||'None')+'</p><p class="detail">'+escape(x.error||'')+'</p></div></article>').join('');
+ el.innerHTML=results.map(x=>'<article class="case"><div class="casehead"><div><b>'+escape(x.id)+' · '+escape(x.title)+'</b><div class="detail">Expected: '+escape(x.expect)+'</div></div><span class="'+(x.pass?'pass':'fail')+'">'+(x.pass?'PASS':'FAIL')+'</span></div><div class="casebody"><p><b>Actual classifications:</b> '+escape(x.actual.map(a=>a.status+' — '+a.type).join(' | ')||'No rows returned')+'</p><p class="detail">Detected requests: '+escape(x.actual.map(a=>a.request).join(' · ')||'None')+'</p><p class="detail">'+escape(x.diagnostic?'Diagnostics: '+JSON.stringify(x.diagnostic):'')+'</p><p class="detail">'+escape(x.error||'')+'</p></div></article>').join('');
  const passed=results.filter(x=>x.pass).length;
  document.getElementById('passed').textContent=passed;
  document.getElementById('failed').textContent=results.length-passed;
@@ -106,7 +120,10 @@ async function run(){
     w.document.getElementById('r').value=c.message;
     w.analyze();
     const actual=readRows(w);
-    results.push({id:c.id,title:c.title,expect:c.expect,actual,pass:!!c.check(actual),error:''});
+    const reasoning=w.bfReasoningV2||null;
+    const probe=typeof c.reasoningProbe==='function'?c.reasoningProbe(w,actual):undefined;
+    const pass=typeof c.reasoningCheck==='function'?!!c.reasoningCheck(reasoning,w,actual,probe):!!c.check(actual);
+    results.push({id:c.id,title:c.title,expect:c.expect,actual,pass,diagnostic:reasoning?{contradictions:reasoning.contradictions.length,dependencies:reasoning.dependencies.length,evidence:reasoning.evidence.length,revisions:reasoning.revisions,commercial:reasoning.commercial}:null,error:''});
    }catch(e){results.push({id:c.id,title:c.title,expect:c.expect,actual:[],pass:false,error:String(e&&e.message||e)})}
   }
   lastResults=results;render(results);

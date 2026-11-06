@@ -60,11 +60,29 @@ The engine should recognise common professional wording without treating synonym
 
 These terms must be interpreted in context. For example, mentioning a fee does not prove that a fee was agreed; mentioning approval does not prove that approval was given; and calling work a “small tweak” does not make it included.
 
+## Reasoning and commercial safeguards
+
+The next 12 scenarios exercise the new diagnostics layer. These are advisory checks, not document authentication or a complete project ledger.
+
+
+| BF-R29 | New pages are included in the project. New pages are excluded unless separately approved in writing. | Create a new Careers page. | Flag opposing included/excluded statements about the same work category; do not silently choose one. |
+| BF-R30 | The signed agreement says new pages are excluded. A later signed amendment expressly supersedes that term and says new pages are included. | Create a new Careers page. | Identify possible superseding language while preserving the need to verify chronology, authority and approval. |
+| BF-R31 | One revision round is included; additional rounds require written approval. | The first revision round has been used. Please make the changes in the second revision round. | Calculate one included round, one completed round and zero remaining only from the explicit statements. |
+| BF-R32 | Two revision rounds are included. | Please revise the About page heading. | Do not infer completed or remaining rounds without project history. |
+| BF-R33 | The project includes the agreed pages and minor links. | After the Careers page is approved, add the navigation link to it. | Detect sequence/dependency and label it as inferred pending confirmation. |
+| BF-R34 | New pages require separate approval; minor links on existing pages are included. | Create a new Careers page. Add a button on the Contact page linking to it. | Preserve separate scope decisions and identify the new page as a likely prerequisite for the link. |
+| BF-R35 | Supplied text labels a signed agreement, approved change order, email confirmation and meeting notes. | The client says this was agreed on the call. | Distinguish source types without authenticating documents or treating labels as proof. |
+| BF-R36 | New functionality is excluded unless approved in writing. | We discussed the booking feature on the call and you promised it was included. | Keep the statement as a client assertion, not proof or a verified contradiction. |
+| BF-R37 | New page creation requires separate approval; no fee or deadline is supplied. | Create a new Careers page. | Inject a deliberately unsupported fee/deadline into a test response and verify the guard replaces it with terms to be agreed. |
+| BF-R38 | The approved change order states a fee of $500 and delivery within 5 business days. | Proceed with the approved change order for $500 within 5 business days. | Preserve figures that are explicitly present in the supplied evidence. |
+| BF-R39 | A supplied text label says: Signed agreement: SEO metadata for five pages is included. | The client says the PDF is signed and approved. | Clearly state that a source label does not authenticate signatures, identity, authority or document integrity. |
+| BF-R40 | New integrations require separate written approval. No fee or deadline is stated. | Connect the website to the external CRM. | Verify generated client-facing actions do not invent numeric fees or delivery deadlines. |
+
 ## Release gate
 
 Before a production version is promoted:
 
-1. Run all 28 scenarios against the exact candidate build.
+1. Run all 40 scenarios against the exact candidate build.
 2. Record the actual detected request rows and classifications.
 3. Investigate every mismatch; do not weaken an expected result merely to make a test pass.
 4. Add a regression case for every confirmed defect.

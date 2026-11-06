@@ -14,18 +14,14 @@ permissions:
 jobs:
   engine-regression:
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
     timeout-minutes: 10
     steps:
       - name: Check out candidate branch
         uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Install browser test dependency
-        run: npm install --no-save playwright
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Install matching Playwright package
+        run: npm install --no-save playwright@1.56.1
       - name: Run isolated engine regression suite
         run: node tests/run-regression.mjs
       - name: Upload regression report

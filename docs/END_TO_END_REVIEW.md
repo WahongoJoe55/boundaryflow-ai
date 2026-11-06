@@ -1,13 +1,15 @@
 # BoundaryFlow browser end-to-end review
 
-## Automated review result
+## Candidate automated verification
 
-- GitHub Actions run: #147
+- GitHub Actions run: #150
 - Result: **18 / 18 checks passed**
-- Commit: `c613965cb8cee20b9d4192e710873e6592787f78`
-- Run: https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/42266410297
+- Candidate commit: `695c527bcd5d02e07ab5b69cc63e541c95ffc861`
+- Run: https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/42267033170
 - Mode: local browser execution against the actual candidate `index.html`, with deterministic simulated account identities.
 - External network access was blocked except for a stubbed Supabase library response. No real sign-in, Supabase queries, cloud writes, or production records were used.
+
+The engine/ledger regression suite also completed successfully: **69 / 69 scenarios passed** in the same workflow run.
 
 ## Scenarios exercised
 
@@ -30,16 +32,35 @@
 17. Returning to the original account restores its ledger.
 18. No uncaught browser JavaScript errors occurred.
 
-## What this result establishes
+## Separate live production smoke test — 6 November 2026
 
-The browser-level workflow passed for the local workspace, project ledger, analysis engine, explanation output, local History, reload persistence and account/project-key isolation under simulated identities.
+The deployed production app at https://wahongojoe55.github.io/boundaryflow-ai/ was tested separately using a disposable synthetic project and synthetic agreement/message. The user confirmed:
 
-## What this result does not establish
+- First cloud sync completed successfully.
+- The saved analysis remained in History after refreshing the app.
+- A second sequential sync did not create a duplicate entry.
 
-This run did **not** exercise real Supabase authentication, token refresh, RLS policies, cloud sync, cloud History, real two-account access, or live deployment. Those require a separately authorised test against dedicated test accounts and the intended Supabase environment. The run did not create or modify any cloud data.
+This is useful evidence for the **currently deployed production build's** cloud persistence and repeat-sync behavior. It is not evidence that the development candidate in this pull request was tested against live Supabase. The automated candidate run above deliberately stubbed Supabase and blocked external cloud requests.
 
-The browser test does not authenticate the source documents or prove that a user-entered approval label is genuine. BoundaryFlow remains decision support, not legal advice or a document-authentication service.
+Earlier production checks also reported:
+- Account A and Account B could not see each other's project data in the UI.
+- The two cross-account deletion checks each affected zero rows.
+- Supabase catalog inspection showed RLS enabled on `projects`, `agreements`, `analyses` and `profiles`.
+
+See [docs/LIVE_SUPABASE_REVIEW_PLAN.md](LIVE_SUPABASE_REVIEW_PLAN.md) for the observed policy structure, scope and remaining limitations.
+
+## What the automated result establishes
+
+The browser-level candidate workflow passed for the analysis engine, project-local evidence ledger, explanation output, local History, reload persistence and project/account-key isolation under simulated identities.
+
+## What these results do not establish
+
+- The automated candidate run did **not** exercise real Supabase authentication, token refresh, RLS, cloud sync, cloud History, real two-account access, or live deployment.
+- The production smoke test was performed on the deployed production build, not on this candidate branch.
+- UI-level absence of another account's records and zero-row deletion checks are useful evidence, but are not a complete penetration test or security certification.
+- RLS being enabled does not alone prove every possible access path is safe. The reviewed policies and test setup have the limitations described in the live review plan.
+- Source labels and recorded statuses are user-entered metadata, not authentication of signatures, identity, authority, chronology, integrity or completeness. The ledger does not determine legal priority or prove that a change was approved.
 
 ## Release decision
 
-Keep the candidate in the draft pull request. Do not merge or deploy solely on the strength of these automated results. Complete a separately controlled live-authentication and cloud-sync review before production acceptance.
+**Keep this pull request in draft. Do not merge or deploy yet.** Candidate automated tests pass, and the deployed production build passed the narrow live sync/persistence/retry check. Before release, update the development branch against the current base, inspect the resulting combined diff, and run an appropriate candidate-specific live smoke test if the candidate changes cloud-related behavior. Any release must be explicitly approved before merging or deploying.

@@ -48,7 +48,7 @@ These are source labels inferred from wording. BoundaryFlow does not authenticat
 
 ## Regression coverage
 
-The regression matrix contains 52 scenarios: 40 reasoning-engine cases and 12 project-ledger integrity cases. The Playwright runner must execute exactly 50 cases and fail on a count mismatch. The runner checks the actual application build in isolated regression mode; CI blocks non-local network requests and does not use Save, Sync or History.
+The regression matrix contains 56 scenarios: 40 reasoning-engine cases and 16 project-ledger integrity / analysis-integration cases. The Playwright runner must execute exactly 56 cases and fail on a count mismatch. The runner checks the actual application build in isolated regression mode; CI blocks non-local network requests and does not use Save, Sync or History.
 
 ## Release requirements
 
@@ -74,6 +74,20 @@ Important boundaries:
 
 Any future cloud-backed ledger requires a separately reviewed database design, tenant ownership model, RLS policies, migration plan, backup/retention review and cross-account tests. Do not automatically upload browser-local records.
 
+## 7. Ledger-to-analysis context (local candidate)
+
+When a project name is present, the analysis reads only the current signed-in account's local ledger for that exact normalized project name.
+
+- Original-scope baseline entries labelled as Agreement / SOW are added as supplemental context; the agreement text entered in the analysis workspace remains intact.
+- Amendments, approval records and client decisions are added to scope context only when their status is explicitly user-recorded as Approved and their source type is Agreement / SOW, Amendment / change order, or Email / written message.
+- The applied context is visibly labelled user-recorded and not independently authenticated. It does not establish who signed, who had authority, whether the document is complete, or whether a date/sequence is valid.
+- Client assertions, proposed or awaiting-approval records, declined records and superseded records are not applied as scope facts. They are surfaced separately in the reasoning panel where relevant.
+- Revision records are shown as user-recorded history. A revision affects the allowance assessment only when its status is Delivered / completed and its title/details explicitly identify an ordinal revision round (for example, “First revision round”). Individual edits are not counted as rounds.
+- The reasoning panel identifies which ledger entries were used and which were excluded. The user must check original source documents before relying on any entry.
+- If no project name or no eligible ledger records exist, the analysis follows its prior agreement/message path.
+
+This is a conservative local integration, not a contract-priority engine or legal determination. Cloud sync is not enabled.
+
 ## Ledger regression coverage
 
-Twelve additional tests verify baseline provenance, amendment append behavior, required project and record fields, client-claim labelling, project/account isolation, append-only revision events, signed-in write context and safe rendering of untrusted text. The complete automated suite now contains 52 cases.
+Sixteen ledger tests verify baseline provenance, amendment append behavior, required project and record fields, client-claim labelling, project/account isolation, append-only revision events, signed-in write context, safe rendering of untrusted text, and controlled ledger-to-analysis context. The complete automated suite now contains 56 cases.

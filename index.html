@@ -2572,7 +2572,7 @@ function preserveClarificationSubject(plan,c,q){
   ['title','needed','question','why'].forEach(key=>{next[key]=replaceText(next[key]);});
   if(typeof next.title==='string' && /^(?:let’s|let's) clarify this$/i.test(next.title.trim())) next.title='Clarify '+subject.replace(/^the\s+/i,'');
   if(typeof next.why==='string'){
-    if(!next.why.toLowerCase().includes(subject.toLowerCase())) next.why+=' This determines whether work on '+subject+' is included in the agreed work or needs separate approval.';
+    if(!next.why.toLowerCase().includes(subject.toLowerCase())) next.why+=' This determines whether work involving '+subject+' is included in the agreed work or needs separate approval.';
     next.why=next.why.charAt(0).toUpperCase()+next.why.slice(1);
   }
   if(Array.isArray(next.outcomes)) next.outcomes=next.outcomes.map(replaceText);

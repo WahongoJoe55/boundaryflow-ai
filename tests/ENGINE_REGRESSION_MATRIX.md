@@ -77,12 +77,15 @@ The next 12 scenarios exercise the new diagnostics layer. These are advisory che
 | BF-R38 | The approved change order states a fee of $500 and delivery within 5 business days. | Proceed with the approved change order for $500 within 5 business days. | Preserve figures that are explicitly present in the supplied evidence. |
 | BF-R39 | A supplied text label says: Signed agreement: SEO metadata for five pages is included. | The client says the PDF is signed and approved. | Clearly state that a source label does not authenticate signatures, identity, authority or document integrity. |
 | BF-R40 | New integrations require separate written approval. No fee or deadline is stated. | Connect the website to the external CRM. | Verify generated client-facing actions do not invent numeric fees or delivery deadlines. |
+| BF-R41 | New functionality is excluded unless approved in writing. | Build a customer portal so customers can log in, view order history and download invoices. | Likely additional; identify the portal's access, data and invoice capabilities and show the professional work context. |
+| BF-R42 | Responsive design for desktop and mobile is included; defect-correction responsibility is not specified. | Fix the mobile navigation menu; it is not opening on small screens. | Clarify whether this is a defect in the delivered design or a new/changed behaviour request. |
+| BF-R43 | Two rounds of revisions per page are included; usage history is missing. | I have a few more changes to the homepage layout after the previous feedback. | Clarify and check the homepage revision history before deciding whether another round is included. |
 
 ## Release gate
 
 Before a production version is promoted:
 
-1. Run all 56 scenarios against the exact candidate build.
+1. Run all 59 scenarios against the exact candidate build.
 2. Record the actual detected request rows and classifications.
 3. Investigate every mismatch; do not weaken an expected result merely to make a test pass.
 4. Add a regression case for every confirmed defect.

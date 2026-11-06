@@ -3305,6 +3305,7 @@ function bfR2Panel(data){
   '<p class="note">Project: '+esc2(ledger.projectName)+' · '+ledger.totalEntries+' user-recorded ledger entr'+(ledger.totalEntries===1?'y':'ies')+'. Ledger context is local to this signed-in account and project.</p>'+
   (ledger.used.length?'<p class="note"><b>Used as supplemental scope context (not independently authenticated):</b></p><ul>'+ledger.used.map(x=>'<li>'+esc2(x.title)+' — '+esc2(x.type)+' · '+esc2(x.sourceType)+' · '+esc2(x.status)+(x.sourceDate?' · source date '+esc2(x.sourceDate):'')+'</li>').join('')+'</ul>':'<p class="note">No baseline or approved supplemental scope records qualified for use in this analysis.</p>')+
   (ledger.revisionEvents.length?'<p class="note"><b>Revision history (user-recorded):</b></p><ul>'+ledger.revisionEvents.map(x=>'<li>'+esc2(x.title)+' — '+esc2(x.status)+' · '+esc2(x.detail)+'</li>').join('')+'</ul>':'')+
+  (ledger.requestRevisionUsage&&ledger.requestRevisionUsage.length?'<p class="note"><b>Revision allowance checked per request:</b></p><ul>'+ledger.requestRevisionUsage.map(x=>'<li>'+esc2(x.request)+' — '+(x.scope==='per_page'?'per-page':'project-wide')+' history; '+(x.completed===null?'completed rounds not established':x.completed+' completed round(s) recorded')+(x.allowance!==null?' of '+x.allowance+' allowed':'')+(x.page?' · page: '+esc2(x.page):'')+'</li>').join('')+'</ul>':'')+
   (ledger.unverifiedClaims.length?'<p class="note"><b>Excluded from scope facts — client assertions:</b> '+ledger.unverifiedClaims.map(x=>esc2(x.title)).join('; ')+'. These remain claims, not approval proof.</p>':'')+
   (ledger.pending.length?'<p class="note"><b>Not applied — pending/proposed records:</b> '+ledger.pending.map(x=>esc2(x.title)+' ('+esc2(x.status)+')').join('; ')+'.</p>':'')+
   (ledger.excluded.length?'<p class="note"><b>Not applied — declined/superseded records:</b> '+ledger.excluded.map(x=>esc2(x.title)+' ('+esc2(x.status)+')').join('; ')+'.</p>':'')+
@@ -3346,7 +3347,8 @@ function analyze(){
     return m ? [m[1].trim(),m[2].trim()] : [v];
   });
   const contextualItems=resolveRequestContext(rawItems,r);
-  const revisionAlreadyUsed = ledgerContext.completedRevisionRounds.length>0 || /\b(?:already\s+used|used\s+our|completed\s+the\s+first|finished\s+the\s+first)\b[^.!?]{0,100}\b(?:included\s+)?revision\b/i.test(r) || /\b(?:first|one)\s+revision\s+(?:has\s+been\s+)?(?:used|completed)\b/i.test(r);
+  const revisionUsage=bfLedgerRevisionUsage(ledgerContext,item.original||item.resolved,a);
+    const revisionAlreadyUsed=(revisionUsage.allowance!==null&&revisionUsage.completed!==null&&revisionUsage.completed>=revisionUsage.allowance) || /\b(?:already\s+used|used\s+our|completed\s+the\s+first|finished\s+the\s+first)\b[^.!?]{0,100}\b(?:included\s+)?revision\b/i.test(r) || /\b(?:first|one)\s+revision\s+(?:has\s+been\s+)?(?:used|completed)\b/i.test(r);
   const additionalRoundApprovalRequired = /\badditional\s+revision\s+rounds?\b[^.!?]{0,100}\b(?:approval|approve)\b/i.test(a) || /\badditional\s+revision\s+rounds?\s+require\s+approval\b/i.test(a);
   let rows=[];
   contextualItems.forEach(item=>{
@@ -3532,12 +3534,28 @@ function analyze(){
     const hasTwoRoundsPerPage=/\b(?:two|2)\s+(?:rounds?\s+of\s+)?revisions?\s+per\s+page\b/i.test(v89a);
     if(homepageRevisionRequest && hasTwoRoundsPerPage){
       c.type='Additional homepage revision / allowance check'; c.detected=c.type; c.actual=v89q; c.request=v89q;
-      c.status='Clarify'; c.confidence='Medium'; c.risk='Medium';
-      c.evidence='The agreement allows two rounds of revisions per page. The supplied information does not say how many rounds of homepage revisions have already been used or whether this feedback is consolidated within an existing round.';
-      c.boundary='The homepage layout is an existing deliverable, but the agreement limits revisions to two rounds per page. The fact that the client has more feedback does not establish that another included round remains. If fewer than two rounds have been used and this feedback falls within the remaining allowance, it may be included. If both rounds have been used, further revisions may require approval under the agreement.';
-      c.action='Check the revision history for the homepage. Confirm how many of the two included rounds have been used and whether this is consolidated feedback within a remaining round. If the allowance is exhausted, agree the additional revision scope before making changes.';
-      c.response='I can review the homepage feedback. The agreement includes two revision rounds per page, so I’ll first check how many homepage rounds have already been used and whether this feedback falls within a remaining round. If the included allowance has been exhausted, we can agree any additional revision work before I proceed.';
-      c.why='The agreement defines a numerical revision allowance, but the usage history needed to determine whether this request is included was not supplied.';
+      if(revisionUsage.completed===null){
+        c.status='Clarify'; c.confidence='Medium'; c.risk='Medium';
+        c.evidence='The agreement allows two rounds of revisions per page, but the ledger contains no completed revision-round record that can be reliably matched to the homepage. Other pages’ revision events are not counted against the homepage.';
+        c.boundary='The homepage layout is an existing deliverable, but the agreement limits revisions to two rounds per page. The current record does not establish how many homepage rounds have been used.';
+        c.action='Check the homepage revision history and record each completed consolidated round against the homepage. Do not count edits or another page’s rounds as homepage rounds.';
+        c.response='I can review the homepage feedback. The agreement includes two revision rounds per page, but I cannot yet confirm how many homepage rounds have been used. Let’s check the homepage revision history before deciding whether this feedback falls within the allowance.';
+        c.why='Per-page allowances require per-page history. A revision event recorded for another page cannot establish homepage usage.';
+      }else if(revisionUsage.completed>=2){
+        c.status='Likely additional'; c.confidence='High'; c.risk='High';
+        c.evidence='The agreement allows two revision rounds per page. The project ledger records two completed homepage rounds; these are user-recorded events and have not been independently authenticated.';
+        c.boundary='The two recorded homepage rounds appear to exhaust the stated per-page allowance. A further round is likely additional, subject to checking the original project history and any later variation.';
+        c.action='Check the original homepage feedback and approval history, then agree any additional revision scope, fee and timeline before implementation.';
+        c.response='The project record shows that both included homepage revision rounds have been completed. This further round would therefore need to be agreed separately before I proceed.';
+        c.why='Two completed rounds are recorded for the same page against a two-round per-page allowance.';
+      }else{
+        c.status='Clarify'; c.confidence='Medium'; c.risk='Medium';
+        c.evidence='The project ledger records '+revisionUsage.completed+' completed homepage revision round out of the two included. One round may remain, but the record does not establish whether this feedback is consolidated within that remaining round.';
+        c.boundary='The recorded history suggests one homepage revision round remains. Whether the current feedback fits that round depends on the agreed feedback-submission and consolidation process.';
+        c.action='Confirm that this feedback is the consolidated second homepage revision round and check whether any later homepage changes have already been delivered.';
+        c.response='The project record shows one of the two included homepage revision rounds completed. Could you confirm whether these changes are the consolidated feedback for the remaining round? I’ll check that before proceeding.';
+        c.why='One round is recorded as completed, but the remaining allowance depends on whether the current feedback forms the next consolidated round.';
+      }
     }
     c.languageAnalysis=bfLanguageAnalysis(v89q,v89a);
     if(parsed.claims.length && c.status!=='Client claim') c.claims=parsed.claims.slice();
@@ -3655,7 +3673,9 @@ function analyze(){
   });
   const detectedRequests=rows.filter(x=>String(x.c&&x.c.status||'').toLowerCase()!=='client claim').length;
   document.getElementById('status').textContent='Analysis complete. '+detectedRequests+' request item'+(detectedRequests===1?'':'s')+' detected. '+(parsed.claims.length?(parsed.claims.length===1?'Client claim was':'Client claims were')+' separated from the requested work.':'No separate scope claim was detected.');
-  window.bfReasoningV2=bfR2Inspect(a,ledgerContext.analysisMessage,rows);
+  ledgerContext.requestRevisionUsage=rows.filter(x=>String(x.c&&x.c.status||'').toLowerCase()!=='client claim').map(x=>({request:String(x.q||''),...bfLedgerRevisionUsage(ledgerContext,x.q,a)}));
+  window.bfLedgerAnalysisMeta=ledgerContext;
+  window.bfReasoningV2=bfR2Inspect(a,r,rows);
   renderResults();
 }
 function buildFullResponse(rows){
@@ -3877,6 +3897,29 @@ function bfLedgerAnalysisContext(baseScope){
   pending:entries.filter(x=>['proposed','awaiting_approval'].includes(x.status)).map(x=>({title:x.title,detail:x.detail,status:x.status,sourceType:x.sourceType})),
   excluded:entries.filter(x=>['superseded','declined'].includes(x.status)).map(x=>({title:x.title,status:x.status}))
  };
+}
+function bfLedgerRevisionUsage(context,request,agreement){
+ const text=String(agreement||'');
+ const allowance=bfR2Revision(text,'').allowance;
+ const perPage=/\bper\s+page\b/i.test(text);
+ const pageName=value=>{
+  const m=String(value||'').match(/\b(homepage|home\s+page|about\s+page|services\s+page|contact\s+page|blog\s+page|careers\s+page|pricing\s+page|booking\s+page)\b/i);
+  if(!m)return '';
+  const v=m[1].toLowerCase().replace(/\s+/g,' ');
+  return v==='homepage'||v==='home page'?'home':v.replace(/\s+page$/,'');
+ };
+ const targetPage=pageName(request);
+ const events=(context&&context.revisionEvents||[]).filter(x=>String(x.status||'').toLowerCase()==='delivered');
+ const parsed=events.map(x=>{
+  const source=String(x.title||'')+' '+String(x.detail||'');
+  const match=source.match(/\b(?:first|one|second|two|third|three|fourth|four|fifth|five|\d+)\s+(?:included\s+)?revision\s+round\b/i);
+  const round=match?bfR2Number(match[0]):null;
+  const page=pageName(source+' '+String(x.related||''));
+  return {round,page,title:x.title||'',sourceDate:x.sourceDate||null,recordedStatus:x.status};
+ }).filter(x=>Number.isFinite(x.round)&&x.round>0);
+ const relevant=perPage?parsed.filter(x=>targetPage&&x.page===targetPage):parsed;
+ const completed=relevant.length?Math.max(...relevant.map(x=>x.round)):null;
+ return {scope:perPage?'per_page':'project',page:targetPage||null,allowance,completed,remaining:allowance!==null&&completed!==null?Math.max(0,allowance-completed):null,matchedEvents:relevant.map(x=>({round:x.round,page:x.page,title:x.title,sourceDate:x.sourceDate,status:x.recordedStatus})),historyUnknown:perPage&&!targetPage};
 }
 function bfLedgerAdd(record){
  if(!window.__bfUserId)throw new Error('Sign in before recording project evidence.');

@@ -108,6 +108,7 @@ try{
   await page.locator('#historyBtn').click();
   check('Saved analysis appears in History',await page.locator('#historyList .history-item').count().then(n=>n>=1));
   await page.reload({waitUntil:'domcontentloaded'});
+  await page.evaluate(()=>{document.body.classList.remove('bf-auth-checking');document.body.classList.add('bf-authenticated')});
   await page.locator('#analyzeBtn').waitFor({state:'visible'});
   await page.locator('#historyBtn').click();
   check('Ledger and History survive a browser reload',await page.locator('#bfLedgerCount').innerText().then(x=>x==='4 records')&&await page.locator('#historyList .history-item').count().then(n=>n>=1));

@@ -80,6 +80,7 @@ When a project name is present, the analysis reads only the current signed-in ac
 
 - Original-scope baseline entries labelled as Agreement / SOW are added as supplemental context; the agreement text entered in the analysis workspace remains intact.
 - Amendments, approval records and client decisions are added to scope context only when their status is explicitly user-recorded as Approved and their source type is Agreement / SOW, Amendment / change order, or Email / written message.
+- When an approved ledger entry appears to cover a request that the base agreement reserves for separate approval, the request remains Conditional until the original approval is checked. A user-recorded status alone never converts the request directly to Likely included.
 - The applied context is visibly labelled user-recorded and not independently authenticated. It does not establish who signed, who had authority, whether the document is complete, or whether a date/sequence is valid.
 - Client assertions, proposed or awaiting-approval records, declined records and superseded records are not applied as scope facts. They are surfaced separately in the reasoning panel where relevant.
 - Revision records are shown as user-recorded history. A revision affects the allowance assessment only when its status is Delivered / completed and its title/details explicitly identify an ordinal revision round (for example, “First revision round”). Individual edits are not counted as rounds.

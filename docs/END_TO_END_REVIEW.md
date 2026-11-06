@@ -21,7 +21,7 @@ Four new browser checks have been added to `tests/run-e2e.mjs`:
 - Contact form specificity.
 - Generic request fallback does not invent a deliverable.
 
-**These four new checks have not yet been executed.** The previously recorded run #159 (22/22 browser checks and 69/69 engine/ledger scenarios) predates this change and must not be treated as validation of it. The next candidate workflow run must confirm the updated browser suite and existing 69-scenario regression suite before this change is considered verified.
+**Validated in workflow run #167:** 69/69 engine and ledger regression scenarios passed, and 26/26 browser end-to-end checks passed. The browser report confirms Careers-page, Portfolio-page, Contact-form and generic-request specificity checks all passed. The run used deterministic simulated identities with Supabase network/cloud writes disabled; it does not prove live Supabase behaviour.
 
 ## Scenarios exercised
 

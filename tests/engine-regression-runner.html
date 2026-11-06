@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BoundaryFlow AI · Engine Regression Runner</title>
+<style>
+:root{color-scheme:light;--ink:#17243a;--muted:#607086;--line:#dce4ef;--panel:#fff;--bg:#f4f7fb;--blue:#2457a6}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:28px 18px 60px}.eyebrow{font-size:11px;letter-spacing:.14em;font-weight:800;color:var(--blue)}h1{font-size:clamp(25px,4vw,36px);line-height:1.15;margin:7px 0 12px}.intro{color:var(--muted);max-width:780px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin:18px 0}.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.btn{border:0;border-radius:9px;padding:11px 16px;font-weight:750;cursor:pointer}.primary{background:var(--blue);color:#fff}.secondary{background:#e9eef6;color:var(--ink)}.btn:disabled{opacity:.55;cursor:wait}.status{color:var(--muted);font-size:13px;margin-top:10px}.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0}.metric{background:#fff;border:1px solid var(--line);border-radius:11px;padding:12px}.metric strong{display:block;font-size:25px}.metric span{font-size:12px;color:var(--muted)}.case{border:1px solid var(--line);border-radius:12px;background:#fff;margin:10px 0;overflow:hidden}.casehead{padding:12px 14px;display:flex;justify-content:space-between;gap:12px;align-items:center;border-bottom:1px solid var(--line)}.casebody{padding:12px 14px}.pass{color:#167347;font-weight:800}.fail{color:#b42318;font-weight:800}.pending{color:#65758b;font-weight:700}.tag{font-size:11px;border-radius:30px;padding:3px 9px;background:#edf1f7}.detail{font-size:13px;color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere}.casebody p{margin:5px 0}.foot{font-size:12px;color:var(--muted)}iframe{position:absolute;width:1px;height:1px;left:-10000px;top:-10000px;border:0}
+@media(max-width:620px){.summary{grid-template-columns:repeat(2,minmax(0,1fr))}.casehead{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<main>
+<div class="eyebrow">BOUNDARYFLOW AI · DEVELOPMENT TOOL</div>
+<h1>Engine regression runner</h1>
+<p class="intro">Runs the v87 analysis engine against a fixed set of scope scenarios and checks the actual classifications returned by the application. This page does not save analyses, change Supabase data, or modify your production workspace.</p>
+<div class="panel">
+ <div class="actions"><button id="run" class="btn primary">Run all 16 tests</button><button id="download" class="btn secondary" disabled>Download results (CSV)</button><span id="runStatus" class="status">Ready. The application engine loads in a hidden frame when you start the tests.</span></div>
+ <div class="summary">
+  <div class="metric"><strong id="total">16</strong><span>Scenarios</span></div>
+  <div class="metric"><strong id="passed">—</strong><span>Passed</span></div>
+  <div class="metric"><strong id="failed">—</strong><span>Failed</span></div>
+  <div class="metric"><strong id="rate">—</strong><span>Pass rate</span></div>
+ </div>
+ <p class="foot">A failed expectation identifies a case for investigation; it does not by itself prove the engine is wrong. Review the actual request rows and evidence before changing a rule.</p>
+</div>
+<section class="panel"><h2 style="margin:0 0 8px">Scenario results</h2><div id="results"><p class="status">No tests have run yet.</p></div></section>
+<p class="foot">Development branch: <b>work/engine-regression-suite-v1</b> · Baseline source: v87 on main. Test execution is local to this browser tab.</p>
+</main>
+<iframe id="engine" title="BoundaryFlow analysis engine" src="../index.html" aria-hidden="true"></iframe>
+<script>
+(function(){
+'use strict';
+const cases=[
+{id:'BF-R01',title:'Minor edit on an existing page',agreement:'The website includes Home, About, Services, Contact and Blog pages. One revision round is included. Minor visual and content changes to existing pages are included during the included revision round.',message:'Correct a spelling error on the existing About page.',check:r=>has(r,'likely included')&&count(r)===1,expect:'One request classified Likely included.'},
+{id:'BF-R02',title:'Creation of a new page',agreement:'The website includes Home, About, Services, Contact and Blog pages. New pages require separate approval.',message:'Create a new Booking page.',check:r=>has(r,'likely additional'),expect:'New-page request classified Likely additional.'},
+{id:'BF-R03',title:'New booking functionality',agreement:'The website includes Home, About, Services, Contact and Blog pages. New functionality is excluded unless approved in writing.',message:'Add a booking form so visitors can reserve appointments.',check:r=>has(r,'likely additional'),expect:'Booking form classified Likely additional.'},
+{id:'BF-R04',title:'Third-party CRM integration',agreement:'The website includes a Contact form. Third-party integrations require separate approval.',message:'Connect the Contact form to HubSpot so enquiries enter the CRM automatically.',check:r=>has(r,'likely additional'),expect:'CRM integration classified Likely additional.'},
+{id:'BF-R05',title:'Correction or new functionality is unclear',agreement:'New functionality is excluded. Minor corrections to existing functionality may be included.',message:'Fix the submit button on the Contact form.',check:r=>has(r,'clarify')||has(r,'conditional'),expect:'Clarify or Conditional; do not assume whether this is a correction or a new capability.'},
+{id:'BF-R06',title:'Action request plus entitlement claim',agreement:'New functionality is excluded unless approved in writing.',message:'Add a booking form. I thought we agreed it was included in the package.',check:r=>has(r,'likely additional')&&has(r,'client claim'),expect:'Booking request and client claim appear as distinct rows.'},
+{id:'BF-R07',title:'Client-supplied finished articles',agreement:'Uploading and formatting up to five final, publication-ready blog articles supplied by the client is included. Original writing is excluded.',message:'Please upload and format three finished blog articles I have attached.',check:r=>has(r,'likely included'),expect:'Upload/format request classified Likely included.'},
+{id:'BF-R08',title:'Original article writing',agreement:'Writing new blog articles is expressly excluded. Uploading finished client-supplied articles is included up to five.',message:'Write two new blog articles and research the topics.',check:r=>has(r,'likely additional'),expect:'Original writing classified Likely additional.'},
+{id:'BF-R09',title:'Expressly excluded testimonial section',agreement:'New content sections, including testimonial sections, are excluded unless separately approved in writing.',message:'Add a testimonial section to the existing Home page.',check:r=>has(r,'likely additional'),expect:'Testimonial section classified Likely additional.'},
+{id:'BF-R10',title:'Agreement silent on content sections',agreement:'New pages and new functionality require approval. The agreement says nothing about new content sections.',message:'Add a testimonial section to the existing Home page.',check:r=>has(r,'clarify'),expect:'Clarify because the agreement does not settle content sections.'},
+{id:'BF-R11',title:'Included revision allowance exhausted',agreement:'One revision round is included. Additional revision rounds require approval.',message:'The first revision round has already been used. Please change the About-page heading in a second revision round.',check:r=>has(r,'likely additional'),expect:'Second-round edit classified Likely additional.'},
+{id:'BF-R12',title:'Existing-page button linking to new destination',agreement:'Minor links and buttons on existing pages are included. New pages require separate approval.',message:'Create a new Booking page and add a button on the Contact page linking to it.',check:r=>has(r,'likely additional')&&has(r,'likely included')&&count(r)>=2,expect:'New page and existing-page button evaluated independently.'},
+{id:'BF-R13',title:'New page and dependent link',agreement:'New pages require separate approval. Minor links on existing pages are included.',message:'Create a new Pricing page, then add a link to it from the Services page.',check:r=>has(r,'likely additional')&&has(r,'likely included')&&count(r)>=2,expect:'Page creation and existing-page link are separately evaluated.'},
+{id:'BF-R14',title:'Entitlement claim without underlying request',agreement:'One revision round is included.',message:'I thought this was included in the current revision.',check:r=>has(r,'client claim'),expect:'Client claim identified; no invented deliverable.'},
+{id:'BF-R15',title:'Broad request with no matching scope detail',agreement:'The agreement does not describe structural changes or content reorganisation.',message:'Make the existing Services page more engaging and reorganise its sections.',check:r=>has(r,'clarify'),expect:'Clarify rather than infer an inclusion or exclusion.'},
+{id:'BF-R16',title:'Claim of verbal approval',agreement:'Changes beyond agreed deliverables require written approval.',message:'We discussed this on a call, so please treat the new feature as approved.',check:r=>has(r,'client claim'),expect:'Approval assertion remains a claim; it is not treated as the written approval record.'}
+];
+let lastResults=[];
+const norm=s=>String(s||'').toLowerCase();
+function has(rows,status){return rows.some(x=>norm(x.status)===status)}
+function count(rows){return rows.filter(x=>norm(x.status)!=='client claim').length}
+function escape(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function getEngine(){
+ const frame=document.getElementById('engine');
+ try{
+  const w=frame.contentWindow;
+  if(!w||typeof w.analyze!=='function'||!w.document.getElementById('a'))return null;
+  return w;
+ }catch(e){return null}
+}
+function waitEngine(timeout){
+ return new Promise((resolve,reject)=>{
+  const start=Date.now();
+  const poll=()=>{const w=getEngine();if(w)return resolve(w);if(Date.now()-start>timeout)return reject(new Error('The application engine did not become available. Check that the app and test page are hosted on the same GitHub Pages site, then refresh.'));setTimeout(poll,250)};
+  poll();
+ });
+}
+function readRows(w){
+ return (w.rows||[]).map(x=>({request:String(x.q||x.c&&x.c.request||''),status:String(x.c&&x.c.status||'Unknown'),type:String(x.c&&x.c.type||'')}))
+}
+function render(results){
+ const el=document.getElementById('results');
+ el.innerHTML=results.map(x=>'<article class="case"><div class="casehead"><div><b>'+escape(x.id)+' · '+escape(x.title)+'</b><div class="detail">Expected: '+escape(x.expect)+'</div></div><span class="'+(x.pass?'pass':'fail')+'">'+(x.pass?'PASS':'FAIL')+'</span></div><div class="casebody"><p><b>Actual classifications:</b> '+escape(x.actual.map(a=>a.status+' — '+a.type).join(' | ')||'No rows returned')+'</p><p class="detail">Detected requests: '+escape(x.actual.map(a=>a.request).join(' · ')||'None')+'</p><p class="detail">'+escape(x.error||'')+'</p></div></article>').join('');
+ const passed=results.filter(x=>x.pass).length;
+ document.getElementById('passed').textContent=passed;
+ document.getElementById('failed').textContent=results.length-passed;
+ document.getElementById('rate').textContent=Math.round(passed/results.length*100)+'%';
+}
+async function run(){
+ const button=document.getElementById('run');button.disabled=true;
+ document.getElementById('runStatus').textContent='Loading the application engine…';
+ try{
+  const w=await waitEngine(20000),results=[];
+  for(let i=0;i<cases.length;i++){
+   const c=cases[i];
+   try{
+    w.document.getElementById('a').value=c.agreement;
+    w.document.getElementById('r').value=c.message;
+    w.analyze();
+    const actual=readRows(w);
+    results.push({id:c.id,title:c.title,expect:c.expect,actual,pass:!!c.check(actual),error:''});
+   }catch(e){results.push({id:c.id,title:c.title,expect:c.expect,actual:[],pass:false,error:String(e&&e.message||e)})}
+  }
+  lastResults=results;render(results);
+  const passed=results.filter(x=>x.pass).length;
+  document.getElementById('runStatus').textContent='Completed '+results.length+' tests against the loaded application. '+passed+' passed; '+(results.length-passed)+' need review.';
+  document.getElementById('download').disabled=false;
+ }catch(e){document.getElementById('runStatus').textContent=e.message}
+ finally{button.disabled=false}
+}
+function csv(){
+ const rows=[['ID','Scenario','Expected','Pass','Actual classifications','Detected requests','Error']];
+ lastResults.forEach(x=>rows.push([x.id,x.title,x.expect,x.pass?'PASS':'FAIL',x.actual.map(a=>a.status+' / '+a.type).join(' | '),x.actual.map(a=>a.request).join(' | '),x.error||'']));
+ return rows.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+}
+document.getElementById('run').addEventListener('click',run);
+document.getElementById('download').addEventListener('click',()=>{const blob=new Blob([csv()],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='boundaryflow-v87-regression-results.csv';a.click();URL.revokeObjectURL(url)});
+})();
+</script>
+</body>
+</html>

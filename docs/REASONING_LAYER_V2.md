@@ -48,7 +48,7 @@ These are source labels inferred from wording. BoundaryFlow does not authenticat
 
 ## Regression coverage
 
-The regression matrix contains 66 scenarios: 43 reasoning-engine cases and 23 project-ledger integrity / analysis-integration cases. The Playwright runner must execute exactly 66 cases and fail on a count mismatch. The runner checks the actual application build in isolated regression mode; CI blocks non-local network requests and does not use Save, Sync or History.
+The regression matrix contains 67 scenarios: 43 reasoning-engine cases and 24 project-ledger integrity / analysis-integration cases. The Playwright runner must execute exactly 67 cases and fail on a count mismatch. The runner checks the actual application build in isolated regression mode; CI blocks non-local network requests and does not use Save, Sync or History.
 
 ## Release requirements
 
@@ -91,7 +91,7 @@ This is a conservative local integration, not a contract-priority engine or lega
 
 ## Ledger regression coverage
 
-Twenty-three ledger tests verify baseline provenance, amendment append behavior, required project and record fields, client-claim labelling, project/account isolation, append-only revision events, signed-in write context, safe rendering of untrusted text, and controlled ledger-to-analysis context. The complete automated suite now contains 66 cases.
+Twenty-four ledger tests verify baseline provenance, amendment append behavior, required project and record fields, client-claim labelling, project/account isolation, append-only revision events, signed-in write context, safe rendering of untrusted text, and controlled ledger-to-analysis context. The complete automated suite now contains 67 cases.
 
 
 ## 8. Page-specific revision accounting safeguards

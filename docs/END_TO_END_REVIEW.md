@@ -4,8 +4,8 @@
 
 - GitHub Actions run: #150
 - Result: **18 / 18 checks passed**
-- Candidate commit: `695c527bcd5d02e07ab5b69cc63e541c95ffc861`
-- Run: https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/42267033170
+- Candidate commit: `bdf27a6dfed277073df39fe563fb7d26c2f0348d`
+- Run: https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/42274699873
 - Mode: local browser execution against the actual candidate `index.html`, with deterministic simulated account identities.
 - External network access was blocked except for a stubbed Supabase library response. No real sign-in, Supabase queries, cloud writes, or production records were used.
 

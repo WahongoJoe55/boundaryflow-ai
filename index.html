@@ -3301,7 +3301,23 @@ function analyze(){
     const atomicRequestText=String(item.resolved||item.original||'').trim();
     const explicitPageCreationAtomic=/^(?:please\s+)?(?:add|create|build|develop|publish|prepare)\s+(?:(?:a|an|the)\s+)?new\s+[a-z0-9 &-]+?\s+page[.!]?$/i.test(atomicRequestText);
     const agreementRequiresPageApproval=/\bnew\s+pages?\b[\s\S]{0,100}\b(?:separate\s+approval|separately\s+approved|approval)\b/i.test(a) || /\b(?:separate\s+approval|separately\s+approved)\b[\s\S]{0,100}\bnew\s+pages?\b/i.test(a);
-    if(explicitPageCreationAtomic && agreementRequiresPageApproval){
+    const pageSubjectMatch=atomicRequestText.match(/\bnew\s+([a-z0-9][a-z0-9 &-]*?)\s+page\b/i);
+    const pageSubject=pageSubjectMatch?String(pageSubjectMatch[1]).trim().toLowerCase():'';
+    const approvedLedgerRecord=pageSubject?ledgerContext.used.find(x=>x.status==='approved'&&x.type!=='baseline'&&String(x.detail||'').toLowerCase().includes(pageSubject)&&/\b(?:included|in scope|approved|authorised|authorized|agreed)\b/i.test(String(x.detail||''))&&!/\b(?:excluded|not included|outside scope)\b/i.test(String(x.detail||''))):null;
+    if(explicitPageCreationAtomic && agreementRequiresPageApproval && approvedLedgerRecord){
+      c.type='Potentially approved new page';
+      c.status='Conditional';
+      c.confidence='Medium';
+      c.risk='Medium';
+      c.evidence='The agreement requires separate approval for new pages. The project ledger contains a user-recorded approved supplemental record naming this page and describing it as included. The ledger status and source are not independently authenticated.';
+      c.detected=c.type;
+      c.actual=atomicRequestText;
+      c.request=atomicRequestText;
+      c.boundary='The project ledger suggests that this specific page may have been approved, but BoundaryFlow cannot verify the original record, sender authority, execution, chronology or whether all approval conditions were met. Do not treat the ledger label alone as conclusive approval.';
+      c.action='Check the original amendment or written approval, confirm it names this page and satisfies the agreement’s approval requirements, then confirm any limits or delivery implications before implementation.';
+      c.response='I have a project record noting that this page was approved. I’ll check the original amendment or written approval against the agreement and confirm the exact scope and delivery implications before implementation.';
+      c.why='The base agreement requires separate approval, while a user-recorded ledger entry refers to an approved inclusion for this specific page. The original record still needs verification.';
+    }else if(explicitPageCreationAtomic && agreementRequiresPageApproval){
       c.type='Change request / new page';
       c.status='Likely additional';
       c.confidence='High';
@@ -3715,7 +3731,7 @@ function bfLedgerAnalysisContext(baseScope){
  const analysisScope=String(baseScope||'')+(additions.length?'\n\n[SUPPLEMENTAL PROJECT LEDGER CONTEXT — user-entered records; verify the original document and authority before relying on them. These records do not independently establish signature, identity, authority, chronology or legal effect.]\n'+additions.join('\n\n'):'');
  return {
   projectName:bfLedgerProjectName(),totalEntries:entries.length,analysisScope,analysisMessage,
-  used:used.map(x=>({id:x.id,title:x.title,type:x.type,sourceType:x.sourceType,status:x.status,sourceDate:x.sourceDate,related:x.related})),
+  used:used.map(x=>({id:x.id,title:x.title,detail:x.detail,type:x.type,sourceType:x.sourceType,status:x.status,sourceDate:x.sourceDate,related:x.related})),
   revisionEvents:revisions.map(x=>({title:x.title,detail:x.detail,status:x.status,sourceType:x.sourceType,sourceDate:x.sourceDate})),
   completedRevisionRounds,
   unverifiedClaims:entries.filter(x=>x.sourceType==='client_claim').map(x=>({title:x.title,detail:x.detail,status:x.status,sourceType:x.sourceType})),

@@ -3675,7 +3675,7 @@ function analyze(){
   document.getElementById('status').textContent='Analysis complete. '+detectedRequests+' request item'+(detectedRequests===1?'':'s')+' detected. '+(parsed.claims.length?(parsed.claims.length===1?'Client claim was':'Client claims were')+' separated from the requested work.':'No separate scope claim was detected.');
   ledgerContext.requestRevisionUsage=rows.filter(x=>String(x.c&&x.c.status||'').toLowerCase()!=='client claim').map(x=>({request:String(x.q||''),...bfLedgerRevisionUsage(ledgerContext,x.q,a)}));
   window.bfLedgerAnalysisMeta=ledgerContext;
-  window.bfReasoningV2=bfR2Inspect(a,(/\brevision rounds? per page\b/i.test(a)?r:ledgerContext.analysisMessage),rows);
+  window.bfReasoningV2=bfR2Inspect(a,(/\b(?:revisions?\s+per\s+page|rounds?\s+of\s+revisions?\s+per\s+page)\b/i.test(a)?r:ledgerContext.analysisMessage),rows);
   renderResults();
 }
 function buildFullResponse(rows){

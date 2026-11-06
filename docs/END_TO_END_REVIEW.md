@@ -2,10 +2,10 @@
 
 ## Candidate automated verification
 
-- GitHub Actions run: #156
-- Result: **21 / 21 browser checks passed** and **69 / 69 reasoning/ledger regression scenarios passed**
-- Candidate commit: `f3dab7a9db83924eb4af05f0728adbf55e8f2fa5`
-- Run: https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/42281143366
+- GitHub Actions run: #159
+- Result: **22 / 22 browser checks passed** and **69 / 69 reasoning/ledger regression scenarios passed**
+- Candidate commit: `be6c5f4b0f5967db1a5a0c86bb58307ed081ca59`
+- Run: https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/42283784032
 - Mode: local browser execution against the actual candidate `index.html`, with deterministic simulated account identities.
 - External network access was blocked except for a stubbed Supabase library response. No real sign-in, Supabase queries, cloud writes, or production records were used.
 
@@ -53,7 +53,7 @@ See [docs/LIVE_SUPABASE_REVIEW_PLAN.md](LIVE_SUPABASE_REVIEW_PLAN.md) for the ob
 
 ## What the automated result establishes
 
-The browser-level candidate workflow passed for the analysis engine, project-local evidence ledger, explanation output, local History, reload persistence and project/account-key isolation under simulated identities.
+The browser-level candidate workflow passed for the analysis engine, project-local evidence ledger, factual explanation output without client-language commentary, local History, reload persistence and project/account-key isolation under simulated identities.
 
 ## What these results do not establish
 

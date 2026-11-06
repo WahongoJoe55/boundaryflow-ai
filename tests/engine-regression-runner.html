@@ -17,9 +17,9 @@ main{max-width:1100px;margin:0 auto;padding:28px 18px 60px}.eyebrow{font-size:11
 <h1>Engine regression runner</h1>
 <p class="intro">Runs the v87 analysis engine against a fixed set of scope scenarios and checks the actual classifications returned by the application. This page does not save analyses, change Supabase data, or modify your production workspace.</p>
 <div class="panel">
- <div class="actions"><button id="run" class="btn primary">Run all 16 tests</button><button id="download" class="btn secondary" disabled>Download results (CSV)</button><span id="runStatus" class="status">Ready. The application engine loads in a hidden frame when you start the tests.</span></div>
+ <div class="actions"><button id="run" class="btn primary">Run all 24 tests</button><button id="download" class="btn secondary" disabled>Download results (CSV)</button><span id="runStatus" class="status">Ready. The application engine loads in a hidden frame when you start the tests.</span></div>
  <div class="summary">
-  <div class="metric"><strong id="total">16</strong><span>Scenarios</span></div>
+  <div class="metric"><strong id="total">24</strong><span>Scenarios</span></div>
   <div class="metric"><strong id="passed">—</strong><span>Passed</span></div>
   <div class="metric"><strong id="failed">—</strong><span>Failed</span></div>
   <div class="metric"><strong id="rate">—</strong><span>Pass rate</span></div>
@@ -49,7 +49,15 @@ const cases=[
 {id:'BF-R13',title:'New page and dependent link',agreement:'New pages require separate approval. Minor links on existing pages are included.',message:'Create a new Pricing page, then add a link to it from the Services page.',check:r=>has(r,'likely additional')&&has(r,'likely included')&&count(r)>=2,expect:'Page creation and existing-page link are separately evaluated.'},
 {id:'BF-R14',title:'Entitlement claim without underlying request',agreement:'One revision round is included.',message:'I thought this was included in the current revision.',check:r=>has(r,'client claim'),expect:'Client claim identified; no invented deliverable.'},
 {id:'BF-R15',title:'Broad request with no matching scope detail',agreement:'The agreement does not describe structural changes or content reorganisation.',message:'Make the existing Services page more engaging and reorganise its sections.',check:r=>has(r,'clarify'),expect:'Clarify rather than infer an inclusion or exclusion.'},
-{id:'BF-R16',title:'Claim of verbal approval',agreement:'Changes beyond agreed deliverables require written approval.',message:'We discussed this on a call, so please treat the new feature as approved.',check:r=>has(r,'client claim'),expect:'Approval assertion remains a claim; it is not treated as the written approval record.'}
+{id:'BF-R16',title:'Claim of verbal approval',agreement:'Changes beyond agreed deliverables require written approval.',message:'We discussed this on a call, so please treat the new feature as approved.',check:r=>has(r,'client claim'),expect:'Approval assertion remains a claim; it is not treated as the written approval record.'},
+{id:'BF-R17',title:'SEO excluded by agreement',agreement:'Search engine optimisation and keyword research are excluded from the website build.',message:'Please do keyword research and optimise the Services page for search engines.',check:r=>has(r,'likely additional'),expect:'SEO/keyword work is additional only because the same work category is expressly excluded.'},
+{id:'BF-R18',title:'Editable source files excluded',agreement:'Delivery includes exported website assets. Editable source and working files are not included.',message:'Please send over the editable design source files so our team can make changes later.',check:r=>has(r,'likely additional'),expect:'Editable/source files match the explicit exclusion.'},
+{id:'BF-R19',title:'Ongoing maintenance excluded',agreement:'The project covers initial launch only. Ongoing website maintenance and post-launch support are excluded.',message:'Please provide ongoing website maintenance and support after launch.',check:r=>has(r,'likely additional'),expect:'Post-launch maintenance/support is additional under the explicit exclusion.'},
+{id:'BF-R20',title:'Content migration excluded',agreement:'The project includes creating the new website. Migration of existing customer records and legacy content is excluded.',message:'Please migrate the existing customer records and blog content into the new website.',check:r=>has(r,'likely additional'),expect:'Data/content migration matches the express exclusion.'},
+{id:'BF-R21',title:'Staff training excluded',agreement:'The handover includes written documentation. Live staff training sessions are excluded.',message:'Please run a live training session for our staff on how to manage the website.',check:r=>has(r,'likely additional'),expect:'Live staff training is additional under the matching exclusion.'},
+{id:'BF-R22',title:'SEO request with no SEO exclusion',agreement:'The agreement includes five pages of SEO metadata and page titles. No separate keyword research or ongoing SEO campaign is specified.',message:'Please add the agreed SEO metadata to the five pages.',check:r=>!has(r,'likely additional'),expect:'Do not infer an exclusion where the agreement does not contain one; preserve uncertainty if details remain unclear.'},
+{id:'BF-R23',title:'Small wording does not defeat an explicit exclusion',agreement:'Keyword research and search engine optimisation are expressly excluded from the fixed-price website build.',message:'Could you just do a quick bit of SEO and keyword research as a tiny favour?',check:r=>has(r,'likely additional'),expect:'Casual/minimising wording does not override the explicit SEO exclusion.'},
+{id:'BF-R24',title:'Additional workshop excluded',agreement:'One discovery workshop is included. Additional workshops and strategy sessions require a separate fee and approval.',message:'Can we schedule another strategy workshop to plan the next phase?',check:r=>has(r,'likely additional'),expect:'The additional workshop is outside the one-workshop allowance.'}
 ];
 let lastResults=[];
 const norm=s=>String(s||'').toLowerCase();
@@ -110,7 +118,7 @@ function csv(){
  return rows.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
 }
 document.getElementById('run').addEventListener('click',run);
-document.getElementById('download').addEventListener('click',()=>{const blob=new Blob([csv()],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='boundaryflow-v87-regression-results.csv';a.click();URL.revokeObjectURL(url)});
+document.getElementById('download').addEventListener('click',()=>{const blob=new Blob([csv()],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='boundaryflow-engine-regression-results.csv';a.click();URL.revokeObjectURL(url)});
 })();
 </script>
 </body>

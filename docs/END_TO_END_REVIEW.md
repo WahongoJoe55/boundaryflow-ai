@@ -11,6 +11,18 @@
 
 The engine/ledger regression suite also completed successfully: **69 / 69 scenarios passed** in the same workflow run. The 21 browser checks include the updated `Client Request Context` label, the complete 12-step visual guide, explanations of ledger purpose/storage/export limitations, and a guide screenshot. All three guide-specific assertions passed.
 
+## Current clarification-specificity change
+
+The development candidate now includes a reusable clarification-subject preservation step. Where the request contains a reliably identifiable deliverable, it carries that subject into generic clarification titles, missing-information prompts, questions, explanations and outcome statements. Named page and form extraction is supported; when no reliable subject is available, the original generic wording is retained rather than inventing one.
+
+Four new browser checks have been added to `tests/run-e2e.mjs`:
+- Careers page specificity across title, explanation and question.
+- Portfolio page specificity across title, explanation and question.
+- Contact form specificity.
+- Generic request fallback does not invent a deliverable.
+
+**These four new checks have not yet been executed.** The previously recorded run #159 (22/22 browser checks and 69/69 engine/ledger scenarios) predates this change and must not be treated as validation of it. The next candidate workflow run must confirm the updated browser suite and existing 69-scenario regression suite before this change is considered verified.
+
 ## Scenarios exercised
 
 1. Candidate application loads with analysis and ledger controls.

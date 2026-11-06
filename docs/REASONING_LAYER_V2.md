@@ -48,7 +48,7 @@ These are source labels inferred from wording. BoundaryFlow does not authenticat
 
 ## Regression coverage
 
-The regression matrix contains 59 scenarios: 43 reasoning-engine cases and 16 project-ledger integrity / analysis-integration cases. The Playwright runner must execute exactly 59 cases and fail on a count mismatch. The runner checks the actual application build in isolated regression mode; CI blocks non-local network requests and does not use Save, Sync or History.
+The regression matrix contains 62 scenarios: 43 reasoning-engine cases and 19 project-ledger integrity / analysis-integration cases. The Playwright runner must execute exactly 59 cases and fail on a count mismatch. The runner checks the actual application build in isolated regression mode; CI blocks non-local network requests and does not use Save, Sync or History.
 
 ## Release requirements
 
@@ -83,7 +83,7 @@ When a project name is present, the analysis reads only the current signed-in ac
 - When an approved ledger entry appears to cover a request that the base agreement reserves for separate approval, the request remains Conditional until the original approval is checked. A user-recorded status alone never converts the request directly to Likely included.
 - The applied context is visibly labelled user-recorded and not independently authenticated. It does not establish who signed, who had authority, whether the document is complete, or whether a date/sequence is valid.
 - Client assertions, proposed or awaiting-approval records, declined records and superseded records are not applied as scope facts. They are surfaced separately in the reasoning panel where relevant.
-- Revision records are shown as user-recorded history. A revision affects the allowance assessment only when its status is Delivered / completed and its title/details explicitly identify an ordinal revision round (for example, “First revision round”). Individual edits are not counted as rounds.
+- Revision records are shown as user-recorded history. A revision affects the allowance assessment only when its status is Delivered / completed and its title/details explicitly identify an ordinal revision round (for example, “First revision round”). For agreements that state a per-page allowance, the record must also identify the relevant page; another page’s rounds are not counted. Missing page association remains unknown. Individual edits are not counted as rounds.
 - The reasoning panel identifies which ledger entries were used and which were excluded. The user must check original source documents before relying on any entry.
 - If no project name or no eligible ledger records exist, the analysis follows its prior agreement/message path.
 
@@ -91,4 +91,13 @@ This is a conservative local integration, not a contract-priority engine or lega
 
 ## Ledger regression coverage
 
-Sixteen ledger tests verify baseline provenance, amendment append behavior, required project and record fields, client-claim labelling, project/account isolation, append-only revision events, signed-in write context, safe rendering of untrusted text, and controlled ledger-to-analysis context. The complete automated suite now contains 59 cases.
+Nineteen ledger tests verify baseline provenance, amendment append behavior, required project and record fields, client-claim labelling, project/account isolation, append-only revision events, signed-in write context, safe rendering of untrusted text, and controlled ledger-to-analysis context. The complete automated suite now contains 62 cases.
+
+
+## 8. Page-specific revision accounting safeguards
+
+- A per-page revision allowance is evaluated against records that explicitly identify the same page.
+- A revision event recorded for the Home page does not count against the About page.
+- A delivered revision event with no ordinal round or no identifiable page is retained in the ledger but is not silently assigned to a page allowance.
+- The app does not infer that a feedback message is a consolidated round merely because it contains several edits; that must be confirmed against the agreed revision process.
+- User-recorded events remain unverified history and must be checked against the original project record.

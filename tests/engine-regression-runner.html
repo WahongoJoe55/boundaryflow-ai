@@ -115,7 +115,7 @@ function readRows(w){
 }
 function render(results){
  const el=document.getElementById('results');
- el.innerHTML=results.map(x=>'<article class="case"><div class="casehead"><div><b>'+escape(x.id)+' · '+escape(x.title)+'</b><div class="detail">Expected: '+escape(x.expect)+'</div></div><span class="'+(x.pass?'pass':'fail')+'">'+(x.pass?'PASS':'FAIL')+'</span></div><div class="casebody"><p><b>Actual classifications:</b> '+escape(x.actual.map(a=>a.status+' — '+a.type).join(' | ')||'No rows returned')+'</p><p class="detail">Detected requests: '+escape(x.actual.map(a=>a.request).join(' · ')||'None')+'</p><p class="detail">'+escape(x.diagnostic?'Diagnostics: '+JSON.stringify(x.diagnostic):'')+'</p><p class="detail">'+escape(x.error||'')+'</p></div></article>').join('');
+ el.innerHTML=results.map(x=>'<article class="case"><div class="casehead"><div><b>'+escape(x.id)+' · '+escape(x.title)+'</b><div class="detail">Expected: '+escape(x.expect)+'</div></div><span class="'+(x.pass?'pass':'fail')+'">'+(x.pass?'PASS':'FAIL')+'</span></div><div class="casebody"><p><b>Actual classifications:</b> '+escape(x.actual.map(a=>a.status+' — '+a.type).join(' | ')||'No rows returned')+'</p><p class="detail">Detected requests: '+escape(x.actual.map(a=>a.request).join(' · ')||'None')+'</p><p class="detail">Probe result: '+escape(x.probe===null?'Not used':JSON.stringify(x.probe))+'</p><p class="detail">'+escape(x.diagnostic?'Diagnostics: '+JSON.stringify(x.diagnostic):'')+'</p><p class="detail">'+escape(x.error||'')+'</p></div></article>').join('');
  const passed=results.filter(x=>x.pass).length;
  document.getElementById('passed').textContent=passed;
  document.getElementById('failed').textContent=results.length-passed;
@@ -136,7 +136,7 @@ async function run(){
     const reasoning=w.bfReasoningV2||null;
     const probe=typeof c.reasoningProbe==='function'?c.reasoningProbe(w,actual):undefined;
     const pass=typeof c.reasoningCheck==='function'?!!c.reasoningCheck(reasoning,w,actual,probe):!!c.check(actual);
-    results.push({id:c.id,title:c.title,expect:c.expect,actual,pass,diagnostic:reasoning?{contradictions:reasoning.contradictions.length,dependencies:reasoning.dependencies.length,evidence:reasoning.evidence.length,revisions:reasoning.revisions,commercial:reasoning.commercial}:null,error:''});
+    results.push({id:c.id,title:c.title,expect:c.expect,actual,pass,probe:probe===undefined?null:probe,diagnostic:reasoning?{contradictions:reasoning.contradictions.length,dependencies:reasoning.dependencies.length,evidence:reasoning.evidence.length,revisions:reasoning.revisions,commercial:reasoning.commercial}:null,error:''});
    }catch(e){results.push({id:c.id,title:c.title,expect:c.expect,actual:[],pass:false,error:String(e&&e.message||e)})}
   }
   lastResults=results;render(results);

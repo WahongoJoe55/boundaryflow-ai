@@ -3014,6 +3014,104 @@ function claimExplanationFor(z){
   return {why:why,assessment:assessment,effect:'Until qualifying approval is established, the request remains Likely additional. If the original record satisfies the agreement, reassess the request against that record.'};
 }
 
+/* BOUNDARYFLOW v88 — domain-aware language intelligence layer.
+   This layer enriches interpretation and vocabulary; it does NOT override the
+   existing scope classifier or treat a vocabulary match as contractual proof. */
+const BF_WORK_LANGUAGE = {
+  actions: [
+    {name:'Create / produce', re:/\b(add|create|build|develop|design|draft|write|author|produce|generate|make|compose|draw|illustrate|film|record|enable|introduce)\b/i},
+    {name:'Edit / refine', re:/\b(edit|revise|rewrite|refine|polish|tweak|adjust|amend|update|rework|redesign|reformat|retouch|crop)\b/i},
+    {name:'Correct / repair', re:/\b(fix|correct|repair|resolve|debug|restore|rectify|troubleshoot|patch)\b/i},
+    {name:'Configure / implement', re:/\b(configure|setup|set up|install|implement|deploy|launch|migrate|customi[sz]e|integrate)\b/i},
+    {name:'Connect / automate', re:/\b(connect|link|sync|integrate|automate|trigger|webhook|import|export)\b/i},
+    {name:'Research / analyse', re:/\b(research|audit|analyse|analyze|assess|review|investigate|benchmark|interview|validate|test)\b/i},
+    {name:'Manage / maintain', re:/\b(manage|maintain|monitor|administer|moderate|support|operate|handle|triage|schedule|book)\b/i},
+    {name:'Deliver / publish', re:/\b(deliver|send|share|hand over|upload|publish|post|submit|export|provide)\b/i},
+    {name:'Translate / localise', re:/\b(translate|locali[sz]e|transcreate|proofread|interpret)\b/i}
+  ],
+  objects: [
+    ['Website / page', /\b(website|web ?site|homepage|home page|landing page|pricing page|services page|about page|contact page|careers page|web page)\b/i],
+    ['Content / copy', /\b(copy|website content|blog post|article|caption|headline|heading|script|newsletter|product description|case study|white ?paper)\b/i],
+    ['Design / creative asset', /\b(logo|brand identity|brand guide|mock[- ]?up|wireframe|prototype|layout|illustration|graphic|visual|creative|artwork|design system)\b/i],
+    ['Customer portal / account functionality', /\b(client|customer|member|user)\s+portal\b|\b(log ?in|log ?out|authentication|account area|order history|invoice download)\b/i],
+    ['Feature / functionality', /\b(feature|functionality|booking form|contact form|sign[- ]?up form|checkout|payment flow|search|filter|member directory|portal|dashboard widget)\b/i],
+    ['Software / technical component', /\b(plugin|theme|component|module|api|webhook|database|integration|script|code|repository|deployment|hosting|server)\b/i],
+    ['Data / reporting', /\b(dataset|csv|spreadsheet|records|dashboard|analytics|metrics|report|data cleaning|reconciliation)\b/i],
+    ['Campaign / channel', /\b(campaign|social media|instagram|linkedin|email sequence|email automation|ad set|paid ads|seo|newsletter)\b/i],
+    ['Media production', /\b(photo|photograph|portrait|video|reel|animation|podcast|audio|recording|raw file|mp3|mp4)\b/i],
+    ['Research / discovery', /\b(interview|user research|usability test|survey|workshop|discovery|competitor analysis|market research)\b/i],
+    ['Business operations', /\b(inbox|calendar|meeting|travel booking|payroll|bookkeeping|invoice|supplier|customer support)\b/i],
+    ['Translation / localisation', /\b(translation|translated|proofread|locali[sz]ation|language version|subtitles)\b/i]
+  ],
+  domains: [
+    ['Web design & development', /\b(website|web ?site|wordpress|shopify|plugin|theme|landing page|api|webhook|deployment|hosting|frontend|backend|checkout|client portal|customer portal|order history|user authentication|login)\b/i],
+    ['Brand & visual design', /\b(brand|logo|illustrat|graphic|visual identity|wireframe|prototype|figma|layout|mock[- ]?up)\b/i],
+    ['Writing & content', /\b(copywrit|copy|blog|article|website content|script|editorial|proofread|caption)\b/i],
+    ['Marketing & growth', /\b(seo|social media|campaign|newsletter|email marketing|ads|analytics|lead generation|conversion)\b/i],
+    ['Creative media production', /\b(photo|photograph|video|reel|animation|podcast|audio|retouch|raw file)\b/i],
+    ['Data & analytics', /\b(data|dataset|csv|dashboard|analytics|reporting|spreadsheet|sql|metrics)\b/i],
+    ['Research & strategy', /\b(research|interview|usability|survey|strategy|positioning|workshop|competitor)\b/i],
+    ['Administration & operations', /\b(virtual assistant|inbox|calendar|scheduling|booking|admin|operations|payroll|bookkeeping)\b/i],
+    ['Translation & localisation', /\b(translation|translate|locali[sz]ation|proofread|language version)\b/i]
+  ],
+  boundaries: [
+    ['Quantity / volume cap', /\b(up to|maximum of|no more than|at most|\d+\s*(pages?|slides?|posts?|words?|hours?|minutes?|images?|emails?|records?|users?|accounts?|rounds?))\b/i],
+    ['Revision / feedback rounds', /\b(revision|refinement|feedback|amendment)\s*(round|cycle|pass)?\b|\b(first|second|third|additional)\s+(revision|round)\b/i],
+    ['Approval / sign-off', /\b(approval|approved|sign[- ]?off|written consent|authori[sz]ation|acceptance)\b/i],
+    ['Exclusion / out-of-scope term', /\b(excluded|not included|out of scope|outside the scope|not covered|separate scope)\b/i],
+    ['Dependency / client-supplied input', /\b(client[- ]supplied|provided by the client|subject to|once .*received|after .*approval|dependent on|requires .*access|credentials|source files|final copy)\b/i],
+    ['Defect / warranty / support', /\b(bug|defect|fault|error|warranty|maintenance|support window|service level|sla|break[- ]fix)\b/i],
+    ['Third-party / integration boundary', /\b(third[- ]party|external platform|integration|api|webhook|crm|payment gateway|mailchimp|stripe|zapier)\b/i],
+    ['Recurring / ongoing service', /\b(monthly|weekly|daily|ongoing|recurring|per month|per week|retainer|maintenance)\b/i],
+    ['Milestone / acceptance / delivery', /\b(milestone|deliverable|delivery date|turnaround|acceptance criteria|handover|final delivery)\b/i],
+    ['Commercial / change control', /\b(change request|change order|variation|additional fee|extra cost|quote|quotation|estimate|rate|billable|invoice|purchase order)\b/i]
+  ]
+};
+function bfUniqueMatches(text, defs){
+  const s=String(text||'');
+  return defs.filter(x=>x[1].test(s)).map(x=>x[0]);
+}
+function bfLanguageAnalysis(request, agreement){
+  const q=String(request||''), a=String(agreement||'');
+  const action=BF_WORK_LANGUAGE.actions.find(x=>x.re.test(q));
+  const object=BF_WORK_LANGUAGE.objects.find(x=>x[1].test(q));
+  const domain=BF_WORK_LANGUAGE.domains.find(x=>x[1].test(q));
+  const qTerms=bfUniqueMatches(q,BF_WORK_LANGUAGE.boundaries);
+  if(/\b(fix|correct|repair|not working|isn't working|doesn't work|won't open|isn't opening)\b/i.test(q) && !qTerms.includes('Defect / warranty / support')) qTerms.push('Defect / warranty / support');
+  if(/\b(more changes|few more|team feedback|feedback from|another round|revisions?)\b/i.test(q) && !qTerms.includes('Revision / feedback rounds')) qTerms.push('Revision / feedback rounds');
+  const allAgreementTerms=bfUniqueMatches(a,BF_WORK_LANGUAGE.boundaries);
+  const relevantAgreementTerms=allAgreementTerms.filter(x=>qTerms.includes(x) ||
+    (x==='Exclusion / out-of-scope term' && /\b(portal|new functionality|new feature|login|order history|invoice download)\b/i.test(q)) ||
+    (x==='Approval / sign-off' && /\b(portal|new functionality|new feature|login|order history|invoice download|more changes|revision)\b/i.test(q)));
+  const aliases=[];
+  const aliasGroups=[
+    ['revision / refinement / feedback round',/\b(revision|refinement|feedback round|amendment round|team feedback|more changes)\b/i],
+    ['bug / defect / fault / error correction',/\b(bug|defect|fault|error|debug|repair|fix|not opening|not working)\b/i],
+    ['change request / change order / variation',/\b(change request|change order|variation|scope change|additional functionality)\b/i],
+    ['sign-off / approval / acceptance',/\b(sign[- ]?off|approval|acceptance|authori[sz]ation|approve)\b/i],
+    ['integration / connection / API / webhook',/\b(integration|connect|api|webhook|sync)\b/i],
+    ['customer portal / authentication / account access',/\b(client|customer|member|user)\s+portal\b|\b(log ?in|authentication|account access|order history)\b/i],
+    ['invoice generation / document retrieval',/\b(invoice|invoices|download|order history)\b/i],
+    ['handover / delivery / export',/\b(handover|hand over|deliver|delivery|export|final files?)\b/i],
+    ['retainer / recurring service / maintenance',/\b(retainer|recurring|ongoing|monthly|maintenance)\b/i]
+  ];
+  aliasGroups.forEach(([label,re])=>{if(re.test(q))aliases.push(label)});
+  return {domain:domain?domain[0]:'Not confidently identified',action:action?action.name:'Action not confidently identified',object:object?object[0]:'Deliverable not confidently identified',dimensions:qTerms,agreementTerms:relevantAgreementTerms,requestTerms:qTerms,aliases};
+}
+function bfRenderLanguageAnalysis(x){
+  if(!x)return '';
+  const list=(arr,empty)=>arr&&arr.length?arr.map(v=>'<span class="pill">'+esc(v)+'</span>').join(' '):'<span class="note">'+esc(empty)+'</span>';
+  return '<div class="language-context" style="margin:12px 0;padding:12px 14px;border:1px solid var(--line,#d7dee8);border-radius:12px;background:rgba(120,135,155,.055)">'+
+    '<div style="font-weight:700;margin-bottom:8px">Language &amp; work context</div>'+
+    '<div class="decision-grid">'+
+      '<div class="decision-cell"><strong>Likely work area</strong><span>'+esc(x.domain)+'</span></div>'+
+      '<div class="decision-cell"><strong>Action language</strong><span>'+esc(x.action)+'</span></div>'+
+      '<div class="decision-cell"><strong>Deliverable family</strong><span>'+esc(x.object)+'</span></div>'+
+      '<div class="decision-cell"><strong>Related professional terms</strong><span>'+list(x.aliases,'No strong synonym group detected.')+'</span></div>'+
+      '<div class="decision-cell"><strong>Boundary dimensions in this exchange</strong><span>'+list(x.dimensions,'No common boundary dimension detected.')+'</span></div>'+
+      '<div class="decision-cell"><strong>Boundary terms in agreement</strong><span>'+list(x.agreementTerms,'No matching boundary term detected in supplied agreement text.')+'</span></div>'+
+    '</div><p class="note" style="margin:8px 0 0">Language signals help organise the request; they are not proof of contractual meaning and do not determine the classification. Review the cited agreement wording and surrounding context.</p></div>';
+}
 function renderResults(){
   const rows=window.rows||[];
   const statusOf=z=>String(z&&z.c&&z.c.status||'').trim().toLowerCase();
@@ -3048,6 +3146,7 @@ function renderResults(){
     let rr=risk(z.c.status);
     return '<div class="req"><div class="top"><div><b>'+(String(z.c.status).toLowerCase()==='client claim'?'Client claim '+rows.slice(0,n+1).filter(function(v){return String(v.c.status).toLowerCase()==='client claim';}).length:'Request '+rows.slice(0,n+1).filter(function(v){return String(v.c.status).toLowerCase()!=='client claim' && v.c.type!=='Constraint / instruction';}).length)+'</b><div class="reqtext">'+esc(cleanRequest(z.q))+'</div></div></div>'+ 
       '<div class="badges"><span class="pill '+badge(z.c.status)+'">'+esc(z.c.status)+'</span><span class="pill">'+esc(z.c.type)+'</span><span class="pill confidence-'+z.c.confidence.toLowerCase()+'">Confidence: '+z.c.confidence+'</span><span class="pill '+rr[1]+'">Boundary risk: '+rr[0]+'</span></div>'+ 
+      (z.c.languageAnalysis?bfRenderLanguageAnalysis(z.c.languageAnalysis):'')+
       (z.c.conditional&&z.c.conditional.branches&&z.c.conditional.branches.length?'<div class="conditional-branches"><div class="note"><b>Conditional branches</b></div>'+z.c.conditional.branches.map(function(b){return '<div class="decision-cell"><strong>'+esc(b.condition)+'</strong><span>'+esc(b.action)+' → '+esc(b.status)+' · Confidence: '+esc(b.confidence)+'</span></div>';}).join('')+'</div>':'')+
       (String(z.c.status).toLowerCase()==='client claim'?'':'<p class="evidence">'+esc(z.c.evidence)+'</p>')+ 
       '<div class="decision-grid"><div class="decision-cell"><strong>'+(String(z.c.status).toLowerCase()==='client claim'?'Underlying request':'What was asked')+'</strong><span>'+esc(z.c.request||z.q)+'</span></div><div class="decision-cell"><strong>'+(String(z.c.status).toLowerCase()==='client claim'?'Evidence to inspect':'Scope signal')+'</strong><span>'+esc(z.c.evidence)+'</span></div><div class="decision-cell"><strong>Boundary</strong><span>'+esc(z.c.boundary)+'</span></div><div class="decision-cell"><strong>Next move</strong><span>'+esc(z.c.action)+'</span></div></div>'+ 
@@ -3401,6 +3500,46 @@ function analyze(){
         }
       }
     }
+    // v89: request-specific professional reasoning guards.
+    const v89q=String(item.original||item.resolved||'').trim();
+    const v89a=String(a||'');
+    const portalRequest=/\b(client|customer|member|user)\s+portal\b/i.test(v89q) &&
+      /\b(log ?in|sign ?in|customers? can|users? can|order history|download invoices?|invoice downloads?)\b/i.test(v89q);
+    if(portalRequest){
+      const excludesNewFunctionality=/\bnew functionality\b[\s\S]{0,100}\b(excluded|not included|outside|separate approval)\b/i.test(v89a) ||
+        /\b(excluded|not included|outside)\b[\s\S]{0,100}\bnew functionality\b/i.test(v89a);
+      c.type='Change request / customer portal functionality'; c.detected=c.type; c.actual=v89q; c.request=v89q;
+      c.status=excludesNewFunctionality?'Likely additional':'Clarify'; c.confidence=excludesNewFunctionality?'High':'Medium'; c.risk=excludesNewFunctionality?'High':'Medium';
+      c.evidence=excludesNewFunctionality?'The agreement expressly excludes new functionality. The request introduces a customer portal with sign-in, order-history access and invoice downloads.':'The request introduces customer-facing portal, authentication, order-history and invoice-download functionality. The supplied agreement does not establish whether these capabilities are included.';
+      c.boundary=excludesNewFunctionality?'This request is for a new customer-facing portal: customers would sign in, view their order history and download invoices. Those are distinct access, data-retrieval and document-delivery capabilities, not merely a visual revision. The agreement excludes new functionality, so this is likely additional work unless a later written amendment includes it.':'The request is for a new customer-facing portal with sign-in, order-history access and invoice downloads. The supplied agreement does not clearly establish whether these capabilities were included.';
+      c.action=excludesNewFunctionality?'Treat the portal as a separate change request. Confirm the required user roles, order-data source, invoice source, security/access requirements, approval, fee and timeline before implementation.':'Clarify whether the portal and each capability are expressly included in an approved scope or amendment. Do not assume inclusion from the website redesign description.';
+      c.response=excludesNewFunctionality?'The customer portal would add sign-in, order-history access and invoice downloads beyond the agreed website deliverables. The agreement excludes new functionality, so I suggest treating this as a separate change request. We can confirm the requirements, approval, fee and any timeline adjustment before implementation.':'The customer portal would add sign-in, order-history access and invoice downloads. I cannot confirm that these capabilities are included in the current scope. Could we check the approved deliverables or any written amendment before proceeding?';
+      c.why=excludesNewFunctionality?'The request adds several new user-facing capabilities and the agreement expressly excludes new functionality.':'The requested capabilities are identifiable, but the agreement does not clearly establish their inclusion.';
+    }
+    const mobileNavigationRepair=/\b(?:fix|repair|correct|resolve)\b[\s\S]{0,100}\b(?:mobile|responsive|small[- ]screen)\b[\s\S]{0,80}\b(?:navigation|menu)\b/i.test(v89q) ||
+      /\b(?:mobile|responsive|small[- ]screen)\s+(?:navigation|menu)\b[\s\S]{0,100}\b(?:not opening|doesn.t open|won.t open|not working|broken|fix|repair)\b/i.test(v89q);
+    if(mobileNavigationRepair){
+      const responsiveIncluded=/\bresponsive design\b[\s\S]{0,100}\b(desktop|mobile)\b/i.test(v89a);
+      c.type='Existing responsive navigation / possible defect'; c.detected=c.type; c.actual=v89q; c.request=v89q;
+      c.status='Clarify'; c.confidence='Medium'; c.risk='Medium';
+      c.evidence=responsiveIncluded?'The agreement includes responsive design for desktop and mobile. It does not expressly define defect-correction responsibility or establish whether the menu failure is a defect in the delivered work.':'The supplied agreement does not expressly establish whether mobile navigation defect correction is included.';
+      c.boundary=responsiveIncluded?'Responsive design is included, but that wording alone does not settle whether this is correction of a failure in the delivered responsive navigation or a request to change/add navigation behaviour. If the delivered menu fails the agreed responsive design, correction may be part of completing the agreed deliverable; if the request adds new behaviour or changes the approved design, it may require a change request.':'The request describes a problem with mobile navigation, but the supplied agreement does not clearly allocate defect correction or responsive support.';
+      c.action='Confirm whether the mobile menu was part of the approved design and is failing to work as originally delivered. Compare it with the approved design and acceptance criteria before deciding whether it is a correction or a change.';
+      c.response='I’ll check the mobile navigation against the approved responsive design. Could you confirm whether the menu is failing to work as originally delivered, or whether you would like it to behave differently from the approved design? I’ll confirm the scope treatment before proceeding.';
+      c.why='A defect in an agreed deliverable and a new or changed requirement can have different scope treatment; responsive-design wording alone does not resolve that distinction.';
+    }
+    const homepageRevisionRequest=/\b(?:homepage|home page)\b/i.test(v89q) && /\b(?:more changes|few more|changes? to|change|revise|revision|layout|feedback)\b/i.test(v89q);
+    const hasTwoRoundsPerPage=/\b(?:two|2)\s+(?:rounds?\s+of\s+)?revisions?\s+per\s+page\b/i.test(v89a);
+    if(homepageRevisionRequest && hasTwoRoundsPerPage){
+      c.type='Additional homepage revision / allowance check'; c.detected=c.type; c.actual=v89q; c.request=v89q;
+      c.status='Clarify'; c.confidence='Medium'; c.risk='Medium';
+      c.evidence='The agreement allows two rounds of revisions per page. The supplied information does not say how many rounds of homepage revisions have already been used or whether this feedback is consolidated within an existing round.';
+      c.boundary='The homepage layout is an existing deliverable, but the agreement limits revisions to two rounds per page. The fact that the client has more feedback does not establish that another included round remains. If fewer than two rounds have been used and this feedback falls within the remaining allowance, it may be included. If both rounds have been used, further revisions may require approval under the agreement.';
+      c.action='Check the revision history for the homepage. Confirm how many of the two included rounds have been used and whether this is consolidated feedback within a remaining round. If the allowance is exhausted, agree the additional revision scope before making changes.';
+      c.response='I can review the homepage feedback. The agreement includes two revision rounds per page, so I’ll first check how many homepage rounds have already been used and whether this feedback falls within a remaining round. If the included allowance has been exhausted, we can agree any additional revision work before I proceed.';
+      c.why='The agreement defines a numerical revision allowance, but the usage history needed to determine whether this request is included was not supplied.';
+    }
+    c.languageAnalysis=bfLanguageAnalysis(v89q,v89a);
     if(parsed.claims.length && c.status!=='Client claim') c.claims=parsed.claims.slice();
     c.originalRequest=item.original;
     c.resolvedRequest=item.resolved;

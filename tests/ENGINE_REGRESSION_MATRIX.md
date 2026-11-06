@@ -103,3 +103,6 @@ Before a production version is promoted:
 ## Ledger release gate
 
 The ledger is browser-local and append-only. It is not cloud-synced, independently authenticated, or a replacement for original agreements and approval records. Any future cloud persistence requires a separately reviewed tenant-scoped schema and RLS migration. No local ledger records are silently uploaded.
+
+| BF-L11 | Client assertion cannot be marked approved. | Attempt to assign approved status to a client-claim source. | Reject the status transition. |
+| BF-L12 | Display recorded request status and source. | Add an awaiting-approval change request. | Show status and source type in the timeline. |

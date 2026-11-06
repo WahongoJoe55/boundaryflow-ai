@@ -85,7 +85,7 @@ The next 12 scenarios exercise the new diagnostics layer. These are advisory che
 
 Before a production version is promoted:
 
-1. Run all 59 scenarios against the exact candidate build.
+1. Run all 62 scenarios against the exact candidate build.
 2. Record the actual detected request rows and classifications.
 3. Investigate every mismatch; do not weaken an expected result merely to make a test pass.
 4. Add a regression case for every confirmed defect.
@@ -113,3 +113,7 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 | BF-L14 | A client claim is recorded in the project ledger. | Analyse a new Careers page request with a client assertion in the ledger. | Keep the claim visible but exclude it from scope facts and preserve the underlying boundary. |
 | BF-L15 | An amendment is awaiting approval. | Analyse a new Careers page request with a pending amendment. | Do not apply the pending amendment to the scope classification. |
 | BF-L16 | The first revision round is recorded as completed. | Analyse a later About-page edit. | Use the user-recorded revision event in the allowance assessment while showing that the record is not independently verified. |
+
+| BF-L17 | Per-page revision history is isolated by page. | Record a completed Home-page round and assess About-page usage. | Home-page history does not count against About. |
+| BF-L18 | Two completed rounds exhaust the same page allowance. | Record first and second homepage rounds, then assess another homepage request. | Two completed rounds are recorded against the two-round homepage allowance. |
+| BF-L19 | One completed page round leaves one possible round. | Record the first homepage round, then assess further homepage feedback. | One round remains possible; confirm the feedback is consolidated within it. |

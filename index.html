@@ -3228,7 +3228,7 @@ function bfR2Contradictions(text){
 }
 function bfR2Revision(text,message){
  const a=String(text||''),m=String(message||'');
- const allowanceClauses=bfR2Clauses(a).filter(x=>/\brevision rounds?\b/i.test(x)&&/\b(?:included|allowed|provided|maximum|up to)\b/i.test(x));
+ const allowanceClauses=bfR2Clauses(a).filter(x=>(/\brevision rounds?\b/i.test(x)||/\brounds?\s+of\s+revisions?\b/i.test(x))&&/\b(?:included|allowed|provided|maximum|up to)\b/i.test(x));
  let allowance=null;
  allowanceClauses.forEach(x=>{const n=bfR2Number(x);if(n!==null)allowance=n;});
  const usedMatches=[...m.matchAll(/\b(?:first|one|second|two|third|three|fourth|four|fifth|five|\d+)\s+(?:included\s+)?revision rounds?\s+(?:has\s+been\s+|have been\s+|was\s+|were\s+)?(?:used|completed|exhausted)\b/gi)];

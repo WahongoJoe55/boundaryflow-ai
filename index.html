@@ -3103,20 +3103,6 @@ function bfLanguageAnalysis(request, agreement){
   aliasGroups.forEach(([label,re])=>{if(re.test(q))aliases.push(label)});
   return {domain:domain?domain[0]:'Not confidently identified',action:action?action.name:'Action not confidently identified',object:object?object[0]:'Deliverable not confidently identified',dimensions:qTerms,agreementTerms:relevantAgreementTerms,requestTerms:qTerms,aliases};
 }
-function bfRenderLanguageAnalysis(x){
-  if(!x)return '';
-  const list=(arr,empty)=>arr&&arr.length?arr.map(v=>'<span class="pill">'+esc(v)+'</span>').join(' '):'<span class="note">'+esc(empty)+'</span>';
-  return '<div class="language-context" style="margin:12px 0;padding:12px 14px;border:1px solid var(--line,#d7dee8);border-radius:12px;background:rgba(120,135,155,.055)">'+
-    '<div style="font-weight:700;margin-bottom:8px">Client Request Context</div>'+
-    '<div class="decision-grid">'+
-      '<div class="decision-cell"><strong>Likely work area</strong><span>'+esc(x.domain)+'</span></div>'+
-      '<div class="decision-cell"><strong>Action language</strong><span>'+esc(x.action)+'</span></div>'+
-      '<div class="decision-cell"><strong>Deliverable family</strong><span>'+esc(x.object)+'</span></div>'+
-      '<div class="decision-cell"><strong>Related professional terms</strong><span>'+list(x.aliases,'No strong synonym group detected.')+'</span></div>'+
-      '<div class="decision-cell"><strong>Boundary dimensions in this exchange</strong><span>'+list(x.dimensions,'No common boundary dimension detected.')+'</span></div>'+
-      '<div class="decision-cell"><strong>Boundary terms in agreement</strong><span>'+list(x.agreementTerms,'No matching boundary term detected in supplied agreement text.')+'</span></div>'+
-    '</div><p class="note" style="margin:8px 0 0">Language signals help organise the request; they are not proof of contractual meaning and do not determine the classification. Review the cited agreement wording and surrounding context.</p></div>';
-}
 function renderResults(){
   const rows=window.rows||[];
   const statusOf=z=>String(z&&z.c&&z.c.status||'').trim().toLowerCase();

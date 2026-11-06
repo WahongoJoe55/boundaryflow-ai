@@ -1,6 +1,7 @@
 name: BoundaryFlow engine regression tests
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - work/engine-regression-suite-v1

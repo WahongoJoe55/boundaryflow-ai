@@ -2535,7 +2535,8 @@ function claimDeliverableLabel(requestText){
   // Keep the raw request for the decision record, but derive a concise noun
   // phrase for evidence questions and client-facing clarification wording.
   const subject=raw
-    .replace(/^\s*(?:please\s+)?(?:could\s+you\s+)?(?:add|create|build|develop|make|design|introduce|install|implement|set\s+up|provide)\s+/i,'')
+    .replace(/^\s*(?:please\s+)?(?:could\s+you\s+)?(?:add|create|build|develop|make|design|introduce|install|implement|set\s+up|provide|update|edit|revise|modify|change|fix|correct|replace|redesign|refresh|improve|amend)\s+/i,'')
+    .replace(/^\s*(?:the|a|an|existing|current|new)\s+/i,'')
     .replace(/^\s*(?:a|an|the|new)\s+/i,'')
     .replace(/^\s*new\s+/i,'')
     .trim();
@@ -2570,7 +2571,10 @@ function preserveClarificationSubject(plan,c,q){
   const next=Object.assign({},plan);
   ['title','needed','question','why'].forEach(key=>{next[key]=replaceText(next[key]);});
   if(typeof next.title==='string' && /^(?:let’s|let's) clarify this$/i.test(next.title.trim())) next.title='Clarify '+subject.replace(/^the\s+/i,'');
-  if(typeof next.why==='string' && !next.why.toLowerCase().includes(subject.toLowerCase())) next.why+=' This determines whether '+subject+' is included in the agreed work or needs separate approval.';
+  if(typeof next.why==='string'){
+    if(!next.why.toLowerCase().includes(subject.toLowerCase())) next.why+=' This determines whether work on '+subject+' is included in the agreed work or needs separate approval.';
+    next.why=next.why.charAt(0).toUpperCase()+next.why.slice(1);
+  }
   if(Array.isArray(next.outcomes)) next.outcomes=next.outcomes.map(replaceText);
   return next;
 }

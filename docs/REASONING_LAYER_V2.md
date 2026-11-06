@@ -48,7 +48,7 @@ These are source labels inferred from wording. BoundaryFlow does not authenticat
 
 ## Regression coverage
 
-The regression matrix contains 40 scenarios. The Playwright runner must execute exactly 40 cases and fail on a count mismatch. The runner checks the actual application build in isolated regression mode; CI blocks non-local network requests and does not use Save, Sync or History.
+The regression matrix contains 50 scenarios: 40 reasoning-engine cases and 10 project-ledger integrity cases. The Playwright runner must execute exactly 50 cases and fail on a count mismatch. The runner checks the actual application build in isolated regression mode; CI blocks non-local network requests and does not use Save, Sync or History.
 
 ## Release requirements
 
@@ -56,3 +56,24 @@ The regression matrix contains 40 scenarios. The Playwright runner must execute 
 - Test representative real-world agreements and client messages, including ambiguous, contradictory and incomplete evidence.
 - Verify the diagnostics are useful and do not create misleading certainty.
 - Keep production unchanged until the candidate is reviewed and accepted.
+
+
+## 6. Project evidence and change ledger (local candidate)
+
+The project ledger is a separate, append-only register keyed by the signed-in account context and a normalized project name. It supports original scope baselines, amendments, approval records, change requests, revision events, dependencies, client decisions/clarifications and other evidence.
+
+Each entry stores a user-entered title and detail, record type, source type, optional source date, optional related item, and a local recorded timestamp. A client assertion is explicitly labelled as an assertion and does not establish approval. Records are appended; the interface does not offer silent edits or deletion. Export produces a JSON copy for the user to store with the original project records.
+
+Important boundaries:
+- This implementation is browser-local only. It is not cloud-synced and does not change the Supabase schema, RLS policies, or production data.
+- The project name is the local ledger key; use a consistent project name to return to the same ledger.
+- A recorded source label is user-entered metadata, not authentication of a signature, sender, authority, date, integrity or completeness.
+- A ledger entry is not proof that a contract term is legally effective or that a change is approved.
+- No automated inference converts a claim into approval, amendment, revision usage or a delivery commitment.
+- Exported JSON should be kept securely; browser local storage is not encrypted by BoundaryFlow.
+
+Any future cloud-backed ledger requires a separately reviewed database design, tenant ownership model, RLS policies, migration plan, backup/retention review and cross-account tests. Do not automatically upload browser-local records.
+
+## Ledger regression coverage
+
+Ten additional tests verify baseline provenance, amendment append behavior, required project and record fields, client-claim labelling, project/account isolation, append-only revision events, signed-in write context and safe rendering of untrusted text. The complete automated suite now contains 50 cases.

@@ -110,8 +110,15 @@ try{
   await page.reload({waitUntil:'domcontentloaded'});
   await page.evaluate(()=>{document.body.classList.remove('bf-auth-checking');document.body.classList.add('bf-authenticated')});
   await page.locator('#analyzeBtn').waitFor({state:'visible'});
+  // The local-only harness does not restore an authenticated session from Supabase.
+  // Re-select the project as a real signed-in user would when opening a project.
+  await setProject('E2E Project Alpha');
+  const reloadedLedgerCount=await page.locator('#bfLedgerCount').innerText();
   await page.locator('#historyBtn').click();
-  check('Ledger and History survive a browser reload',await page.locator('#bfLedgerCount').innerText().then(x=>x==='4 records')&&await page.locator('#historyList .history-item').count().then(n=>n>=1));
+  const reloadedHistoryCount=await page.locator('#historyList .history-item').count();
+  check('Project ledger survives reload when the project is reopened',reloadedLedgerCount==='4 records',reloadedLedgerCount);
+  check('Saved History survives a browser reload',reloadedHistoryCount>=1,String(reloadedHistoryCount));
+  await page.locator('#closeHistory').click();
 
   await setProject('E2E Project Beta');
   check('Switching projects isolates the ledger',await page.locator('#bfLedgerCount').innerText().then(x=>x==='0 records'));

@@ -42,6 +42,10 @@
 | BF-R22 | SEO metadata and page titles for five pages are included; no keyword-research exclusion is stated. | Add the agreed SEO metadata to the five pages. | Do not infer an exclusion; use Clarify if the exact included work is unresolved. |
 | BF-R23 | Keyword research and SEO are expressly excluded. | Could you just do a quick bit of SEO and keyword research as a tiny favour? | Likely additional; minimising language does not change the written exclusion. |
 | BF-R24 | One discovery workshop is included; additional workshops require a separate fee and approval. | Schedule another strategy workshop for the next phase. | Likely additional; evaluate the allowance and the extra workshop separately. |
+| BF-R25 | Five pages of SEO metadata and page titles are included; keyword research and ongoing SEO are not specified. | Add the agreed SEO metadata to the five pages. | Likely included; explicit included evidence must outrank generic page-count/deliverable heuristics. |
+| BF-R26 | Migration of existing customer records and legacy content is excluded. | Migrate the existing customer records and legacy blog content. | Likely additional; recognise migration verbs with intervening modifiers. |
+| BF-R27 | One discovery workshop is included; additional workshops and strategy sessions require a separate fee and approval. | Arrange another strategy workshop. | Likely additional; recognise strategy workshops against the additional-workshop allowance. |
+| BF-R28 | The agreement does not mention customer-record or content migration. | Migrate the existing customer records. | Clarify; do not invent an exclusion absent matching agreement evidence. |
 
 ## Language coverage to add and verify
 
@@ -60,7 +64,7 @@ These terms must be interpreted in context. For example, mentioning a fee does n
 
 Before a production version is promoted:
 
-1. Run every scenario against the exact candidate build.
+1. Run all 28 scenarios against the exact candidate build.
 2. Record the actual detected request rows and classifications.
 3. Investigate every mismatch; do not weaken an expected result merely to make a test pass.
 4. Add a regression case for every confirmed defect.

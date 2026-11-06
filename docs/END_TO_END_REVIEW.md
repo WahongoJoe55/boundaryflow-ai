@@ -32,7 +32,7 @@ The engine/ledger regression suite also completed successfully: **69 / 69 scenar
 17. Returning to the original account restores its ledger.
 18. No uncaught browser JavaScript errors occurred.
 
-The guide-specific checks are now included in the successful 21/21 browser result above.
+The guide-specific checks are included in the browser result above. The candidate also verifies that request-language/professional-context diagnostics remain available internally while the analysis UI does not expose those labels or commentary.
 
 ## Separate live production smoke test — 6 November 2026
 

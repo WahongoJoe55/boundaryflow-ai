@@ -76,4 +76,4 @@ Any future cloud-backed ledger requires a separately reviewed database design, t
 
 ## Ledger regression coverage
 
-Twelve additional tests verify baseline provenance, amendment append behavior, required project and record fields, client-claim labelling, project/account isolation, append-only revision events, signed-in write context and safe rendering of untrusted text. The complete automated suite now contains 50 cases.
+Twelve additional tests verify baseline provenance, amendment append behavior, required project and record fields, client-claim labelling, project/account isolation, append-only revision events, signed-in write context and safe rendering of untrusted text. The complete automated suite now contains 52 cases.

@@ -3130,7 +3130,22 @@ function bfR2Commercial(text,message,rows){
  const sourceDates=source.match(dateRe)||[],generatedDates=generated.match(dateRe)||[];
  const ungroundedAmounts=generatedAmounts.filter(v=>!sourceAmounts.some(s=>bfR2Normalize(s)===bfR2Normalize(v)));
  const ungroundedDates=generatedDates.filter(v=>!sourceDates.some(s=>bfR2Normalize(s)===bfR2Normalize(v)));
- return {ungroundedAmounts,ungroundedDates,warning:ungroundedAmounts.length||ungroundedDates.length?'Potential unsupported commercial detail detected in a generated action/response. Remove it or ground it in supplied evidence.':'No unsupported numeric fee or explicit deadline was detected by this safeguard. This is a pattern check, not a guarantee.'};
+ return {ungroundedAmounts,ungroundedDates,warning:ungroundedAmounts.length||ungroundedDates.length?'Potential unsupported commercial detail detected in a generated action/response. The detail must be removed or grounded in supplied evidence.':'No unsupported numeric fee or explicit deadline was detected by this safeguard. This is a pattern check, not a guarantee.'};
+}
+function bfR2ApplyCommercialGuard(rows,agreement,message){
+ const source=String(agreement||'')+' '+String(message||'');
+ const amountRe=/(?:[$£€]\s?\d[\d,]*(?:\.\d{1,2})?|\b(?:USD|GBP|EUR|KES|KSh)\s?\d[\d,]*(?:\.\d{1,2})?)/gi;
+ const dateRe=/\b(?:by|before|within|in)\s+(?:\d+\s+(?:business\s+)?days?|monday|tuesday|wednesday|thursday|friday|saturday|sunday|\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?)\b/gi;
+ const amounts=source.match(amountRe)||[],dates=source.match(dateRe)||[];
+ const allowed=(value,list)=>list.some(x=>bfR2Normalize(x)===bfR2Normalize(value));
+ (rows||[]).forEach(row=>{
+  const c=row.c||{};
+  ['action','response'].forEach(key=>{
+   if(typeof c[key]!=='string')return;
+   c[key]=c[key].replace(amountRe,value=>allowed(value,amounts)?value:'[fee to be agreed]')
+     .replace(dateRe,value=>allowed(value,dates)?value:'[delivery timing to be agreed]');
+  });
+ });
 }
 function bfR2Inspect(agreement,message,rows){
  const clauses=bfR2Clauses(agreement);
@@ -3401,6 +3416,7 @@ function analyze(){
     }
   }
 
+  bfR2ApplyCommercialGuard(rows,a,r);
   window.rows=rows;
   // C-DEPENDENCY-20: give each separate claim card the same claim-specific
   // evidence plan used by the request response, rather than generic advice.

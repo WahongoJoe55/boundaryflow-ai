@@ -6,10 +6,17 @@
   var theme='light';
   try { theme=localStorage.getItem('boundaryflow_theme')==='dark'?'dark':'light'; } catch(e) {}
   document.documentElement.setAttribute('data-bf-theme',theme);
-  // Isolated regression mode: prevent this test frame from writing browser storage.
+  // Isolated regression mode: block normal workspace persistence, but permit
+  // the project-ledger keys used by the dedicated ledger integrity tests.
   if(new URLSearchParams(location.search).get('bf_regression')==='1'){
     window.__BF_REGRESSION_MODE=true;
-    try{['setItem','removeItem','clear'].forEach(function(k){Storage.prototype[k]=function(){return undefined;};});}catch(e){}
+    try{
+      var bfOriginalSetItem=Storage.prototype.setItem;
+      var bfOriginalRemoveItem=Storage.prototype.removeItem;
+      Storage.prototype.setItem=function(key,value){if(String(key).indexOf('boundaryflow_project_ledger_v1_')===0)return bfOriginalSetItem.call(this,key,value);};
+      Storage.prototype.removeItem=function(key){if(String(key).indexOf('boundaryflow_project_ledger_v1_')===0)return bfOriginalRemoveItem.call(this,key);};
+      Storage.prototype.clear=function(){};
+    }catch(e){}
   }
 })();
 </script>

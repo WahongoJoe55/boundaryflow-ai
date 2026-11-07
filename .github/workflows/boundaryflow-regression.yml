@@ -1,0 +1,36 @@
+name: BoundaryFlow engine regression tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  engine-regression:
+    runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
+    timeout-minutes: 10
+    steps:
+      - name: Check out candidate branch
+        uses: actions/checkout@v4
+      - name: Install matching Playwright package
+        run: npm install --no-save playwright@1.56.1
+      - name: Run isolated engine regression suite
+        run: node tests/run-regression.mjs
+      - name: Run browser end-to-end workflow review
+        run: node tests/run-e2e.mjs
+      - name: Upload regression and end-to-end reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: boundaryflow-engine-regression-results
+          path: |
+            index.html
+            test-results/*
+          if-no-files-found: ignore
+          retention-days: 14

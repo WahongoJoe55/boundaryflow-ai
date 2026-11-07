@@ -85,7 +85,7 @@ The next 12 scenarios exercise the new diagnostics layer. These are advisory che
 
 Before a production version is promoted:
 
-1. Run all 69 scenarios against the exact candidate build.
+1. Run all 77 scenarios against the exact candidate build.
 2. Record the actual detected request rows and classifications.
 3. Investigate every mismatch; do not weaken an expected result merely to make a test pass.
 4. Add a regression case for every confirmed defect.
@@ -128,3 +128,10 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 
 | BF-L25 | Related-item metadata associates a revision event with its page. | Record the page name in Related item rather than title/detail. | The matching page allowance uses the recorded revision event. |
 | BF-L26 | Page names in approval titles are matched to the requested deliverable. | Record a written approval title naming the Careers page. | The request remains Conditional pending original approval verification. |
+
+| BF-L27 | Baseline preparation is a draft, not an automatic write. | Prepare the original scope from the agreement field. | Copy the exact text into the ledger form; do not save until the user explicitly adds the record. |
+| BF-L28 | Proposed baselines are not operative scope evidence. | Record a baseline as Proposed and analyse a new page request. | Exclude the proposed record from operative scope context. |
+| BF-L29 | The same agreement may appear in both analysis and ledger. | Paste the agreement and record the identical baseline. | Use the text once; do not duplicate clauses in the analysis scope. |
+| BF-L30 | Structured page metadata conflicts with the free-text revision record. | Record a Portfolio revision but set Related item to Contact. | Keep the Portfolio per-page revision balance unknown; require review. |
+| BF-L31 | Pronouns may refer to objects other than the most recently named page. | Create a Careers page, then say “check whether it is ready”, “check that carefully” and “review the work there”. | Do not silently rewrite ambiguous pronouns; resolve only an explicit “link to it” destination. |
+| BF-L32 | One revision record mentions multiple different pages in its title/details. | Record a Portfolio revision whose details also name Contact. | Detect the conflict and leave the affected per-page allowance unknown. |

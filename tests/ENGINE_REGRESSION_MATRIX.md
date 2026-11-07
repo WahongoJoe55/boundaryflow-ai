@@ -85,7 +85,7 @@ The next 12 scenarios exercise the new diagnostics layer. These are advisory che
 
 Before a production version is promoted:
 
-1. Run all 77 scenarios against the exact candidate build.
+1. Run all 78 scenarios against the exact candidate build.
 2. Record the actual detected request rows and classifications.
 3. Investigate every mismatch; do not weaken an expected result merely to make a test pass.
 4. Add a regression case for every confirmed defect.
@@ -135,3 +135,4 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 | BF-L30 | Structured page metadata conflicts with the free-text revision record. | Record a Portfolio revision but set Related item to Contact. | Keep the Portfolio per-page revision balance unknown; require review. |
 | BF-L31 | Pronouns may refer to objects other than the most recently named page. | Create a Careers page, then say “check whether it is ready”, “check that carefully” and “review the work there”. | Do not silently rewrite ambiguous pronouns; resolve only an explicit “link to it” destination. |
 | BF-L32 | One revision record mentions multiple different pages in its title/details. | Record a Portfolio revision whose details also name Contact. | Detect the conflict and leave the affected per-page allowance unknown. |
+| BF-L33 | Broad spelling inclusion conflicts with a page-specific spelling exclusion. | Correct the About-page spelling where the agreement both includes spelling corrections generally and excludes them for About. | Clarify; preserve both clauses and do not choose one automatically. |

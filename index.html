@@ -490,6 +490,10 @@ function extractClaimsAndRequests(q){
     /\b(?:i|we)\s+(?:thought|think)\s+(?:you|we|i)\s+(?:had|have)\s+agreed\b[^.?!]*/ig,
     // Named-deliverable inclusion assertions are claims, not independent requests.
     /\b(?:i|we)\s+(?:thought|think|believed?|understood)\s+(?:that\s+)?(?:the\s+)?[a-z0-9 &'-]+?\s+page\s+(?:was|is|would\s+be)\s+(?:already\s+)?(?:included|covered)\s+(?:in|within)\s+(?:the\s+)?(?:package|scope|agreement|contract|revision)\b[^.?!]*/ig,
+    // General named-item entitlement statements, not limited to page names.
+    // Require an explicit belief verb and included/covered predicate; the claim
+    // remains unlinked unless request-specific evidence identifies its target.
+    /\\b(?:i|we)\\s+(?:thought|think|believed?|understood)\\s+(?:that\\s+)?(?:the\\s+)?[a-z0-9 &'-]+?\\s+(?:was|were|is|are|would\\s+be)\\s+(?:already\\s+)?(?:included|covered)\\b[^.?!]*/ig,
     // Deictic claims such as “I thought that was already included” remain
     // claims even when the client has not identified which deliverable they mean.
     /\b(?:i|we)\s+(?:thought|think|believed?|understood)\s+(?:that\s+)?(?:this|that|it|these|those|they)\s+(?:was|were|is|are|would\s+be)?\s*(?:already\s+)?(?:included|covered)\b[^.?!]*/ig,

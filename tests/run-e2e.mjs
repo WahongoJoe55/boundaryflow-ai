@@ -103,7 +103,11 @@ try{
 
   const scope='The website includes Home, About and Services. New pages require separate approval. Two rounds of revisions per page are included.';
   await setProject('E2E Project Alpha');
-  await addRecord({type:'baseline',title:'Original signed SOW',detail:scope,source:'agreement'});
+  await page.locator('#a').fill(scope);
+  await page.locator('#bfLedgerPrepareBaseline').click();
+  check('Prepare baseline drafts agreement text without saving automatically',await page.locator('#bfLedgerCount').innerText().then(x=>x==='0 records')&&await page.locator('#bfLedgerTitle').inputValue()==='Original agreed scope / baseline'&&await page.locator('#bfLedgerDetail').inputValue()===scope);
+  await page.locator('#bfLedgerAdd').click();
+  check('Prepared baseline is saved only after explicit Add ledger record action',await page.locator('#bfLedgerCount').innerText().then(x=>x==='1 record'));
   await addRecord({type:'amendment',title:'Careers page approval',detail:'The Careers page is approved and included in the agreed project scope.',source:'amendment',status:'approved',related:'Careers page'});
   await addRecord({type:'evidence',title:'Client says Careers was already approved',detail:'The client says the Careers page was agreed during a call.',source:'client_claim'});
   await addRecord({type:'revision',title:'First revision round completed',detail:'First revision round completed for the Portfolio page.',source:'email',status:'delivered',related:'Portfolio page'});
@@ -116,6 +120,11 @@ try{
   check('Client assertion remains excluded from approval evidence',alpha.meta?.unverifiedClaims?.some(x=>x.title==='Client says Careers was already approved')===true&&!alpha.meta?.used?.some(x=>x.title==='Client says Careers was already approved'));
   check('Specific Careers approval remains Conditional pending source verification',careers?.status==='Conditional',JSON.stringify(careers||null));
   check('Portfolio revision usage is matched to the correct page',portfolio?.allowance===2&&portfolio?.completed===1&&portfolio?.remaining===1,JSON.stringify(portfolio||null));
+  const mixedScope='WEBSITE DEVELOPMENT AGREEMENT. The agreed website includes the Home page and About page. The project includes one revision round for the agreed deliverables. Spelling corrections and minor adjustments to existing agreed pages are included, subject to the agreed revision allowance. Any new website page, including a Careers page, is outside the original agreed scope and requires separate written approval before work begins. No additional fees or delivery timelines have been agreed for work outside the original scope.';
+  const mixedMessage='Please create a new Careers page and correct the spelling mistake on the existing About page. Treat both as part of the current project.';
+  const mixed=await analyse(mixedScope,mixedMessage);
+  check('Mixed-scope response includes both distinct follow-up actions',/separate written approval/i.test(mixed.output)&&/confirm the remaining revision allowance/i.test(mixed.output),mixed.output);
+  check('Mixed-scope response does not invent a fee or delivery deadline',!/(?:[$£€]\\s?\\d|KSh\\s?\\d|within\\s+\\d+\\s+days)/i.test(mixed.output),mixed.output);
   check('Analysis visibly explains ledger provenance and unverified claims',/user-recorded/i.test(alpha.output)&&/client assertions/i.test(alpha.output));
   check('Professional-language diagnostics remain internal while the visible decision stays factual',alpha.rows.some(x=>x.hasInternalLanguageAnalysis)&&! /Client Request Context|Related professional terms|Action language|Boundary dimensions in this exchange/i.test(alpha.output)&&! /language-context/i.test(await page.locator('#out').innerHTML()));
   const specificity=await page.evaluate(()=>{

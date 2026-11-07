@@ -82,7 +82,7 @@ try{
     await page.locator('#analyzeBtn').click();
     await page.waitForFunction(()=>Array.isArray(window.rows)&&window.rows.length>0&&document.getElementById('out')?.innerText.length>0);
     return page.evaluate(()=>({
-      rows:(window.rows||[]).map(x=>({request:x.q,status:x.c?.status,type:x.c?.type,hasInternalLanguageAnalysis:!!x.c?.languageAnalysis})),
+      rows:(window.rows||[]).map(x=>({request:x.q,status:x.c?.status,type:x.c?.type,evidence:x.c?.evidence||'',boundary:x.c?.boundary||'',hasInternalLanguageAnalysis:!!x.c?.languageAnalysis})),
       meta:window.bfLedgerAnalysisMeta?{
         projectName:window.bfLedgerAnalysisMeta.projectName,
         totalEntries:window.bfLedgerAnalysisMeta.totalEntries,
@@ -133,8 +133,8 @@ try{
   const careersMixed=mixed.rows.find(x=>/careers page/i.test(x.request||''));
   const spellingMixed=mixed.rows.find(x=>/spelling/i.test(x.request||''));
   check('Mixed client message produces exactly two actionable requests',mixed.rows.length===2,JSON.stringify(mixed.rows));
-  check('New Careers page cites the express written-approval exclusion',careersMixed?.status==='Likely additional'&&/separate written approval/i.test(String((window.rows||[]).find(x=>/careers/i.test(x.q||''))?.c?.evidence||'')),JSON.stringify(careersMixed||null));
-  check('About spelling correction is included subject to the allowance',spellingMixed?.status==='Likely included'&&/subject to the agreed revision allowance/i.test(String((window.rows||[]).find(x=>/spelling/i.test(x.q||''))?.c?.boundary||'')),JSON.stringify(spellingMixed||null));
+  check('New Careers page cites the express written-approval exclusion',careersMixed?.status==='Likely additional'&&/separate written approval/i.test(String(careersMixed?.evidence||'')),JSON.stringify(careersMixed||null));
+  check('About spelling correction is included subject to the allowance',spellingMixed?.status==='Likely included'&&/subject to the agreed revision allowance/i.test(String(spellingMixed?.boundary||'')),JSON.stringify(spellingMixed||null));
   check('Revision safeguard detects one round while leaving usage unknown',await page.evaluate(()=>window.bfReasoningV2?.revisions?.allowance===1&&window.bfReasoningV2?.revisions?.completed===null&&window.bfReasoningV2?.revisions?.remaining===null),JSON.stringify(await page.evaluate(()=>window.bfReasoningV2?.revisions||null)));
   await select('responseStyle','professional');
   const professionalDraft=await page.locator('#out').innerText();
@@ -146,7 +146,7 @@ try{
   const classificationsAfterTone=await page.evaluate(()=>(window.rows||[]).map(x=>({status:x.c?.status,evidence:x.c?.evidence,boundary:x.c?.boundary})));
   check('Professional, Warm and Firm generate distinct client-ready wording',professionalDraft!==warmDraft&&warmDraft!==firmDraft&&professionalDraft!==firmDraft);
   check('Changing response tone does not change classifications or evidence',JSON.stringify(classificationSnapshot)===JSON.stringify(classificationsAfterTone));
-  check('Full-scope response does not invent a fee or delivery deadline',!/(?:[$£€]\\s?\\d|(?:USD|GBP|EUR|KES|KSh)\\s?\\d|within\\s+\\d+\\s+days|by\\s+(?:monday|tuesday|wednesday|thursday|friday))/i.test(professionalDraft));
+  check('Full-scope response does not invent a fee or delivery deadline',!/(?:[$£€]\s?\d|(?:USD|GBP|EUR|KES|KSh)\s?\d|within\s+\d+\s+days|by\s+(?:monday|tuesday|wednesday|thursday|friday))/i.test(professionalDraft));
   const genericSpecificity=await page.evaluate(()=>{
     const request='Please review the current work';
     const base=window.clarificationPlan({status:'Conditional'},request);

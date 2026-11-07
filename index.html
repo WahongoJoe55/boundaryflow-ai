@@ -4036,12 +4036,12 @@ function bfLedgerAnalysisContext(baseScope){
  // If the same wording was also recorded as the ledger baseline, do not append
  // a second copy: duplicate evidence can distort clause matching and diagnostics.
  const baseText=String(baseScope||'');
- const normalizeEvidenceText=value=>String(value||'').replace(/\\s+/g,' ').trim().toLowerCase();
+ const normalizeEvidenceText=value=>String(value||'').replace(/\s+/g,' ').trim().toLowerCase();
  const additions=used.filter(x=>!(x.type==='baseline'&&normalizeEvidenceText(x.detail)===normalizeEvidenceText(baseText))).map(x=>{
   const label=x.type==='baseline'?'User-recorded original scope baseline':'User-recorded approved supplemental scope record';
-  return '['+label+'; source: '+String(x.sourceType||'not established')+'; status: '+String(x.status||'not specified')+'; source date: '+String(x.sourceDate||'not supplied')+'; not independently authenticated]\\n'+String(x.detail||'');
+  return '['+label+'; source: '+String(x.sourceType||'not established')+'; status: '+String(x.status||'not specified')+'; source date: '+String(x.sourceDate||'not supplied')+'; not independently authenticated]\n'+String(x.detail||'');
  });
- const analysisScope=baseText+(additions.length?'\\n\\n[SUPPLEMENTAL PROJECT LEDGER CONTEXT — user-entered records; verify the original document and authority before relying on them. These records do not independently establish signature, identity, authority, chronology or legal effect.]\\n'+additions.join('\\n\\n'):'');
+ const analysisScope=baseText+(additions.length?'\n\n[SUPPLEMENTAL PROJECT LEDGER CONTEXT — user-entered records; verify the original document and authority before relying on them. These records do not independently establish signature, identity, authority, chronology or legal effect.]\n'+additions.join('\n\n'):'');
  return {
   projectName:bfLedgerProjectName(),totalEntries:entries.length,analysisScope,analysisMessage,
   used:used.map(x=>({id:x.id,title:x.title,detail:x.detail,type:x.type,sourceType:x.sourceType,status:x.status,sourceDate:x.sourceDate,related:x.related})),
@@ -4068,7 +4068,7 @@ function bfLedgerRevisionUsage(context,request,agreement){
  const events=(context&&context.revisionEvents||[]).filter(x=>String(x.status||'').toLowerCase()==='delivered');
  const parsed=events.map(x=>{
   const source=String(x.title||'')+' '+String(x.detail||'');
-  const match=source.match(/\\b(?:first|one|second|two|third|three|fourth|four|fifth|five|\\d+)\\s+(?:included\\s+)?revision\\s+round\\b/i);
+  const match=source.match(/\b(?:first|one|second|two|third|three|fourth|four|fifth|five|\d+)\s+(?:included\s+)?revision\s+round\b/i);
   const round=match?bfR2Number(match[0]):null;
   const textPage=pageName(source);
   const relatedPage=pageName(x.related);

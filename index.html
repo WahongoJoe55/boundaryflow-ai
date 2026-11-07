@@ -3610,9 +3610,15 @@ function analyze(){
       if(pageMatch){
         const pageName=(pageMatch[1].toLowerCase()==='homepage'?'Home':pageMatch[1][0].toUpperCase()+pageMatch[1].slice(1).toLowerCase())+' page';
         if(c.status==='Likely included'){
-          c.boundary='Correcting a spelling mistake in the existing '+pageName+' is a minor content correction, which the agreement expressly includes during the included revision.';
-          c.action='Correct the spelling mistake on the '+pageName+' as part of the included revision.';
-          c.response='The spelling correction on the existing '+pageName+' fits within the included content revision. I’ll correct it.';
+          c.boundary=spellingSubjectToAllowance
+            ? 'The agreement expressly includes spelling corrections on existing agreed pages, subject to the agreed revision allowance. The supplied information does not establish how much of that allowance remains.'
+            : 'Correcting a spelling mistake in the existing '+pageName+' is expressly included in the agreed scope.';
+          c.action=spellingSubjectToAllowance
+            ? 'Confirm the project revision history and remaining allowance, then correct the spelling if the allowance permits. Do not assume that the allowance is unused.'
+            : 'Correct the spelling mistake on the '+pageName+' within the agreed scope.';
+          c.response=spellingSubjectToAllowance
+            ? 'The spelling correction on the existing '+pageName+' is covered by the agreement’s included correction provision, subject to confirming the remaining revision allowance. I’ll check that before proceeding.'
+            : 'The spelling correction on the existing '+pageName+' fits within the agreed scope. I’ll correct it.';
         }
       }
     }

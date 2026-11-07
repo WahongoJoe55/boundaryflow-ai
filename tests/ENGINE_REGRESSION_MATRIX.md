@@ -149,3 +149,5 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 
 | BF-R74 | General non-page entitlement claim is extracted separately. | Request a newsletter signup form, then state that the form was already included in the package. | Keep the form as the actionable request and extract the inclusion assertion as a separate client claim. |
 | BF-R75 | Already-used revision wording is counted explicitly. | Two revision rounds are included. The first revision round has already been used; correct the About-page spelling in the second round. | Count one completed round, identify the current second round and report one possible round remaining. |
+
+| BF-R76 | A spelling correction in round two exceeds a one-round allowance. | One revision round is included; the first has been used; spelling correction requested in round two. | Classify as Likely additional, while preserving the explicit revision count. |

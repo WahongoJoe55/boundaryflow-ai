@@ -3405,6 +3405,10 @@ function analyze(){
     const requestRevisionText=String(item.original||item.resolved||'');
     const revisionAlreadyUsed=(revisionUsage.allowance!==null&&revisionUsage.completed!==null&&revisionUsage.completed>=revisionUsage.allowance) || /\b(?:already\s+used|used\s+our|completed\s+the\s+first|finished\s+the\s+first)\b[^.!?]{0,100}\b(?:included\s+)?revision\b/i.test(requestRevisionText) || /\b(?:first|one)\s+revision\s+(?:has\s+been\s+)?(?:used|completed)\b/i.test(requestRevisionText);
     const c=classify(item.resolved,a,Object.assign({},item,{originalMessage:r}));
+    // Regression v76: apply an explicit unused revision allowance to minor edits
+    // of existing-page content, even when the agreement uses different wording
+    // from older spelling-correction fixtures. Exclusions/new functionality win.
+    const requestTextForRevision=String(item.resolved||item.original||'').trim();
     // Explicit spelling-correction clause: treat a correction to an existing
     // agreed page as Likely included, but preserve uncertainty about whether
     // the contractual revision allowance has already been consumed.
@@ -3431,10 +3435,6 @@ function analyze(){
         : 'The spelling correction is covered by the agreed scope. I’ll make that correction on the existing page.';
       c.why='The agreement expressly includes spelling corrections on existing agreed pages. The only unresolved point is the remaining revision allowance, not whether this type of correction is generally included.';
     }
-    // Regression v76: apply an explicit unused revision allowance to minor edits
-    // of existing-page content, even when the agreement uses different wording
-    // from older spelling-correction fixtures. Exclusions/new functionality win.
-    const requestTextForRevision=String(item.resolved||item.original||'').trim();
     const existingPageEdit=/\b(?:change|update|edit|revise|rewrite|correct|fix|replace)\b[\s\S]{0,140}\b(?:existing\s+)?(?:home(?:page)?|about|services|contact|blog)\s+page\b/i.test(requestTextForRevision)
       || /\b(?:change|update|edit|revise|rewrite|correct|fix|replace)\b[\s\S]{0,100}\b(?:existing\s+)?(?:heading|paragraph|text|wording|spelling|copy)\b/i.test(requestTextForRevision);
     const hasIncludedRevision=/\b(?:one|1)\s+revision\s+round\s+is\s+included\b/i.test(a)

@@ -126,6 +126,27 @@ try{
   check('Careers-page clarification names the page in every user-facing clarification field',(()=>{const x=specificity[0];return [x.title,x.needed,x.question,x.why].every(v=>String(v||'').toLowerCase().includes('careers page'))})(),JSON.stringify(specificity[0]));
   check('Portfolio-page clarification names the page in every user-facing clarification field',(()=>{const x=specificity[1];return [x.title,x.needed,x.question,x.why].every(v=>String(v||'').toLowerCase().includes('portfolio page'))})(),JSON.stringify(specificity[1]));
   check('Contact-form clarification names the form in every user-facing clarification field',(()=>{const x=specificity[2];return [x.title,x.needed,x.question,x.why].every(v=>String(v||'').toLowerCase().includes('contact form'))})(),JSON.stringify(specificity[2]));
+  const mixedScope='WEBSITE DEVELOPMENT AGREEMENT. The agreed website includes the Home page and About page. The project includes one revision round for the agreed deliverables. Spelling corrections and minor adjustments to existing agreed pages are included, subject to the agreed revision allowance. Any new website page, including a Careers page, is outside the original agreed scope and requires separate written approval before work begins. No additional fees or delivery timelines have been agreed for work outside the original scope.';
+  const mixedMessage='Hi,\\n\\nI have reviewed the website and would like you to make two changes.\\n\\nFirst, please create a new Careers page where potential employees can learn about available opportunities and submit their applications.\\n\\nSecond, I noticed a spelling mistake on the existing About page. Please correct it.\\n\\nI would appreciate it if you could handle both changes as part of the current project.\\n\\nThanks.';
+  await setProject('E2E Mixed Message Acceptance');
+  const mixed=await analyse(mixedScope,mixedMessage);
+  const careersMixed=mixed.rows.find(x=>/careers page/i.test(x.request||''));
+  const spellingMixed=mixed.rows.find(x=>/spelling/i.test(x.request||''));
+  check('Mixed client message produces exactly two actionable requests',mixed.rows.length===2,JSON.stringify(mixed.rows));
+  check('New Careers page cites the express written-approval exclusion',careersMixed?.status==='Likely additional'&&/separate written approval/i.test(String((window.rows||[]).find(x=>/careers/i.test(x.q||''))?.c?.evidence||'')),JSON.stringify(careersMixed||null));
+  check('About spelling correction is included subject to the allowance',spellingMixed?.status==='Likely included'&&/subject to the agreed revision allowance/i.test(String((window.rows||[]).find(x=>/spelling/i.test(x.q||''))?.c?.boundary||'')),JSON.stringify(spellingMixed||null));
+  check('Revision safeguard detects one round while leaving usage unknown',await page.evaluate(()=>window.bfReasoningV2?.revisions?.allowance===1&&window.bfReasoningV2?.revisions?.completed===null&&window.bfReasoningV2?.revisions?.remaining===null),JSON.stringify(await page.evaluate(()=>window.bfReasoningV2?.revisions||null)));
+  await select('responseStyle','professional');
+  const professionalDraft=await page.locator('#out').innerText();
+  const classificationSnapshot=await page.evaluate(()=>(window.rows||[]).map(x=>({status:x.c?.status,evidence:x.c?.evidence,boundary:x.c?.boundary})));
+  await select('responseStyle','warm');
+  const warmDraft=await page.locator('#out').innerText();
+  await select('responseStyle','firm');
+  const firmDraft=await page.locator('#out').innerText();
+  const classificationsAfterTone=await page.evaluate(()=>(window.rows||[]).map(x=>({status:x.c?.status,evidence:x.c?.evidence,boundary:x.c?.boundary})));
+  check('Professional, Warm and Firm generate distinct client-ready wording',professionalDraft!==warmDraft&&warmDraft!==firmDraft&&professionalDraft!==firmDraft);
+  check('Changing response tone does not change classifications or evidence',JSON.stringify(classificationSnapshot)===JSON.stringify(classificationsAfterTone));
+  check('Full-scope response does not invent a fee or delivery deadline',!/(?:[$£€]\\s?\\d|(?:USD|GBP|EUR|KES|KSh)\\s?\\d|within\\s+\\d+\\s+days|by\\s+(?:monday|tuesday|wednesday|thursday|friday))/i.test(professionalDraft));
   const genericSpecificity=await page.evaluate(()=>{
     const request='Please review the current work';
     const base=window.clarificationPlan({status:'Conditional'},request);

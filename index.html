@@ -1290,12 +1290,14 @@ function classify(q,a,context){
     !/\b(?:section|content|block|area)\s+to\s+(?:the\s+)?(?:home|homepage|about|services|contact|blog)\s+page\b/i.test(raw) &&
     !/\b(?:link|point|direct|send|refer|take|navigate|open)\b[\s\S]*\b(?:to|toward|towards|from)\b/i.test(raw);
   if(c17ExplicitNewPageCreation && hasAny(A,['new pages require separate approval','new pages','new page','pages require separate approval'])){
+    const c17PageMatch=raw.match(/\b(?:create|build|prepare|publish|develop|add)\s+(?:(?:a|an|the)\s+)?(?:new\s+)?([a-z][a-z0-9 &-]*?)\s+page\b/i);
+    const c17PageName=c17PageMatch?c17PageMatch[1].trim().replace(/\b\w/g,x=>x.toUpperCase())+' page':'requested new page';
     return {
       type:'Change request / new page', status:'Likely additional', confidence:'High', risk:'High',
       evidence:scopeEvidence(A,['new pages require separate approval','new pages','new page','pages require separate approval']),
-      action:'Treat the requested new page as a separate scope item and confirm approval, fee and timeline before implementation.',
-      boundary:'The agreement explicitly requires separate approval for new pages. A link to that page is a separate existing-page action and does not make page creation included.',
-      response:'Creating the new Pricing page requires separate approval under the agreed scope. We can confirm approval, any fee and timeline adjustment first; the Services-page link can be implemented once the page is approved and created.',
+      action:'Treat the '+c17PageName+' as a separate scope item and confirm written approval, fee and any timeline adjustment before implementation.',
+      boundary:'The agreement explicitly requires separate approval for new pages. Creating the '+c17PageName+' is distinct from any included link or content change on an existing page.',
+      response:'Creating the '+c17PageName+' requires separate approval under the agreed scope. We can confirm approval, any fee and timeline adjustment before implementation.',
       claims:[], request:raw
     };
   }
@@ -3868,12 +3870,24 @@ function buildFullResponse(rows){
     return '<div class="scope-response"><h3>Full-scope client response</h3><div class="note">Generated from BoundaryFlow’s decisions. Choose a communication style without changing the underlying scope analysis.</div><div class="response">'+esc(lines.join(' '))+'</div><div class="copybar"><button class="btn accent" data-copy-all="1">Copy full response</button><button class="btn secondary" data-save="1">Save analysis</button></div></div>';
   }
   if(mixedActionable){
-    if(included.length){ lines.push('The included change fits within the current revision scope: '+joinRequests(included)+'.'); }
-    lines.push('The new Pricing page is outside the agreed scope and would need separate approval before implementation.');
-    const cq=clarificationPlan(conditional[0].c,conditional[0].q);
-    if(cq && cq.question) lines.push('For the Contact form submit button, could you clarify: '+cq.question);
-    lines.push('I understand you expected these changes to be covered by the current revision. The scope check shows that the included change is within scope, while the additional change needs separate approval and the Contact form change needs clarification.');
-    lines.push('If you’d like to proceed with the Pricing page, we can confirm the approval, agreed fee and any timeline adjustment before implementation.');
+    const includedItems=joinRequests(included);
+    const additionalItems=joinRequests(additional);
+    if(includedItems) lines.push('The following request(s) appear to fit the agreed scope: '+includedItems+'.');
+    if(additionalItems){
+      lines.push(style==='warm'
+        ? 'The following item(s) would be additions to the agreed scope and can be agreed separately before work begins: '+additionalItems+'.'
+        : style==='firm'
+          ? 'The following item(s) are outside the agreed scope. I will not begin them until separate written approval is in place: '+additionalItems+'.'
+          : 'The following item(s) fall outside the agreed scope and require separate written approval before implementation: '+additionalItems+'.');
+    }
+    const conditionalQuestions=conditional.map(x=>{
+      const plan=clarificationPlan(x.c,x.q);
+      return plan&&plan.question?plan.question:String(x.q||'Please clarify this request before implementation.');
+    }).filter(Boolean);
+    if(conditionalQuestions.length) lines.push('Before proceeding with the following item(s), please clarify: '+conditionalQuestions.join(' '));
+    if(claims.length) lines.push('I have noted your scope-related statement separately. I will compare it with the relevant agreement wording and any actual approval record before changing the scope decision.');
+    if(additionalItems) lines.push('Before any additional work begins, we can document the written approval, agreed fee and any timeline adjustment.');
+    if(conditionalQuestions.length) lines.push('Once the requested details are confirmed, I’ll reassess the affected item(s) against the agreed terms.');
     return '<div class="scope-response"><h3>Full-scope client response</h3><div class="note">Generated from BoundaryFlow’s decisions. Choose a communication style without changing the underlying scope analysis.</div><div class="response">'+esc(lines.join(' '))+'</div><div class="copybar"><button class="btn accent" data-copy-all="1">Copy full response</button><button class="btn secondary" data-save="1">Save analysis</button></div></div>';
   }
   if(included.length){

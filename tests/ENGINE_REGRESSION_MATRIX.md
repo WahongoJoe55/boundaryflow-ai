@@ -154,3 +154,6 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 
 | BF-C01 | Customer-portal contradiction outside original topic list. | Customer portal included in one clause and excluded in another. | Detect the same-topic conflict and require review of chronology and authority. |
 | BF-C02 | Analytics/reporting contradiction outside original topic list. | Reporting dashboards included in one clause and excluded in another. | Detect the same-topic conflict without choosing a governing term. |
+
+| BF-E01 | Exact evidence relevance for a newsletter signup request. | Separate page inventory, new-functionality exclusion and hosting clauses. | Quote only the matched new-functionality clause as boundary evidence. |
+| BF-E02 | Exact evidence relevance for a new-page request. | Included minor edits, new-page approval requirement and hosting clauses. | Quote the new-page approval clause, not unrelated clauses. |

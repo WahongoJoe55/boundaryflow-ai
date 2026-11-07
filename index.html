@@ -3421,7 +3421,28 @@ function analyze(){
     const explicitSpellingAllowance=/\bspelling\s+corrections?\b[\s\S]{0,180}\b(?:included|covered)\b/i.test(a)
       || /\b(?:included|covered)\b[\s\S]{0,180}\bspelling\s+corrections?\b/i.test(a);
     const spellingSubjectToAllowance=/\bspelling\s+corrections?\b[\s\S]{0,180}\bsubject\s+to\b/i.test(a);
-    if(spellingCorrection && existingAgreedPage && explicitSpellingAllowance){
+    const spellingTargetPage=(requestTextForRevision.match(/\b(?:existing\s+)?(home(?:page)?|about|services|contact|blog)\s+page\b/i)||[])[1]||'';
+    const spellingClauses=bfR2Clauses(a);
+    const spellingSpecificExclusion=spellingClauses.find(clause=>
+      /\bspelling\s+corrections?\b/i.test(clause)&&/\b(?:excluded|not included|not covered|outside (?:the )?scope|requires? separate approval)\b/i.test(clause)
+    );
+    const pageSpecificExclusion=spellingTargetPage?spellingClauses.find(clause=>
+      new RegExp('\\b'+spellingTargetPage+'\\s+page\\b','i').test(clause)&&
+      /\b(?:edits?|corrections?|changes?)\b/i.test(clause)&&
+      /\b(?:excluded|not included|not covered|outside (?:the )?scope|requires? separate approval)\b/i.test(clause)
+    ):null;
+    const spellingAllowanceConflict=!!(spellingSpecificExclusion||pageSpecificExclusion);
+    if(spellingCorrection && existingAgreedPage && explicitSpellingAllowance && spellingAllowanceConflict){
+      const conflictingClause=spellingSpecificExclusion||pageSpecificExclusion;
+      c.type='Conflicting spelling-correction scope wording';
+      c.status='Clarify'; c.confidence='Medium'; c.risk='High';
+      c.evidence='The supplied agreement contains an inclusion signal for spelling corrections and a potentially opposing exclusion: “'+conflictingClause+'”. BoundaryFlow cannot decide which wording governs.';
+      c.detected=c.type; c.actual=requestTextForRevision; c.request=requestTextForRevision;
+      c.boundary='The agreement appears to include this type of correction but also contains an exclusion affecting spelling corrections or the named page. The relationship, chronology and authority of those terms must be checked before proceeding.';
+      c.action='Compare the exact clauses in the original agreement and any valid amendment. Confirm whether the exclusion applies to this page and correction before deciding whether the work is included.';
+      c.response='I found wording that appears to include spelling corrections, alongside another clause that may exclude this correction or the affected page. Could we check the original agreement and any later amendment together before I confirm the scope?';
+      c.why='Opposing scope wording is present. The engine must preserve the conflict rather than selecting the favourable clause automatically.';
+    }else if(spellingCorrection && existingAgreedPage && explicitSpellingAllowance){
       c.type='Spelling correction to existing agreed page';
       c.status='Likely included'; c.confidence='High';
       c.risk=spellingSubjectToAllowance?'Medium':'Low';

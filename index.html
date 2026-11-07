@@ -261,7 +261,7 @@ body.dark.bf-authenticated #bfCloudCard #bfCloudStatus.pending{background:#48272
       <label>Source date (optional)<input id="bfLedgerSourceDate" type="date"></label>
     </div>
     <label>Related request / item (optional)<input id="bfLedgerRelated" maxlength="180" placeholder="e.g. New Careers page"></label>
-    <div class="bf-ledger-actions"><button class="btn accent" id="bfLedgerAdd" type="button">Add ledger record</button><button class="btn secondary" id="bfLedgerExport" type="button">Export ledger</button></div>
+    <div class="bf-ledger-actions"><button class="btn secondary" id="bfLedgerPrepareBaseline" type="button">Prepare baseline from agreement</button><button class="btn accent" id="bfLedgerAdd" type="button">Add ledger record</button><button class="btn secondary" id="bfLedgerExport" type="button">Export ledger</button></div>
     <div id="bfLedgerStatus" class="note" role="status" aria-live="polite">Choose a project name above to open its ledger.</div>
   </div>
   <div class="bf-ledger-list-head"><b>Project timeline</b><span id="bfLedgerCount" class="note">0 records</span></div>
@@ -3955,6 +3955,10 @@ function buildFullResponse(rows){
       lines.push('The Services-page link is within the minor-link allowance, but it can be implemented only after the separately scoped Pricing page is approved and created.');
     }
   }
+  const includedSpellingNeedsAllowanceCheck=included.some(x=>/spelling correction to existing agreed page/i.test(String(x.c&&x.c.type||''))&&/subject to the agreed revision allowance/i.test(String(x.c&&x.c.boundary||'')));
+  if(includedSpellingNeedsAllowanceCheck){
+    lines.push(style==='warm'?'I’ll check how much of the included revision allowance remains before making the spelling correction.':style==='firm'?'I’ll verify the remaining revision allowance before proceeding with the spelling correction.':'I’ll confirm the remaining revision allowance before making the spelling correction.');
+  }
   if(additional.length){
     lines.push(style==='warm'
       ? 'If that works for you, I can put together the change proposal so we can agree the approval, fee and any timeline adjustment together.'
@@ -4091,6 +4095,24 @@ function bfLedgerRender(){
  const sources={agreement:'Agreement / SOW',amendment:'Amendment / change order',email:'Email / written message',meeting:'Meeting notes / call record',client_claim:'Client assertion — not approval proof',internal_note:'Freelancer internal note',other:'Other / not established'};
  list.innerHTML=items.slice().reverse().map(x=>'<article class="bf-ledger-entry"><div class="bf-ledger-entry-top"><div><div class="bf-ledger-kind">'+bfLedgerEscape(names[x.type]||'Record')+'</div><div class="bf-ledger-entry-title">'+bfLedgerEscape(x.title)+'</div></div><span class="bf-ledger-meta">'+bfLedgerEscape(new Date(x.recordedAt).toLocaleString())+'</span></div><p>'+bfLedgerEscape(x.detail)+'</p><div class="bf-ledger-meta">Status: '+bfLedgerEscape(statuses[x.status]||'Status not specified')+' · Source: '+bfLedgerEscape(sources[x.sourceType]||'Not established')+(x.sourceDate?' · Source date: '+bfLedgerEscape(x.sourceDate):'')+(x.related?' · Related item: '+bfLedgerEscape(x.related):'')+'</div>'+(x.sourceType==='client_claim'?'<div class="bf-ledger-warning">Assertion recorded only. This entry does not establish approval.</div>':'')+'</article>').join('');
 }
+function bfLedgerPrepareBaseline(){
+ const status=document.getElementById('bfLedgerStatus');
+ const agreement=String(document.getElementById('a')?.value||'').trim();
+ if(!bfLedgerProjectName()){if(status)status.textContent='Enter a project name before preparing the original scope record.';return false}
+ if(!agreement){if(status)status.textContent='Paste the agreed scope into the analysis field first. No ledger record has been created.';return false}
+ const duplicate=bfLedgerRead().some(item=>item.type==='baseline'&&String(item.detail||'').trim()===agreement);
+ if(duplicate){if(status)status.textContent='This exact agreement text is already recorded as a baseline for this project. No duplicate draft was created.';return false}
+ document.getElementById('bfLedgerType').value='baseline';
+ document.getElementById('bfLedgerTitle').value='Original agreed scope / baseline';
+ document.getElementById('bfLedgerDetail').value=agreement;
+ document.getElementById('bfLedgerSource').value='agreement';
+ document.getElementById('bfLedgerStatusValue').value='not_specified';
+ document.getElementById('bfLedgerSourceDate').value='';
+ document.getElementById('bfLedgerRelated').value='';
+ if(status)status.textContent='Draft prepared from the agreement text above. Review it against the original document, then choose “Add ledger record” to save it. Nothing has been saved yet.';
+ document.getElementById('bfLedgerTitle')?.focus();
+ return true;
+}
 function bfLedgerSubmit(){
  const status=document.getElementById('bfLedgerStatus');
  try{
@@ -4142,7 +4164,7 @@ function saveDraftFields(){try{localStorage.setItem(bfScopedKey('boundaryflow_dr
     var a=document.getElementById('analyzeBtn'); if(a) a.addEventListener('click',function(){try{analyze();}catch(e){showErr(e);}});
     var c=document.getElementById('clearBtn'); if(c) c.addEventListener('click',function(){try{clearAll();}catch(e){showErr(e);}});
     var hb=document.getElementById('historyBtn'); if(hb) hb.addEventListener('click',openHistory);
-    var ledgerAdd=document.getElementById('bfLedgerAdd');if(ledgerAdd)ledgerAdd.addEventListener('click',bfLedgerSubmit);var ledgerExport=document.getElementById('bfLedgerExport');if(ledgerExport)ledgerExport.addEventListener('click',bfLedgerExport);var ledgerProject=document.getElementById('projectName');if(ledgerProject){ledgerProject.addEventListener('input',bfLedgerRender);ledgerProject.addEventListener('change',bfLedgerRender);}if(document.getElementById('bfLedgerCard'))bfLedgerRender();
+    var ledgerPrepare=document.getElementById('bfLedgerPrepareBaseline');if(ledgerPrepare)ledgerPrepare.addEventListener('click',bfLedgerPrepareBaseline);var ledgerAdd=document.getElementById('bfLedgerAdd');if(ledgerAdd)ledgerAdd.addEventListener('click',bfLedgerSubmit);var ledgerExport=document.getElementById('bfLedgerExport');if(ledgerExport)ledgerExport.addEventListener('click',bfLedgerExport);var ledgerProject=document.getElementById('projectName');if(ledgerProject){ledgerProject.addEventListener('input',bfLedgerRender);ledgerProject.addEventListener('change',bfLedgerRender);}if(document.getElementById('bfLedgerCard'))bfLedgerRender();
     var gb=document.getElementById('guideBtn'), gd=document.getElementById('userGuide'), gc=document.getElementById('closeGuide'); if(gb&&gd)gb.addEventListener('click',function(){gd.classList.add('open');gd.setAttribute('aria-hidden','false');}); if(gc&&gd)gc.addEventListener('click',function(){gd.classList.remove('open');gd.setAttribute('aria-hidden','true');}); if(gd)gd.addEventListener('click',function(e){if(e.target===gd){gd.classList.remove('open');gd.setAttribute('aria-hidden','true');}}); document.addEventListener('keydown',function(e){if(e.key==='Escape'&&gd){gd.classList.remove('open');gd.setAttribute('aria-hidden','true');}});
     var ts=document.getElementById('taskStatus'); if(ts) ts.addEventListener('change',function(){ document.getElementById('status').textContent='Task status updated to '+(this.options[this.selectedIndex].text)+'. Save the analysis to preserve this status in History.'; });
     var ch=document.getElementById('closeHistory'); if(ch) ch.addEventListener('click',closeHistory);

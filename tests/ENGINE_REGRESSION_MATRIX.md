@@ -157,3 +157,5 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 
 | BF-E01 | Exact evidence relevance for a newsletter signup request. | Separate page inventory, new-functionality exclusion and hosting clauses. | Quote only the matched new-functionality clause as boundary evidence. |
 | BF-E02 | Exact evidence relevance for a new-page request. | Included minor edits, new-page approval requirement and hosting clauses. | Quote the new-page approval clause, not unrelated clauses. |
+
+| BF-E03 | Client assertion names a deliverable but supplies no approval record. | New pages require written approval; client says it was agreed on a call. | Keep the written-approval boundary; label the call statement as an unverified assertion, not approval evidence. |

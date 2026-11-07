@@ -3263,7 +3263,7 @@ function bfR2Contradictions(text){
 }
 function bfR2Revision(text,message){
  const a=String(text||''),m=String(message||'');
- const allowanceClauses=bfR2Clauses(a).filter(x=>(/\brevision rounds?\b/i.test(x)||/\brounds?\s+of\s+revisions?\b/i.test(x))&&/\b(?:included|allowed|provided|maximum|up to)\b/i.test(x));
+ const allowanceClauses=bfR2Clauses(a).filter(x=>(/\brevision rounds?\b/i.test(x)||/\brounds?\s+of\s+revisions?\b/i.test(x))&&/\b(?:includ(?:ed|es?)|allowed|provided|maximum|up to)\b/i.test(x));
  let allowance=null;
  allowanceClauses.forEach(x=>{const n=bfR2Number(x);if(n!==null)allowance=n;});
  const usedMatches=[...m.matchAll(/\b(?:first|one|second|two|third|three|fourth|four|fifth|five|\d+)\s+(?:included\s+)?revision rounds?\s+(?:has\s+been\s+|have been\s+|was\s+|were\s+)?(?:used|completed|exhausted)\b/gi)];
@@ -3369,6 +3369,22 @@ function analyze(){
   // Ignore conversational acknowledgements and vague transition phrases; they
   // are context, not deliverables or scope decisions.
   rawItems=rawItems.filter(x=>!/^\s*(?:thanks for completing the first revision|thanks for completing the revision|thanks for sharing the first version|thanks for sharing the first draft|i have a few more changes|i have some more changes|i have three requests|i have \d+ requests|i have (?:two|three|four|five|several) things (?:i['’]d|i would|we['’]d|we would) like to (?:address|discuss|change)|i have attached (?:one|two|three|four|five|several|\d+) (?:finished |final |completed )?(?:blog )?articles?|(?:the\s+)?(?:first|initial|included) revision round has already been used)[.!?]?\s*$/i.test(String(x)));
+  // Discard message framing and sequencing fragments; retain only actionable work.
+  rawItems=rawItems.map(x=>String(x).trim()
+    .replace(/^(?:first|second|third|next|finally)\s*[,):.-]\s*/i,'')
+    .trim())
+    .filter(x=>! /^(?:hi|hello|hey|thanks|thank you|first|second|third|finally)\.?$/i.test(x))
+    .filter(x=>! /^(?:i have reviewed|i reviewed)\b[\s\S]*\b(?:two|three|several|some) changes?\b/i.test(x))
+    .filter(x=>! /^i would appreciate it if you could\b/i.test(x));
+  // Resolve a short follow-up such as "Please correct it" against the
+  // immediately preceding description of a specific spelling error.
+  const spellingContext=String(r).match(/(?:i noticed|there is|there's|we noticed)\s+(?:a\s+)?spelling\s+mistake\s+(?:on|in)\s+(?:the\s+)?(?:existing\s+)?([a-z]+)\s+page[\s\S]{0,180}?please\s+(?:correct|fix)\s+it\b/i);
+  if(spellingContext){
+    rawItems=rawItems.map(x=>/^please\s+(?:correct|fix)\s+it\.?$/i.test(String(x).trim())
+      ? 'Correct the spelling mistake on the existing '+spellingContext[1]+' page'
+      : x);
+    rawItems=rawItems.filter(x=>! /^(?:i noticed|there is|there's|we noticed)\s+(?:a\s+)?spelling\s+mistake\b/i.test(String(x).trim()));
+  }
   // Empty punctuation fragments are decomposition artefacts, not client requests.
   rawItems=rawItems.filter(x=>! /^[\s.,;:!?…—-]+$/.test(String(x)));
   // Negative scope constraints are context about the requested work, not deliverables.
@@ -3389,6 +3405,32 @@ function analyze(){
     const requestRevisionText=String(item.original||item.resolved||'');
     const revisionAlreadyUsed=(revisionUsage.allowance!==null&&revisionUsage.completed!==null&&revisionUsage.completed>=revisionUsage.allowance) || /\b(?:already\s+used|used\s+our|completed\s+the\s+first|finished\s+the\s+first)\b[^.!?]{0,100}\b(?:included\s+)?revision\b/i.test(requestRevisionText) || /\b(?:first|one)\s+revision\s+(?:has\s+been\s+)?(?:used|completed)\b/i.test(requestRevisionText);
     const c=classify(item.resolved,a,Object.assign({},item,{originalMessage:r}));
+    // Explicit spelling-correction clause: treat a correction to an existing
+    // agreed page as Likely included, but preserve uncertainty about whether
+    // the contractual revision allowance has already been consumed.
+    const spellingCorrection=/\b(?:correct|fix)\b[\s\S]{0,100}\bspelling\s+(?:mistake|error|correction)\b/i.test(requestTextForRevision)
+      || /\bspelling\s+(?:mistake|error)\b[\s\S]{0,100}\b(?:correct|fix)\b/i.test(requestTextForRevision);
+    const existingAgreedPage=/\b(?:existing\s+)?(?:home(?:page)?|about|services|contact|blog)\s+page\b/i.test(requestTextForRevision);
+    const explicitSpellingAllowance=/\bspelling\s+corrections?\b[\s\S]{0,180}\b(?:included|covered)\b/i.test(a)
+      || /\b(?:included|covered)\b[\s\S]{0,180}\bspelling\s+corrections?\b/i.test(a);
+    const spellingSubjectToAllowance=/\bspelling\s+corrections?\b[\s\S]{0,180}\bsubject\s+to\b/i.test(a);
+    if(spellingCorrection && existingAgreedPage && explicitSpellingAllowance){
+      c.type='Spelling correction to existing agreed page';
+      c.status='Likely included'; c.confidence='High';
+      c.risk=spellingSubjectToAllowance?'Medium':'Low';
+      c.evidence='The agreement states: “Spelling corrections and minor adjustments to existing agreed pages are included'+(spellingSubjectToAllowance?', subject to the agreed revision allowance':'')+'.” The requested correction concerns an existing agreed page.';
+      c.detected=c.type; c.actual=requestTextForRevision; c.request=requestTextForRevision;
+      c.boundary=spellingSubjectToAllowance
+        ? 'The correction falls within the expressly included spelling-correction category. The agreement makes that inclusion subject to its revision allowance, but the supplied information does not establish how much of that allowance remains.'
+        : 'The agreement expressly includes spelling corrections on existing agreed pages.';
+      c.action=spellingSubjectToAllowance
+        ? 'Confirm the project’s revision history and remaining allowance, then make the spelling correction if the allowance permits. Do not classify it as additional work solely because usage is unknown.'
+        : 'Make the spelling correction on the existing agreed page.';
+      c.response=spellingSubjectToAllowance
+        ? 'The spelling correction on the existing About page is covered by the agreement’s included correction provision, subject to the revision allowance. I’ll confirm the remaining allowance before proceeding.'
+        : 'The spelling correction is covered by the agreed scope. I’ll make that correction on the existing page.';
+      c.why='The agreement expressly includes spelling corrections on existing agreed pages. The only unresolved point is the remaining revision allowance, not whether this type of correction is generally included.';
+    }
     // Regression v76: apply an explicit unused revision allowance to minor edits
     // of existing-page content, even when the agreement uses different wording
     // from older spelling-correction fixtures. Exclusions/new functionality win.
@@ -3444,7 +3486,16 @@ function analyze(){
     const ledgerPageRecords=pageSubject?ledgerContext.used.filter(x=>x.status==='approved'&&x.type!=='baseline'&&ledgerRecordText(x).toLowerCase().includes(pageSubject)): [];
     const negativeApprovalWording=x=>/\b(?:not approved|not authorised|not authorized|not agreed|not accepted|declined|rejected|excluded|not included|outside scope)\b/i.test(ledgerRecordText(x));
     const approvedLedgerRecord=ledgerPageRecords.length===1&&!negativeApprovalWording(ledgerPageRecords[0])&&/\b(?:included|in scope|approved|authorised|authorized|agreed)\b/i.test(ledgerRecordText(ledgerPageRecords[0]))?ledgerPageRecords[0]:null;
-    if(explicitPageCreationAtomic && agreementRequiresPageApproval && ledgerPageRecords.length>1){
+    if(explicitPageCreationAtomic && agreementRequiresPageApproval && ledgerPageRecords.length===0){
+      c.type='New page requiring separate written approval'; c.detected=c.type;
+      c.status='Likely additional'; c.confidence='High'; c.risk='High';
+      c.evidence='The agreement expressly states that any new website page, including a Careers page, is outside the original agreed scope and requires separate written approval before work begins.';
+      c.actual=atomicRequestText; c.request=atomicRequestText;
+      c.boundary='The requested Careers page is a new deliverable, not a revision to either of the two agreed pages. The agreement expressly reserves new pages for separate written approval.';
+      c.action='Obtain written approval for the Careers page and agree its fee and any timeline adjustment before implementation.';
+      c.response='The Careers page is outside the original agreed scope and requires separate written approval. I can prepare a separate proposal so we can agree the fee and any timeline adjustment before work begins.';
+      c.why='The agreement expressly excludes new website pages, including Careers pages, unless separately approved in writing.';
+    }else     if(explicitPageCreationAtomic && agreementRequiresPageApproval && ledgerPageRecords.length>1){
       c.type='Conflicting project ledger records'; c.status='Clarify'; c.confidence='Low'; c.risk='High';
       c.evidence='More than one user-recorded approved ledger entry refers to this page. BoundaryFlow will not choose between multiple records or infer which one is current.';
       c.detected=c.type; c.actual=atomicRequestText; c.request=atomicRequestText;

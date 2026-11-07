@@ -4018,7 +4018,10 @@ function bfLedgerRead(){const key=bfLedgerKey();if(!key||!window.__bfUserId)retu
 function bfLedgerAnalysisContext(baseScope){
  const entries=bfLedgerRead();
  const active=entries.filter(x=>!['superseded','declined'].includes(String(x.status||'').toLowerCase()));
- const baseline=active.filter(x=>x.type==='baseline'&&x.sourceType==='agreement');
+ // A baseline is usable only when it is a supplied agreement record whose
+ // status is explicitly approved or deliberately left unspecified.
+ // Proposed / awaiting-approval baselines must never become scope facts.
+ const baseline=active.filter(x=>x.type==='baseline'&&x.sourceType==='agreement'&&['not_specified','approved'].includes(String(x.status||'not_specified').toLowerCase()));
  const approved=active.filter(x=>['amendment','approval','client_decision'].includes(x.type)&&x.status==='approved'&&['agreement','amendment','email'].includes(x.sourceType)&&x.sourceType!=='client_claim');
  const used=[...baseline,...approved];
  const revisions=active.filter(x=>x.type==='revision');
@@ -4029,11 +4032,16 @@ function bfLedgerAnalysisContext(baseScope){
  }).filter(x=>Number.isFinite(x)&&x>0);
  const revisionNotes=revisions.filter(x=>x.status==='delivered').map(x=>'User-recorded completed revision event: '+String(x.title||'')+'. '+String(x.detail||''));
  const analysisMessage=String(window.document.getElementById('r')?.value||'').trim()+(revisionNotes.length?'\n\n[PROJECT LEDGER REVISION HISTORY — user-recorded, not independently authenticated]\n'+revisionNotes.join('\n'):'');
- const additions=used.map(x=>{
+ // The agreement already pasted into the analysis field is the primary input.
+ // If the same wording was also recorded as the ledger baseline, do not append
+ // a second copy: duplicate evidence can distort clause matching and diagnostics.
+ const baseText=String(baseScope||'');
+ const normalizeEvidenceText=value=>String(value||'').replace(/\\s+/g,' ').trim().toLowerCase();
+ const additions=used.filter(x=>!(x.type==='baseline'&&normalizeEvidenceText(x.detail)===normalizeEvidenceText(baseText))).map(x=>{
   const label=x.type==='baseline'?'User-recorded original scope baseline':'User-recorded approved supplemental scope record';
-  return '['+label+'; source: '+String(x.sourceType||'not established')+'; status: '+String(x.status||'not specified')+'; source date: '+String(x.sourceDate||'not supplied')+'; not independently authenticated]\n'+String(x.detail||'');
+  return '['+label+'; source: '+String(x.sourceType||'not established')+'; status: '+String(x.status||'not specified')+'; source date: '+String(x.sourceDate||'not supplied')+'; not independently authenticated]\\n'+String(x.detail||'');
  });
- const analysisScope=String(baseScope||'')+(additions.length?'\n\n[SUPPLEMENTAL PROJECT LEDGER CONTEXT — user-entered records; verify the original document and authority before relying on them. These records do not independently establish signature, identity, authority, chronology or legal effect.]\n'+additions.join('\n\n'):'');
+ const analysisScope=baseText+(additions.length?'\\n\\n[SUPPLEMENTAL PROJECT LEDGER CONTEXT — user-entered records; verify the original document and authority before relying on them. These records do not independently establish signature, identity, authority, chronology or legal effect.]\\n'+additions.join('\\n\\n'):'');
  return {
   projectName:bfLedgerProjectName(),totalEntries:entries.length,analysisScope,analysisMessage,
   used:used.map(x=>({id:x.id,title:x.title,detail:x.detail,type:x.type,sourceType:x.sourceType,status:x.status,sourceDate:x.sourceDate,related:x.related})),
@@ -4060,14 +4068,20 @@ function bfLedgerRevisionUsage(context,request,agreement){
  const events=(context&&context.revisionEvents||[]).filter(x=>String(x.status||'').toLowerCase()==='delivered');
  const parsed=events.map(x=>{
   const source=String(x.title||'')+' '+String(x.detail||'');
-  const match=source.match(/\b(?:first|one|second|two|third|three|fourth|four|fifth|five|\d+)\s+(?:included\s+)?revision\s+round\b/i);
+  const match=source.match(/\\b(?:first|one|second|two|third|three|fourth|four|fifth|five|\\d+)\\s+(?:included\\s+)?revision\\s+round\\b/i);
   const round=match?bfR2Number(match[0]):null;
-  const page=pageName(source+' '+String(x.related||''));
-  return {round,page,title:x.title||'',sourceDate:x.sourceDate||null,recordedStatus:x.status};
+  const textPage=pageName(source);
+  const relatedPage=pageName(x.related);
+  // Conflicting structured and free-text page references cannot be resolved
+  // safely by choosing one. For per-page allowances, keep usage unknown.
+  const pageConflict=!!(textPage&&relatedPage&&textPage!==relatedPage);
+  const page=pageConflict?'':(relatedPage||textPage);
+  return {round,page,textPage,relatedPage,pageConflict,title:x.title||'',sourceDate:x.sourceDate||null,recordedStatus:x.status};
  }).filter(x=>Number.isFinite(x.round)&&x.round>0);
- const relevant=perPage?parsed.filter(x=>targetPage&&x.page===targetPage):parsed;
- const completed=relevant.length?Math.max(...relevant.map(x=>x.round)):null;
- return {scope:perPage?'per_page':'project',page:targetPage||null,allowance,completed,remaining:allowance!==null&&completed!==null?Math.max(0,allowance-completed):null,matchedEvents:relevant.map(x=>({round:x.round,page:x.page,title:x.title,sourceDate:x.sourceDate,status:x.recordedStatus})),historyUnknown:perPage&&!targetPage};
+ const conflicting=perPage?parsed.filter(x=>x.pageConflict&&(x.textPage===targetPage||x.relatedPage===targetPage)):[];
+ const relevant=perPage?parsed.filter(x=>!x.pageConflict&&targetPage&&x.page===targetPage):parsed.filter(x=>!x.pageConflict);
+ const completed=conflicting.length?null:(relevant.length?Math.max(...relevant.map(x=>x.round)):null);
+ return {scope:perPage?'per_page':'project',page:targetPage||null,allowance,completed,remaining:allowance!==null&&completed!==null?Math.max(0,allowance-completed):null,matchedEvents:relevant.map(x=>({round:x.round,page:x.page,title:x.title,sourceDate:x.sourceDate,status:x.recordedStatus})),conflictingEvents:conflicting.map(x=>({round:x.round,textPage:x.textPage,relatedPage:x.relatedPage,title:x.title,sourceDate:x.sourceDate,status:x.recordedStatus})),historyUnknown:perPage&&(!targetPage||conflicting.length>0)}
 }
 function bfLedgerAdd(record){
  if(!window.__bfUserId)throw new Error('Sign in before recording project evidence.');

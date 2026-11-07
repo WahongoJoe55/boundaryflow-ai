@@ -1109,8 +1109,18 @@ function resolveRequestContext(items, fullMessage){
 }
 
 function scopeEvidence(A, terms){
-  const hits=terms.filter(t=>A.includes(t));
-  return hits.length ? 'Agreement evidence found: '+hits.join(', ')+'.' : 'No explicit agreement evidence was found for this specific item.';
+  // Keep the evidence attached to the clause that actually contains the
+  // matched scope language. A whole-document substring hit can otherwise
+  // make an unrelated clause look like support for this request.
+  const clauses=bfR2Clauses(String(A||''));
+  const needles=(terms||[]).map(t=>normalize(t)).filter(Boolean);
+  const hits=clauses.filter(clause=>{
+    const normalizedClause=normalize(clause);
+    return needles.some(term=>normalizedClause.includes(term));
+  });
+  return hits.length
+    ? 'Agreement evidence (matched clause): '+hits.join(' | ')
+    : 'No explicit agreement evidence was found for this specific item.';
 }
 
 function explicitExcludedTopic(q,a){

@@ -121,6 +121,7 @@ try{
   check('Client assertion remains excluded from approval evidence',alpha.meta?.unverifiedClaims?.some(x=>x.title==='Client says Careers was already approved')===true&&!alpha.meta?.used?.some(x=>x.title==='Client says Careers was already approved'));
   check('Specific Careers approval remains Conditional pending source verification',careers?.status==='Conditional',JSON.stringify(careers||null));
   check('Portfolio revision usage is matched to the correct page',portfolio?.allowance===2&&portfolio?.completed===1&&portfolio?.remaining===1,JSON.stringify(portfolio||null));
+  await setProject('E2E Mixed Message Acceptance');
   const mixedScope='WEBSITE DEVELOPMENT AGREEMENT. The agreed website includes the Home page and About page. The project includes one revision round for the agreed deliverables. Spelling corrections and minor adjustments to existing agreed pages are included, subject to the agreed revision allowance. Any new website page, including a Careers page, is outside the original agreed scope and requires separate written approval before work begins. No additional fees or delivery timelines have been agreed for work outside the original scope.';
   const mixedMessage='Hi,\n\nI have reviewed the website and would like you to make two changes.\n\nFirst, please create a new Careers page where potential employees can learn about available opportunities and submit their applications.\n\nSecond, I noticed a spelling mistake on the existing About page. Please correct it.\n\nI would appreciate it if you could handle both changes as part of the current project.\n\nThanks.';
   const mixed=await analyse(mixedScope,mixedMessage);
@@ -148,7 +149,6 @@ try{
   check('Careers-page clarification names the page in every user-facing clarification field',(()=>{const x=specificity[0];return [x.title,x.needed,x.question,x.why].every(v=>String(v||'').toLowerCase().includes('careers page'))})(),JSON.stringify(specificity[0]));
   check('Portfolio-page clarification names the page in every user-facing clarification field',(()=>{const x=specificity[1];return [x.title,x.needed,x.question,x.why].every(v=>String(v||'').toLowerCase().includes('portfolio page'))})(),JSON.stringify(specificity[1]));
   check('Contact-form clarification names the form in every user-facing clarification field',(()=>{const x=specificity[2];return [x.title,x.needed,x.question,x.why].every(v=>String(v||'').toLowerCase().includes('contact form'))})(),JSON.stringify(specificity[2]));
-  await setProject('E2E Mixed Message Acceptance');
   check('Revision safeguard detects one round while leaving usage unknown',await page.evaluate(()=>window.bfReasoningV2?.revisions?.allowance===1&&window.bfReasoningV2?.revisions?.completed===null&&window.bfReasoningV2?.revisions?.remaining===null),JSON.stringify(await page.evaluate(()=>window.bfReasoningV2?.revisions||null)));
   await select('responseStyle','professional');
   const professionalDraft=await page.locator('#out').innerText();

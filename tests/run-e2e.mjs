@@ -84,10 +84,11 @@ try{
     await page.locator('#projectName').dispatchEvent('change');
   }
   async function analyse(scope,message){
+    const previousOutput=await page.locator('#out').innerText();
     await page.locator('#a').fill(scope);
     await page.locator('#r').fill(message);
     await page.locator('#analyzeBtn').click();
-    await page.waitForFunction(()=>Array.isArray(window.rows)&&window.rows.length>0&&document.getElementById('out')?.innerText.length>0);
+    await page.waitForFunction(previous=>{const current=document.getElementById('out')?.innerText||'';return Array.isArray(window.rows)&&window.rows.length>0&&current.length>0&&current!==previous;},previousOutput,{timeout:20000});
     return page.evaluate(()=>({
       rows:(window.rows||[]).map(x=>({request:x.q,status:x.c?.status,type:x.c?.type,evidence:x.c?.evidence||'',boundary:x.c?.boundary||'',hasInternalLanguageAnalysis:!!x.c?.languageAnalysis})),
       meta:window.bfLedgerAnalysisMeta?{

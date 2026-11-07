@@ -134,6 +134,9 @@ const cases=[
 ,{id:'BF-L32',title:'Multiple page names in one revision record are treated as conflicting evidence',agreement:'Two rounds of revisions per page are included.',message:'Update the Portfolio page layout.',reasoningProbe:w=>w.bfLedgerRevisionUsage({revisionEvents:[{title:'First revision round — Portfolio page',detail:'Record also refers to the Contact page revision round.',related:'',status:'delivered'}]},'Update the Portfolio page layout','Two rounds of revisions per page are included.'),reasoningCheck:(_d,_w,_r,p)=>p.scope==='per_page'&&p.page==='portfolio'&&p.completed===null&&p.remaining===null&&p.historyUnknown===true&&p.conflictingEvents.length===1&&p.conflictingEvents[0].textPages.includes('portfolio')&&p.conflictingEvents[0].textPages.includes('contact'),expect:'Detect multiple distinct page references inside title/detail text; do not use the first matching page to calculate a per-page revision balance.'}
 
 
+,{id:'BF-L33',title:'Spelling inclusion does not override an explicit opposing exclusion',agreement:'Spelling corrections on existing pages are included. Spelling corrections on the About page are excluded unless separately approved in writing.',message:'Please correct the spelling mistake on the existing About page.',check:rows=>rows.length===1&&rows[0].status==='Clarify'&&/Conflicting spelling-correction scope wording/i.test(rows[0].type),expect:'Preserve the opposing clauses as a clarification; do not let a broad spelling-inclusion rule silently override a page-specific exclusion.'}
+
+
 ];
 let lastResults=[];
 const norm=s=>String(s||'').toLowerCase();

@@ -143,6 +143,12 @@ try{
   const warmDraft=await page.locator('#out').innerText();
   await select('responseStyle','firm');
   const firmDraft=await page.locator('#out').innerText();
+  const firmIncludedDraft=await page.evaluate(()=>window.styleIndividualResponse('fallback text','Likely included'));
+  check('Firm included-response preserves the unresolved revision-allowance condition',
+    /subject to confirming the remaining revision allowance/i.test(firmIncludedDraft)&&
+    /project revision history/i.test(firmIncludedDraft),firmIncludedDraft);
+  check('Professional full-scope response keeps the revision allowance caveat visible',
+    /subject to confirming the remaining revision allowance/i.test(professionalDraft),professionalDraft);
   const classificationsAfterTone=await page.evaluate(()=>(window.rows||[]).map(x=>({status:x.c?.status,evidence:x.c?.evidence,boundary:x.c?.boundary})));
   check('Professional, Warm and Firm generate distinct client-ready wording',professionalDraft!==warmDraft&&warmDraft!==firmDraft&&professionalDraft!==firmDraft);
   check('Changing response tone does not change classifications or evidence',JSON.stringify(classificationSnapshot)===JSON.stringify(classificationsAfterTone));

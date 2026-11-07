@@ -1149,6 +1149,26 @@ function classify(q,a,context){
   const raw=normalize(q), A=normalize(a);
   const fullMessage=String((context && (context.originalMessage || context.original)) || '');
 
+  // Resolve explicit revision entitlement before specialised content shortcuts.
+  const revisionState=bfR2Revision(A,raw);
+  const requestNamesRevisionRound=/\b(?:first|second|third|fourth|fifth|\d+)(?:\s+included)?\s+revision round\b/i.test(raw);
+  const requestedRoundNumber=revisionState.current!==null ? revisionState.current :
+    (revisionState.completed!==null ? revisionState.completed+1 : null);
+  const implementationCorrectionAtStart=/\b(?:fix|correct|repair|redo)\b[\s\S]{0,100}\b(?:implemented incorrectly|implemented wrong|was implemented incorrectly|was done incorrectly)\b/i.test(raw);
+  const revisionRoundBeyondAllowance=requestNamesRevisionRound && revisionState.allowance!==null &&
+    requestedRoundNumber!==null && requestedRoundNumber>revisionState.allowance && !implementationCorrectionAtStart;
+  if(revisionRoundBeyondAllowance){
+    return {
+      type:'Change request / additional revision round',
+      status:'Likely additional', confidence:'High', risk:'High',
+      evidence:'The agreement states an allowance of '+revisionState.allowance+' revision round(s). The request identifies revision round '+requestedRoundNumber+', which exceeds that allowance.',
+      action:'Treat this as a revision round beyond the included allowance. Confirm separate written approval and agree any fee or timeline adjustment before proceeding.',
+      boundary:'The requested revision round is numbered '+requestedRoundNumber+', while the agreement includes '+revisionState.allowance+' round(s).',
+      response:'The requested revision round is beyond the '+revisionState.allowance+' round(s) included in our agreement. Let’s confirm written approval and any fee or timeline adjustment before I proceed.',
+      claims:[], request:raw
+    };
+  }
+
   // REGRESSION-11: a new testimonial section is expressly excluded unless separately approved.
   // Operational content questions must not weaken this entitlement decision.
   const testimonialSection=/\btestimonial(?:s)?\b/i.test(raw) && /\b(?:section|block|carousel|cards?)\b/i.test(raw);
@@ -1460,8 +1480,11 @@ function classify(q,a,context){
   // while correcting work that was implemented incorrectly during the included
   // round remains an in-scope correction.
   const revisionAllowanceExhausted = /\b(?:already\s+)?used\s+(?:up\s+)?(?:our\s+|the\s+)?included\s+revision\b|\bcompleted\s+the\s+first\s+revision\b|\bfirst\s+revision\s+(?:is\s+)?(?:already\s+)?(?:used|completed)\b/i.test(claimText);
+  const nextRevisionRound=revisionState.completed!==null?revisionState.completed+1:null;
   const additionalRound=hasAny(A,['any additional revision round after the included revision round requires separate approval','additional revision round','additional revision rounds','another revision round requires separate approval']) &&
-    (/\b(?:another|second|additional|next)\s+(?:revision\s+)?round\b/i.test(raw) || revisionAllowanceExhausted);
+    (revisionState.allowance!==null && nextRevisionRound!==null
+      ? nextRevisionRound>revisionState.allowance
+      : /\b(?:additional|another)\s+revision round\b/i.test(raw) || revisionAllowanceExhausted);
   const includedImplementationCorrection=/^if\b[\s\S]*\b(?:fix|correct|repair|redo)\b[\s\S]*\b(?:first|original|included)\s+revision\b/i.test(raw) &&
     /\b(?:implemented incorrectly|implemented wrong|was implemented incorrectly|was done incorrectly)\b/i.test(raw);
   if(includedImplementationCorrection && hasAny(A,['one revision round is included','included revision round','revision round is included'])){

@@ -1021,21 +1021,15 @@ function resolveRequestContext(items, fullMessage){
       const refPage=priorNewPage || priorPage;
       resolved=resolved.replace(/\bthat\s+page\b/ig,'the '+refPage);
     }
-    // Resolve simple "it" references to the established page destination
-    // when one exists; otherwise fall back to the nearest known page.
-    if(/\bit\b/i.test(resolved) && (priorNewPage || priorPage)){
-      const refPage=priorNewPage || priorPage;
-      resolved=resolved.replace(/\bit\b/ig,refPage);
-    }
-    // Do not resolve contextual phrases such as "that second round" as a
-    // pronoun reference. The phrase itself is the intended round context.
-    // Generic "that" handling remains only for non-page references.
-    if(/\bthat\b/i.test(resolved) && !/\bthat\s+page\b/i.test(resolved) && !/\bthat\s+(?:second|additional|next)\s+(?:revision\s+)?round\b/i.test(resolved) && lastAction){
-      const ref = /\bbutton\b/i.test(lastAction) ? 'the button' : (/\benquiries?\b/i.test(lastAction) ? 'the enquiry path' : lastAction);
-      resolved=resolved.replace(/\bthat\b/ig,ref);
-    }
-    if(/\bthere\b/i.test(resolved) && priorPage){
-      resolved=resolved.replace(/\bthere\b/ig,'on '+priorPage);
+    // Resolve only an explicit link-destination pronoun. Generic "it",
+    // "that" and "there" are intentionally left untouched: they may refer to
+    // a design, defect, instruction or another object, not necessarily a page.
+    // If the client says "link to it", the preceding explicitly created page
+    // is a sufficiently specific destination. Other ambiguous references must
+    // remain visible for clarification rather than being silently rewritten.
+    if(priorNewPage){
+      resolved=resolved.replace(/\b(link\s+to\s+)it\b/ig,'$1the '+priorNewPage);
+      resolved=resolved.replace(/\b(link)\s+it(\s+from\b)/ig,'$1 the '+priorNewPage+'$2');
     }
     if(/\bthe new page\b/i.test(resolved) && priorNewPage){
       resolved=resolved.replace(/\bthe new page\b/ig,'the '+priorNewPage);

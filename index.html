@@ -3359,7 +3359,7 @@ function bfR2Panel(data){
 }
 
 function bfClaimMatchesRequest(claim,request){
-  const stop=new Set(['this','that','they','them','their','there','what','when','where','which','would','could','should','please','client','think','thought','included','include','covered','cover','part','within','current','revision','round','scope','agreement','contract','approved','approval','already','said','told','agreed','believe','understand','want','like','need','asked','request','change','work','project','page']);
+  const stop=new Set(['this','that','they','them','their','there','what','when','where','which','would','could','should','please','client','think','thought','included','include','covered','cover','part','within','current','revision','round','scope','agreement','contract','approved','approval','already','said','told','agreed','believe','understand','want','like','need','asked','request','change','work','project','page','website','web','site','form','forms','functionality','feature','features','deliverable','deliverables','content','design','section','sections','package']);
   const tokens=value=>new Set((String(value||'').toLowerCase().match(/[a-z0-9]+/g)||[])
     .filter(word=>word.length>=4&&!stop.has(word)));
   const a=tokens(claim),b=tokens(request);

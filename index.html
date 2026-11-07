@@ -3274,7 +3274,7 @@ function bfR2Revision(text,message){
  const allowanceClauses=bfR2Clauses(a).filter(x=>(/\brevision rounds?\b/i.test(x)||/\brounds?\s+of\s+revisions?\b/i.test(x))&&/\b(?:includ(?:ed|es?)|allowed|provided|maximum|up to)\b/i.test(x));
  let allowance=null;
  allowanceClauses.forEach(x=>{const n=bfR2Number(x);if(n!==null)allowance=n;});
- const usedMatches=[...m.matchAll(/\b(?:first|one|second|two|third|three|fourth|four|fifth|five|\d+)\s+(?:included\s+)?revision rounds?\s+(?:has\s+been\s+|have been\s+|was\s+|were\s+)?(?:used|completed|exhausted)\b/gi)];
+ const usedMatches=[...m.matchAll(/\b(?:first|one|second|two|third|three|fourth|four|fifth|five|\d+)\s+(?:included\s+)?revision rounds?\s+(?:(?:has|have)\s+(?:already\s+)?been\s+|(?:was|were)\s+(?:already\s+)?|)(?:used|completed|exhausted)\b/gi)];
  let completed=null;
  if(usedMatches.length){completed=0;usedMatches.forEach(x=>{const n=bfR2Number(x[0]);if(n!==null)completed=Math.max(completed,n);});}
  const currentMatch=m.match(/\b(?:second|third|fourth|fifth|\d+)(?:\s+included)?\s+revision round\b/i);

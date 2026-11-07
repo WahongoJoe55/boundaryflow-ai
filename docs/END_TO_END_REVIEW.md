@@ -1,29 +1,31 @@
 # BoundaryFlow browser end-to-end review
 
-## Candidate automated verification
+## Latest automated candidate verification
 
-- GitHub Actions run: #159
-- Result: **22 / 22 browser checks passed** and **69 / 69 reasoning/ledger regression scenarios passed**
-- Candidate commit: `be6c5f4b0f5967db1a5a0c86bb58307ed081ca59`
-- Run: https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/42283784032
-- Mode: local browser execution against the actual candidate `index.html`, with deterministic simulated account identities.
+- GitHub Actions run: **#169**
+- Run: https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/42289938482
+- Result: **69 / 69 reasoning and ledger regression scenarios passed; 26 / 26 browser end-to-end checks passed**
+- Tested candidate commit: `bbd054d530e892e7a1be744c3d1069e2d9e21652`
+- Workflow job: `engine-regression` — completed successfully.
+- Artifact: `boundaryflow-engine-regression-results` (contains regression and browser reports).
+- Mode: local browser execution against the candidate `index.html`, with deterministic simulated account identities.
 - External network access was blocked except for a stubbed Supabase library response. No real sign-in, Supabase queries, cloud writes, or production records were used.
 
-The engine/ledger regression suite also completed successfully: **69 / 69 scenarios passed** in the same workflow run. The 21 browser checks include the updated `Client Request Context` label, the complete 12-step visual guide, explanations of ledger purpose/storage/export limitations, and a guide screenshot. All three guide-specific assertions passed.
+The 69 regression scenarios cover the reasoning engine and project-local evidence ledger. The 26 browser checks cover application loading, ledger entry, evidence use/exclusion, clarification specificity, visible explanation, local History, reload persistence, project/account-key isolation, guide content and absence of uncaught browser errors.
 
-## Current clarification-specificity change
+The stricter clarification checks independently verified the deliverable name in each of title, needed, question and why for Careers page, Portfolio page and Contact form. Generic requests did not acquire an invented deliverable name.
 
-The development candidate now includes a reusable clarification-subject preservation step. Where the request contains a reliably identifiable deliverable, it carries that subject into generic clarification titles, missing-information prompts, questions, explanations and outcome statements. Named page and form extraction is supported; when no reliable subject is available, the original generic wording is retained rather than inventing one.
+## Subsequent theme-only patch — 7 November 2026
 
-Four new browser checks have been added to `tests/run-e2e.mjs`:
-- Careers page specificity across title, explanation and question.
-- Portfolio page specificity across title, explanation and question.
-- Contact form specificity.
-- Generic request fallback does not invent a deliverable.
+After run #169, commit `e2461c03b9a26c1d644db8aeac5334cb885b8856` corrected dark-theme presentation for:
+- response-style selector;
+- project-ledger inputs, dropdowns, textareas and placeholders;
+- authenticated cloud sync message;
+- cloud sync status badges.
 
-**Validated in workflow run #167:** 69/69 engine and ledger regression scenarios passed, and 26/26 browser end-to-end checks passed. The browser report confirms Careers-page, Portfolio-page, Contact-form and generic-request specificity checks all passed. The run used deterministic simulated identities with Supabase network/cloud writes disabled; it does not prove live Supabase behaviour.
+The user downloaded this updated candidate, served it through the local HTTP server, signed in, and confirmed that the previously inconsistent interface elements now follow the selected theme. **This was a user-confirmed manual browser check, not a new automated workflow run.** Run #169 predates this CSS-only commit.
 
-## Scenarios exercised
+## Scenarios exercised by the automated browser review
 
 1. Candidate application loads with analysis and ledger controls.
 2. Original scope, approval, client assertion and revision records can be entered through the UI.
@@ -44,37 +46,44 @@ Four new browser checks have been added to `tests/run-e2e.mjs`:
 17. Returning to the original account restores its ledger.
 18. No uncaught browser JavaScript errors occurred.
 
-The guide-specific checks are included in the browser result above. The candidate also verifies that request-language/professional-context diagnostics remain available internally while the analysis UI does not expose those labels or commentary.
+The browser harness also checks that professional-language diagnostics remain internal while the visible analysis stays factual, and that the User Guide explains the ledger's local-only storage and export limitations.
 
-## Separate live production smoke test — 6 November 2026
+## Cloud and authentication boundary
 
-The deployed production app at https://wahongojoe55.github.io/boundaryflow-ai/ was tested separately using a disposable synthetic project and synthetic agreement/message. The user confirmed:
+The candidate automated browser run deliberately stubs Supabase and blocks external cloud requests. It does **not** exercise real candidate-branch:
+- sign-in, sign-up, password recovery or session restoration;
+- Supabase queries, inserts, updates or deletes;
+- candidate cloud sync and cloud History restoration;
+- retry after an ambiguous network failure or concurrent sync;
+- two real authenticated accounts and RLS enforcement.
 
-- First cloud sync completed successfully.
-- The saved analysis remained in History after refreshing the app.
-- A second sequential sync did not create a duplicate entry.
+A separate live smoke test on the **deployed production build** on 6 November 2026 confirmed:
+- first cloud sync succeeded;
+- the analysis remained in History after refresh;
+- a second sequential sync did not create a duplicate;
+- Account A and Account B could not see each other's test projects;
+- the two cross-account deletion checks affected zero rows;
+- RLS was enabled on `projects`, `agreements`, `analyses` and `profiles`.
 
-This is useful evidence for the **currently deployed production build's** cloud persistence and repeat-sync behavior. It is not evidence that the development candidate in this pull request was tested against live Supabase. The automated candidate run above deliberately stubbed Supabase and blocked external cloud requests.
+Those are useful production observations, not candidate-branch live test results or a complete security audit. See [LIVE_SUPABASE_REVIEW_PLAN.md](LIVE_SUPABASE_REVIEW_PLAN.md).
 
-Earlier production checks also reported:
-- Account A and Account B could not see each other's project data in the UI.
-- The two cross-account deletion checks each affected zero rows.
-- Supabase catalog inspection showed RLS enabled on `projects`, `agreements`, `analyses` and `profiles`.
+## Remaining release acceptance checks
 
-See [docs/LIVE_SUPABASE_REVIEW_PLAN.md](LIVE_SUPABASE_REVIEW_PLAN.md) for the observed policy structure, scope and remaining limitations.
+Before release, perform a controlled candidate-specific live test using only the two established disposable test accounts and synthetic content:
 
-## What the automated result establishes
+1. Sign in, refresh, confirm session restoration, then sign out.
+2. Create a uniquely named synthetic project by entering a project/client label, agreed scope and client message; analyze and verify the expected output.
+3. Switch between Professional, Warm and Firm response styles. Confirm the client-ready response changes while classifications and evidence remain unchanged.
+4. Save the analysis, open it from History, refresh, and confirm it can be restored.
+5. Sync the candidate. Confirm project, agreed scope and analysis are saved; refresh and confirm cloud History restores the record.
+6. Sync again and confirm no duplicate analysis appears.
+7. With Account B in a separate browser profile, confirm it cannot see Account A's synthetic project or analysis. Return to A and confirm its records remain.
+8. If practical, test a controlled offline sync failure followed by reconnect and retry. Confirm local work remains available and retry does not create duplicates.
+9. Confirm the project evidence ledger is intentionally local-only, remains available for the same account/project on that browser, exports correctly, and is not represented as cloud-synced.
+10. Confirm Clear local workspace removes only the intended local data and does not imply that cloud records were deleted.
 
-The browser-level candidate workflow passed for the analysis engine, project-local evidence ledger, factual explanation output without client-language commentary, local History, reload persistence and project/account-key isolation under simulated identities.
-
-## What these results do not establish
-
-- The automated candidate run did **not** exercise real Supabase authentication, token refresh, RLS, cloud sync, cloud History, real two-account access, or live deployment.
-- The production smoke test was performed on the deployed production build, not on this candidate branch.
-- UI-level absence of another account's records and zero-row deletion checks are useful evidence, but are not a complete penetration test or security certification.
-- RLS being enabled does not alone prove every possible access path is safe. The reviewed policies and test setup have the limitations described in the live review plan.
-- Source labels and recorded statuses are user-entered metadata, not authentication of signatures, identity, authority, chronology, integrity or completeness. The ledger does not determine legal priority or prove that a change was approved.
+Do not use real client data. Do not expose passwords, recovery links, access tokens or secret keys. Do not run broad delete, truncate, reset or schema-change SQL.
 
 ## Release decision
 
-**Keep this pull request in draft. Do not merge or deploy yet.** Candidate automated tests pass, and the deployed production build passed the narrow live sync/persistence/retry check. The latest base comparison shows the development branch is 118 commits ahead and 1 behind main. The sole base-only commit (80a80694) adds a separate BoundaryFlow_AI_v89_test.html test build; it does not modify production index.html or conflict with the candidate. GitHub currently reports the PR as mergeable. Keep the PR in draft until the combined diff is reviewed and release approval is given. Run an appropriate candidate-specific live smoke test if candidate cloud-related behavior changes. Any release must be explicitly approved before merging or deploying.
+**Keep PR #1 in draft. Do not merge or deploy yet.** Automated candidate reasoning/ledger and browser checks passed on commit `bbd054d`; the subsequent theme patch was manually confirmed by the user but has not had a new automated run. Most importantly, the development candidate has not yet been exercised against live Supabase. The production live checks do not substitute for candidate-specific verification. Reconcile the PR/base divergence, complete the candidate live acceptance checks, review the combined diff, and obtain explicit user approval before release.

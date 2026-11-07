@@ -1118,9 +1118,19 @@ function scopeEvidence(A, terms){
     const normalizedClause=normalize(clause);
     return needles.some(term=>normalizedClause.includes(term));
   });
-  return hits.length
-    ? 'Agreement evidence (matched clause): '+hits.join(' | ')
-    : 'No explicit agreement evidence was found for this specific item.';
+  // An entitlement assertion is not approval evidence, even when it names
+  // the exact deliverable. Keep it visible as an unverified claim instead.
+  const claimLike=clause=>/\b(?:client says|client claims|i thought|we discussed|we agreed|as discussed|you promised|you said|we were told|i was told|we agreed on the call)\b/i.test(clause);
+  const supportHits=hits.filter(clause=>!claimLike(clause));
+  const claimHits=hits.filter(claimLike);
+  if(supportHits.length){
+    return 'Supplied scope text (matched clause; source not independently verified): '+supportHits.join(' | ')+
+      (claimHits.length?' Unverified client assertion kept separate: '+claimHits.join(' | '):'');
+  }
+  if(claimHits.length){
+    return 'Unverified client assertion — not approval evidence: '+claimHits.join(' | ');
+  }
+  return 'No explicit agreement evidence was found for this specific item.';
 }
 
 function explicitExcludedTopic(q,a){

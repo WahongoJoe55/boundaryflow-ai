@@ -3268,7 +3268,16 @@ function bfR2Topics(clause){
   ['source files',/\bsource files?\b|\beditable working files?\b/],
   ['content sections',/\bcontent sections?\b|\btestimonial sections?\b/],
   ['workshops',/\bworkshops?\b|\bstrategy sessions?\b/]
- ];
+
+  // Broaden conflict matching beyond the original small list of deliverables.
+  // Topic matches signal a possible conflict; they do not decide which term governs.
+  ['customer portal',/\bcustomer portals?\b|\bclient portals?\b|\border history\b|\binvoice downloads?\b/],
+  ['analytics and reporting',/\banalytics?\b|\breporting dashboards?\b|\bperformance reports?\b/],
+  ['e-commerce and payments',/\be[ -]?commerce\b|\bonline payments?\b|\bpayment gateways?\b|\bshopping carts?\b/],
+  ['authentication and access',/\bauthentication\b|\buser logins?\b|\brole.based access\b|\baccess controls?\b/],
+  ['hosting and infrastructure',/\bhosting\b|\bserver management\b|\bdomain configuration\b|\bcloud infrastructure\b/],
+  ['accessibility',/\baccessibility\b|\bwcag\b|\bscreen.reader support\b/],
+  ['security',/\bsecurity audits?\b|\bpenetration testing\b|\bvulnerability assessments?\b/], ];
  map.forEach(([name,re])=>{if(re.test(s))topics.push(name);});
  return topics;
 }

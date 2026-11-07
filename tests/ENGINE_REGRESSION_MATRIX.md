@@ -85,7 +85,7 @@ The next 12 scenarios exercise the new diagnostics layer. These are advisory che
 
 Before a production version is promoted:
 
-1. Run all 81 scenarios against the exact candidate build.
+1. Run all 83 scenarios against the exact candidate build.
 2. Record the actual detected request rows and classifications.
 3. Investigate every mismatch; do not weaken an expected result merely to make a test pass.
 4. Add a regression case for every confirmed defect.
@@ -140,3 +140,6 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 
 | BF-L35 | New-page classification uses a generic rule for any page. | Create a new Careers page under a new-page approval exclusion. | Name Careers, not a hard-coded Pricing-page example. |
 | BF-R72 | Mixed response combines included, additional, conditional and client-claim rows. | Correct About spelling, create Careers, fix the Contact form submit button, and assert Careers was included. | Refer to the actual Careers and Contact-form items; do not insert fixture-specific Pricing or Contact wording. |
+
+| BF-L36 | A scope claim names one of several requests. | Create Careers and Pricing pages, then say Pricing was included. | Link the claim to Pricing only; do not attach it to Careers. |
+| BF-L37 | A vague scope claim could refer to multiple requests. | Create Careers and add a newsletter form, then say “that was included”. | Keep the claim unlinked and ask which deliverable it concerns. |

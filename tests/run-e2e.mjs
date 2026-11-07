@@ -36,6 +36,13 @@ try{
   await context.route('**/*',route=>{
     const url=new URL(route.request().url());
     if(url.hostname==='127.0.0.1'||url.hostname==='localhost')return route.continue();
+    // Keep the security-widget UI deterministic without contacting Cloudflare
+    // or minting a real verification token. Authentication/cloud writes remain disabled.
+    if(url.hostname==='challenges.cloudflare.com')return route.fulfill({
+      status:200,
+      contentType:'text/javascript',
+      body:"window.turnstile={render:function(el,opts){el.innerHTML='<span class=\\\"bf-test-verification\\\">Security verification simulated for automated testing</span>';if(opts&&opts.callback)opts.callback('e2e-turnstile-token');return 1;},reset:function(){}};"
+    });
     if(url.hostname==='unpkg.com')return route.fulfill({status:200,contentType:'text/javascript',body:'/* Supabase deliberately stubbed in local end-to-end test. */'});
     return route.abort();
   });

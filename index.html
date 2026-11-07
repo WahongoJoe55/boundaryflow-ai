@@ -3366,6 +3366,14 @@ function analyze(){
   // The frozen classifier is unchanged; this is a shell-level decomposition step.
   const parsed=extractClaimsAndRequests(r);
   let rawItems=parsed.requests.length ? parsed.requests : (parsed.claims.length ? [r] : extract(r));
+  // Defensive paragraph boundary pass: some client messages contain multiple
+  // blank-line-separated blocks that an earlier claim/action splitter may
+  // preserve as one item. Re-decompose those blocks before request filtering,
+  // then resolve cross-paragraph references using the untouched full message.
+  rawItems=rawItems.flatMap(item=>{
+    const blocks=String(item||'').split(/\n\s*\n+/).map(x=>x.trim()).filter(Boolean);
+    return blocks.length>1 ? blocks.flatMap(block=>extract(block)) : [item];
+  });
   // Ignore conversational acknowledgements and vague transition phrases; they
   // are context, not deliverables or scope decisions.
   rawItems=rawItems.filter(x=>!/^\s*(?:thanks for completing the first revision|thanks for completing the revision|thanks for sharing the first version|thanks for sharing the first draft|i have a few more changes|i have some more changes|i have three requests|i have \d+ requests|i have (?:two|three|four|five|several) things (?:i['’]d|i would|we['’]d|we would) like to (?:address|discuss|change)|i have attached (?:one|two|three|four|five|several|\d+) (?:finished |final |completed )?(?:blog )?articles?|(?:the\s+)?(?:first|initial|included) revision round has already been used)[.!?]?\s*$/i.test(String(x)));

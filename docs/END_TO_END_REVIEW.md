@@ -25,6 +25,22 @@ After run #169, commit `e2461c03b9a26c1d644db8aeac5334cb885b8856` corrected dark
 
 The user downloaded this updated candidate, served it through the local HTTP server, signed in, and confirmed that the previously inconsistent interface elements now follow the selected theme. **This was a user-confirmed manual browser check, not a new automated workflow run.** Run #169 predates this CSS-only commit.
 
+## Mixed-message analysis correction — 7 November 2026
+
+- Candidate commit: `5223213270ea49de7025f7170cd20ecfbf42ff7a`
+- GitHub Actions run #183: https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/42363423119
+- Result: **70 / 70 engine and ledger regression scenarios passed; 33 / 33 browser end-to-end checks passed.**
+- The new mixed-message regression reproduces the user's exact synthetic website agreement and client message.
+- The message now yields exactly two actionable requests:
+  1. New Careers page — **Likely additional**, with the agreement's explicit separate-written-approval exclusion shown as evidence.
+  2. Existing About-page spelling correction — **Likely included**, subject to the revision allowance. The agreement's one-round allowance is detected; completed usage and remaining balance stay unknown because no history was supplied.
+- Greeting, introductory wording, sequencing labels and closing thanks do not become request rows.
+- Professional, Warm and Firm produce distinct client-ready drafts; changing tone leaves classifications and evidence unchanged.
+- The full response does not invent a fee or delivery deadline.
+- The browser suite checks these behaviours in addition to the existing ledger, clarification, History, project/account-isolation and UI checks.
+
+Run #183 is a local automated candidate test. Supabase network access and cloud writes remain blocked/stubbed. It does **not** replace candidate-specific live authentication, cloud-sync, retry/idempotency or two-account/RLS acceptance tests.
+
 ## Scenarios exercised by the automated browser review
 
 1. Candidate application loads with analysis and ledger controls.

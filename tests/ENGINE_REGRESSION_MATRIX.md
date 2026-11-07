@@ -146,3 +146,5 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 
 
 | BF-R73 | Mixed-scope order invariance | Same new Careers page and included About spelling correction are analysed in both request orders. | Careers remains Likely additional with written-approval evidence; spelling remains Likely included subject to the one-round allowance; allowance usage stays unknown. | Reordering requests must not alter request-level decisions or transfer evidence between requests. |
+
+| BF-R74 | General non-page entitlement claim is extracted separately. | Request a newsletter signup form, then state that the form was already included in the package. | Keep the form as the actionable request and extract the inclusion assertion as a separate client claim. |

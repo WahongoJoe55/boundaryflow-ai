@@ -916,15 +916,17 @@ function extractClaimsAndRequests(q){
   }
   if(!linked.length && requestText) linked.push(requestText);
 
-  // C-DEPENDENCY-07: when an existing-page update is followed by the narrow
-  // continuation "add a link to it", keep both actions in one atomic request.
-  // The referenced new Pricing page is a destination, not a second deliverable.
+  // C-DEPENDENCY-07: retain an existing-page update and its dependent link
+  // instruction as one coherent request when the client uses an explicit new-page
+  // destination or an unambiguous "link to it" continuation. Page names are
+  // extracted generically; no fixture-specific destination is privileged.
   const mergedLinkActions=[];
   for(let i=0;i<linked.length;i++){
     const cur=String(linked[i]).trim();
     const next=i+1<linked.length?String(linked[i+1]).trim():'';
-    if(next && /^add\s+(?:a|an|the)\s+link\s+to\s+(?:it|the\s+new\s+pricing\s+page)\.?$/i.test(next)
-      && /\b(?:update|change|edit|revise)\b[\s\S]*\bservices\s+page\b/i.test(cur)){
+    const linkContinuation=/^add\s+(?:a|an|the)\s+link\s+to\s+(?:it|the\s+new\s+[a-z][a-z0-9 &-]*?\s+page)\.?$/i.test(next);
+    const existingPageUpdate=/\b(?:update|change|edit|revise)\b[\s\S]*\b(?:existing\s+)?[a-z][a-z0-9 &'-]*\s+page\b/i.test(cur);
+    if(next && linkContinuation && existingPageUpdate){
       mergedLinkActions.push(cur.replace(/[.!?]+$/,'')+' and '+next.replace(/[.!?]+$/,''));
       i++;
     } else {
@@ -3351,6 +3353,16 @@ function bfR2Panel(data){
  section('Important limitations',list(data.limits,''))+'</div>';
 }
 
+function bfClaimMatchesRequest(claim,request){
+  const stop=new Set(['this','that','they','them','their','there','what','when','where','which','would','could','should','please','client','think','thought','included','include','covered','cover','part','within','current','revision','round','scope','agreement','contract','approved','approval','already','said','told','agreed','believe','understand','want','like','need','asked','request','change','work','project']);
+  const tokens=value=>new Set((String(value||'').toLowerCase().match(/[a-z0-9]+/g)||[])
+    .filter(word=>word.length>=4&&!stop.has(word)));
+  const a=tokens(claim),b=tokens(request);
+  if(!a.size||!b.size)return false;
+  for(const word of a)if(b.has(word))return true;
+  return false;
+}
+
 function analyze(){
   let a=document.getElementById('a').value.trim(), r=document.getElementById('r').value.trim();
   if(!a||!r){document.getElementById('status').textContent='Please provide both fields.';return}
@@ -3700,7 +3712,7 @@ function analyze(){
       }
     }
     c.languageAnalysis=bfLanguageAnalysis(v89q,v89a);
-    if(parsed.claims.length && c.status!=='Client claim') c.claims=parsed.claims.slice();
+    if(parsed.claims.length && c.status!=='Client claim') c.claims=parsed.claims.filter(claim=>bfClaimMatchesRequest(claim,item.original));
     c.originalRequest=item.original;
     c.resolvedRequest=item.resolved;
     // Revision-round context is evidence for classification, not part of the
@@ -3757,10 +3769,12 @@ function analyze(){
     // The generic claim-card label must never be passed as the deliverable name.
     claimResult.detected='Client claim / scope assertion';
     const claimLower=claimSource.toLowerCase();
-    const linkedRequest=rows.find(x=>String(x.c&&x.c.status||'').toLowerCase()!=='client claim' && ((/\bbooking\b/.test(claimLower) && /\bbooking\b/.test(String(x.q||'').toLowerCase())) || (/\bpricing\b/.test(claimLower) && /\bpricing\b/.test(String(x.q||'').toLowerCase())) || (/\btestimonial\b/.test(claimLower) && /\btestimonial\b/.test(String(x.q||'').toLowerCase()))));
-    const underlyingRequest=linkedRequest||rows.find(x=>String(x.c&&x.c.status||'').toLowerCase()!=='client claim');
-    claimResult.request=String(underlyingRequest&&underlyingRequest.q||'the requested deliverable');
-    claimResult.actual=String(underlyingRequest&&underlyingRequest.q||'Underlying request is evaluated separately.');
+    const actionableRows=rows.filter(x=>String(x.c&&x.c.status||'').toLowerCase()!=='client claim');
+    const linkedRequests=actionableRows.filter(x=>bfClaimMatchesRequest(claimSource,x.q));
+    const underlyingRequest=linkedRequests.length===1?linkedRequests[0]:(linkedRequests.length===0&&actionableRows.length===1?actionableRows[0]:null);
+    claimResult.claimUnlinked=!underlyingRequest;
+    claimResult.request=String(underlyingRequest&&underlyingRequest.q||'Related deliverable not confidently identified');
+    claimResult.actual=String(underlyingRequest&&underlyingRequest.q||'The client made a scope claim, but the message does not reliably identify which requested item it concerns.');
     claimResult.evidence='The client’s statement is recorded as a scope/entitlement claim, not automatically as fact or misinformation. Its accuracy must be assessed against the agreement and any relevant approved evidence.';
     claimResult.boundary='A claim is an assertion about what was agreed. It may be supported, contradicted, or unresolved. Only a demonstrable conflict with reliable agreement evidence should be described as contradicted; an unsupported claim is not automatically misinformation. The underlying request is evaluated independently.';
     claimResult.action='Compare the claim with the relevant agreement clause and any valid later approval. Record it as supported, contradicted, or unverified; do not label it misinformation merely because it is not yet evidenced.';
@@ -3805,12 +3819,21 @@ function analyze(){
     if(plan && plan.question){
       // Keep the request link specific and stable before rendering any claim
       // explanation. The evidence sentence contains only evidence instructions.
-      const claimText=String(x.q||'').toLowerCase();
-      const related=rows.find(y=>y!==x && String(y.c&&y.c.status||'').toLowerCase()!=='client claim' && ((/\bbooking\b/.test(claimText) && /\bbooking\b/.test(String(y.q||'').toLowerCase())) || (/\bpricing\b/.test(claimText) && /\bpricing\b/.test(String(y.q||'').toLowerCase())) || (/\btestimonial\b/.test(claimText) && /\btestimonial\b/.test(String(y.q||'').toLowerCase()))));
-      const underlying=related||rows.find(y=>y!==x && String(y.c&&y.c.status||'').toLowerCase()!=='client claim');
-      x.c.request=String(underlying&&underlying.q||'the requested deliverable');
-      x.c.evidence='Claim-specific evidence to inspect: '+plan.needed+' The claim itself is not proof; assess the actual record against the agreement’s written-approval requirement.';
-      x.c.boundary='This claim remains unverified until the identified evidence is reviewed. If the record establishes the specific deliverable and satisfies the agreement’s approval requirement, reassess the request. If it does not, retain the existing scope boundary. Do not treat an unsupported claim as misinformation.';
+      const actionableRows=rows.filter(y=>y!==x && String(y.c&&y.c.status||'').toLowerCase()!=='client claim');
+      const relatedRows=actionableRows.filter(y=>bfClaimMatchesRequest(x.q,y.q));
+      const underlying=relatedRows.length===1?relatedRows[0]:(relatedRows.length===0&&actionableRows.length===1?actionableRows[0]:null);
+      if(underlying){
+        x.c.request=String(underlying.q);
+        x.c.evidence='Claim-specific evidence to inspect: '+plan.needed+' The claim itself is not proof; assess the actual record against the agreement’s written-approval requirement.';
+        x.c.boundary='This claim remains unverified until the identified evidence is reviewed. If the record establishes the specific deliverable and satisfies the agreement’s approval requirement, reassess the request. If it does not, retain the existing scope boundary. Do not treat an unsupported claim as misinformation.';
+      }else{
+        x.c.claimUnlinked=true;
+        x.c.request='Related deliverable not confidently identified';
+        x.c.evidence='The client made a scope/entitlement assertion, but the message does not clearly connect it to one specific request. Do not attribute the assertion to an arbitrary item.';
+        x.c.boundary='The claim must remain unlinked until the client identifies the deliverable or reliable context establishes the connection. Evaluate each underlying request independently.';
+        x.c.action='Ask which specific requested item the scope statement refers to, then compare that item with the agreement and any valid approval record.';
+        x.c.response='Could you confirm which specific requested change you mean by this scope statement? I’ll check that item against the agreed terms before proceeding.';
+      }
     }
   });
   const detectedRequests=rows.filter(x=>String(x.c&&x.c.status||'').toLowerCase()!=='client claim').length;

@@ -3854,9 +3854,14 @@ function buildFullResponse(rows){
       ? joinRequests(included.filter(x=>!isServicesPricingLink(x)))
       : joinRequests(included);
     if(includedItems){
-      lines.push(style==='warm'
-        ? 'The following change appears to fit within the current scope: '+includedItems+'.'
-        : 'The following request appears to fit within the agreed scope: '+includedItems+'.');
+      const allowanceQualifiedSpelling=included.some(x=>/spelling correction to existing agreed page/i.test(String(x.c.type||'')) && /subject to the agreed revision allowance/i.test(String(x.c.boundary||'')));
+      if(allowanceQualifiedSpelling){
+        lines.push('The spelling correction on the existing About page is covered by the agreement’s included correction provision, subject to confirming the remaining revision allowance.');
+      }else{
+        lines.push(style==='warm'
+          ? 'The following change appears to fit within the current scope: '+includedItems+'.'
+          : 'The following request appears to fit within the agreed scope: '+includedItems+'.');
+      }
     }
     if(possibleDuplicateServicesLinks){
       lines.push('The Services-page link change appears to fit the minor-link allowance, but your message may describe it twice. I’ve kept both requests separate in the analysis; please confirm whether they mean one link change or two distinct changes.');
@@ -3874,7 +3879,13 @@ function buildFullResponse(rows){
         lines.push('Thanks for clarifying. '+understood+' That introduces new functionality beyond the agreed scope, so it would need separate approval before implementation.');
       }
     } else {
-      lines.push('The following request'+(additional.length===1?' is':'s are')+' classified as likely additional work and would need separate approval before implementation: '+joinRequests(additional)+'.');
+      const additionalItems=joinRequests(additional);
+      const additionalLine=style==='warm'
+        ? 'The following item would be an addition to the agreed scope, so we can agree it separately before any work begins: '+additionalItems+'.'
+        : style==='firm'
+          ? 'The following item is outside the agreed scope. I will not begin it until separate written approval is in place: '+additionalItems+'.'
+          : 'The following item falls outside the agreed scope and requires separate written approval before implementation: '+additionalItems+'.';
+      lines.push(additionalLine);
     }
   }
   if(clarify.length){
@@ -3929,10 +3940,16 @@ function buildFullResponse(rows){
       lines.push('The Services-page link is within the minor-link allowance, but it can be implemented only after the separately scoped Pricing page is approved and created.');
     }
   }
-  if(additional.length){ lines.push(style==='warm'?'If you’d like to proceed, we can confirm the approval, agreed fee and any timeline adjustment before implementation.':'If you’d like to proceed, we can confirm the approval, agreed fee and any timeline adjustment before implementation.'); }
-  else if(clarify.length){ lines.push('Once you confirm the clarification above, I’ll reassess the affected request against the agreed terms before implementation.'); }
+  if(additional.length){
+    lines.push(style==='warm'
+      ? 'If that works for you, I can put together the change proposal so we can agree the approval, fee and any timeline adjustment together.'
+      : style==='firm'
+        ? 'Work on this addition will remain on hold until the written approval, fee and any timeline adjustment are agreed.'
+        : 'Before implementation, we can document the approval, agreed fee and any timeline adjustment.');
+  }
+  else if(clarify.length){ lines.push(style==='warm'?'Once you confirm the detail above, I’ll gladly reassess the affected request against the agreed terms.':'Once you confirm the clarification above, I’ll reassess the affected request against the agreed terms before implementation.'); }
   else if(conditional.length){ lines.push('Please confirm the relevant condition before implementation.'); }
-  else { lines.push('Please confirm and I’ll proceed with the agreed changes.'); }
+  else { lines.push(style==='warm'?'Once confirmed, I’ll proceed with the agreed changes.':'Please confirm and I’ll proceed with the agreed changes.'); }
   return '<div class="scope-response"><h3>Full-scope client response</h3><div class="note">Generated from BoundaryFlow’s decisions. Choose a communication style without changing the underlying scope analysis.</div><div class="response">'+esc(lines.join(' '))+'</div><div class="copybar"><button class="btn accent" data-copy-all="1">Copy full response</button><button class="btn secondary" data-save="1">Save analysis</button></div></div>';
 }
 function refreshResponse(){if(window.rows&&window.rows.length){document.getElementById('out').innerHTML=buildFullResponse(window.rows)+document.getElementById('out').innerHTML.replace(/^.*?(?=<div class="metrics">)/s,'');}}

@@ -488,6 +488,11 @@ function extractClaimsAndRequests(q){
     /\b(?:i|we)\s+(?:thought|think)\s+(?:we\s+)?had\s+already\s+agreed\b[^.?!]*/ig,
     // Regression v76: a client's belief that the provider agreed is an entitlement claim, even without 'already'.
     /\b(?:i|we)\s+(?:thought|think)\s+(?:you|we|i)\s+(?:had|have)\s+agreed\b[^.?!]*/ig,
+    // Named-deliverable inclusion assertions are claims, not independent requests.
+    /\b(?:i|we)\s+(?:thought|think|believed?|understood)\s+(?:that\s+)?(?:the\s+)?[a-z0-9 &'-]+?\s+page\s+(?:was|is|would\s+be)\s+(?:already\s+)?(?:included|covered)\s+(?:in|within)\s+(?:the\s+)?(?:package|scope|agreement|contract|revision)\b[^.?!]*/ig,
+    // Deictic claims such as “I thought that was already included” remain
+    // claims even when the client has not identified which deliverable they mean.
+    /\b(?:i|we)\s+(?:thought|think|believed?|understood)\s+(?:that\s+)?(?:this|that|it|these|those|they)\s+(?:was|were|is|are|would\s+be)?\s*(?:already\s+)?(?:included|covered)\b[^.?!]*/ig,
     // Regression v76: package-inclusion assertions are claims, not separate deliverables.
     /\bthis\s+(?:should\s+be|is)\s+part\s+of\s+(?:the|our)\s+(?:website\s+)?package\b[^.?!]*/ig,
     /\b(?:i|we)\s+(?:thought|think)\s+(?:the\s+)?(?:blog|content)\s+package\s+(?:meant|included|covered)\b[^.?!]*/ig,
@@ -3354,7 +3359,7 @@ function bfR2Panel(data){
 }
 
 function bfClaimMatchesRequest(claim,request){
-  const stop=new Set(['this','that','they','them','their','there','what','when','where','which','would','could','should','please','client','think','thought','included','include','covered','cover','part','within','current','revision','round','scope','agreement','contract','approved','approval','already','said','told','agreed','believe','understand','want','like','need','asked','request','change','work','project']);
+  const stop=new Set(['this','that','they','them','their','there','what','when','where','which','would','could','should','please','client','think','thought','included','include','covered','cover','part','within','current','revision','round','scope','agreement','contract','approved','approval','already','said','told','agreed','believe','understand','want','like','need','asked','request','change','work','project','page']);
   const tokens=value=>new Set((String(value||'').toLowerCase().match(/[a-z0-9]+/g)||[])
     .filter(word=>word.length>=4&&!stop.has(word)));
   const a=tokens(claim),b=tokens(request);

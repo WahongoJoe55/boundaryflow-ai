@@ -151,3 +151,6 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 | BF-R75 | Already-used revision wording is counted explicitly. | Two revision rounds are included. The first revision round has already been used; correct the About-page spelling in the second round. | Count one completed round, identify the current second round and report one possible round remaining. |
 
 | BF-R76 | A spelling correction in round two exceeds a one-round allowance. | One revision round is included; the first has been used; spelling correction requested in round two. | Classify as Likely additional, while preserving the explicit revision count. |
+
+| BF-C01 | Customer-portal contradiction outside original topic list. | Customer portal included in one clause and excluded in another. | Detect the same-topic conflict and require review of chronology and authority. |
+| BF-C02 | Analytics/reporting contradiction outside original topic list. | Reporting dashboards included in one clause and excluded in another. | Detect the same-topic conflict without choosing a governing term. |

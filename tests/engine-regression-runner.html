@@ -137,6 +137,9 @@ const cases=[
 ,{id:'BF-L33',title:'Spelling inclusion does not override an explicit opposing exclusion',agreement:'Spelling corrections on existing pages are included. Spelling corrections on the About page are excluded unless separately approved in writing.',message:'Please correct the spelling mistake on the existing About page.',check:rows=>rows.length===1&&rows[0].status==='Clarify'&&/Conflicting spelling-correction scope wording/i.test(rows[0].type),expect:'Preserve the opposing clauses as a clarification; do not let a broad spelling-inclusion rule silently override a page-specific exclusion.'}
 
 
+,{id:'BF-L34',title:'Generic heading-change response does not invent the requested heading',agreement:'Minor visual and content changes to existing pages are included.',message:'Change the heading on the existing About page to “Our Approach”.',check:rows=>rows.length===1&&rows[0].status==='Likely included'&&!/Our Story/i.test(rows[0].response||'')&&/heading/i.test(rows[0].response||''),expect:'The client-facing response must not replace the heading supplied by the client with a hard-coded example such as “Our Story”.'}
+
+
 ];
 let lastResults=[];
 const norm=s=>String(s||'').toLowerCase();

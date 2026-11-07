@@ -143,3 +143,6 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 
 | BF-L36 | A scope claim names one of several requests. | Create Careers and Pricing pages, then say Pricing was included. | Link the claim to Pricing only; do not attach it to Careers. |
 | BF-L37 | A vague scope claim could refer to multiple requests. | Create Careers and add a newsletter form, then say “that was included”. | Keep the claim unlinked and ask which deliverable it concerns. |
+
+
+| BF-R73 | Mixed-scope order invariance | Same new Careers page and included About spelling correction are analysed in both request orders. | Careers remains Likely additional with written-approval evidence; spelling remains Likely included subject to the one-round allowance; allowance usage stays unknown. | Reordering requests must not alter request-level decisions or transfer evidence between requests. |

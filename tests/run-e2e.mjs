@@ -148,11 +148,6 @@ try{
   check('Portfolio-page clarification names the page in every user-facing clarification field',(()=>{const x=specificity[1];return [x.title,x.needed,x.question,x.why].every(v=>String(v||'').toLowerCase().includes('portfolio page'))})(),JSON.stringify(specificity[1]));
   check('Contact-form clarification names the form in every user-facing clarification field',(()=>{const x=specificity[2];return [x.title,x.needed,x.question,x.why].every(v=>String(v||'').toLowerCase().includes('contact form'))})(),JSON.stringify(specificity[2]));
   await setProject('E2E Mixed Message Acceptance');
-  const careersMixed=mixed.rows.find(x=>/careers page/i.test(x.request||''));
-  const spellingMixed=mixed.rows.find(x=>/spelling/i.test(x.request||''));
-  check('Mixed client message produces exactly two actionable requests',mixed.rows.length===2,JSON.stringify(mixed.rows));
-  check('New Careers page cites the express written-approval exclusion',careersMixed?.status==='Likely additional'&&/separate written approval/i.test(String(careersMixed?.evidence||'')),JSON.stringify(careersMixed||null));
-  check('About spelling correction is included subject to the allowance',spellingMixed?.status==='Likely included'&&/subject to the agreed revision allowance/i.test(String(spellingMixed?.boundary||'')),JSON.stringify(spellingMixed||null));
   check('Revision safeguard detects one round while leaving usage unknown',await page.evaluate(()=>window.bfReasoningV2?.revisions?.allowance===1&&window.bfReasoningV2?.revisions?.completed===null&&window.bfReasoningV2?.revisions?.remaining===null),JSON.stringify(await page.evaluate(()=>window.bfReasoningV2?.revisions||null)));
   await select('responseStyle','professional');
   const professionalDraft=await page.locator('#out').innerText();

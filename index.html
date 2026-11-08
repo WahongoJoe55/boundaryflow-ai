@@ -4510,6 +4510,16 @@ function saveDraftFields(){try{localStorage.setItem(bfScopedKey('boundaryflow_dr
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2.119.0"></script>
 <script>
+async function bfCloudFindExistingAnalysis(client,userId,localId){
+  if(!client||!userId||!localId)return null;
+  // A previous insert may have reached Supabase even if the browser lost the
+  // response. Resolve the stable local analysis ID before inserting again.
+  const result=await client.from('analyses').select('id')
+    .eq('user_id',userId).eq('result_json->>localId',localId)
+    .order('created_at',{ascending:true}).limit(1).maybeSingle();
+  if(result.error)throw result.error;
+  return result.data||null;
+}
 function bfCloudHasLocalItem(history,id){return Array.isArray(history)&&history.some(x=>x&&x.id===id);}
 function bfCloudMergeSyncMetadata(history,id,metadata){
   const next=Array.isArray(history)?history.slice():[];
@@ -4637,6 +4647,10 @@ async function bfCloudDeleteQueuedRow(client,userId,id){
     const payload=localPayload(item);
     const row={user_id:user.id,project_id:projectId,agreement_id:agreementId,client_message:item.request,result_json:payload,generated_response:payload.generatedResponse};
     let cloudId=item.cloudAnalysisId;
+    if(!cloudId){
+      const existing=await bfCloudFindExistingAnalysis(client,user.id,item.id);
+      if(existing)cloudId=existing.id;
+    }
     if(cloudId){const updated=await client.from('analyses').update(row).eq('id',cloudId).eq('user_id',user.id).select('id').maybeSingle();if(updated.error)throw updated.error;if(!updated.data)cloudId=null}
     if(!cloudId){const inserted=await client.from('analyses').insert(row).select('id').single();if(inserted.error)throw inserted.error;cloudId=inserted.data.id}
     const cloudSyncedAt=new Date().toISOString();

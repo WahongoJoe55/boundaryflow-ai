@@ -189,3 +189,12 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 | BF-E05 | Conditional boundary-risk presentation. | Conditional decision with an unresolved prerequisite. | Display Medium boundary risk; do not default to Low. |
 
 | BF-SYNC-01 | Ambiguous cloud insert retry. | An analysis row may already exist after a network response is lost. | Look up the existing row by user ID and stable local analysis ID before inserting again. |
+
+
+## Commercial safeguard extensions — 8 November 2026
+
+| ID | Agreement / context | Client message | Expected behaviour |
+|---|---|---|---|
+| BF-C09 | New functionality requires separate written approval; no fee is agreed. | Add a newsletter feature. | Unsupported fees expressed as “500 USD”, “five hundred dollars” or “300 KES” must be replaced with “fee to be agreed”. |
+| BF-C10 | New functionality requires separate written approval; no delivery date is agreed. | Add a newsletter feature. | Unsupported relative dates such as “tomorrow”, “next Friday” and “end of week” must be replaced with “delivery timing to be agreed”. |
+| BF-C11 | An approved change order states a fee of 500 USD and delivery next Friday; content is limited to 500 words. | Complete the approved change order. | Preserve the grounded fee/date and do not mistake the 500-word content limit for a fee. |

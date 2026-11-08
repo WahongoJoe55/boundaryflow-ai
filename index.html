@@ -3409,8 +3409,8 @@ function bfR2Dependencies(message,rows){
 function bfR2Commercial(text,message,rows){
  const source=String(text||'')+' '+String(message||'');
  const generated=(rows||[]).flatMap(x=>[x.c&&x.c.action,x.c&&x.c.response].filter(Boolean)).join(' ');
- const amountRe=/(?:[$£€]\s?\d[\d,]*(?:\.\d{1,2})?|\b(?:USD|GBP|EUR|KES|KSh)\s?\d[\d,]*(?:\.\d{1,2})?)/gi;
- const dateRe=/\b(?:by|before|within|in)\s+(?:\d+\s+(?:business\s+)?days?|monday|tuesday|wednesday|thursday|friday|saturday|sunday|\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?)\b/gi;
+ const amountRe=/(?:[$£€]\s?\d[\d,]*(?:\.\d{1,2})?|\b(?:USD|GBP|EUR|KES|KSh)\s?\d[\d,]*(?:\.\d{1,2})?|\b\d[\d,]*(?:\.\d{1,2})?\s?(?:USD|GBP|EUR|KES|KSh|dollars?|pounds?|euros?|shillings?)\b|\b(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million)(?:[-\s]+(?:and\s+)?(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million))*\s+(?:dollars?|pounds?|euros?|shillings?)\b)/gi;
+ const dateRe=/\b(?:(?:by|before|within|in|on|for)\s+(?:(?:the\s+)?next\s+)?(?:\d+\s+(?:business\s+)?days?|today|tomorrow|end of (?:day|week|month)|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?:\s+\d{1,2}(?:st|nd|rd|th)?)?|\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?|\d{1,2}\s+(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)(?:\s+\d{4})?|(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+\d{1,2}(?:,?\s+\d{4})?)|today|tomorrow|next\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|week|month)|end of (?:day|week|month))\b/gi;
  const sourceAmounts=source.match(amountRe)||[],generatedAmounts=generated.match(amountRe)||[];
  const sourceDates=source.match(dateRe)||[],generatedDates=generated.match(dateRe)||[];
  const ungroundedAmounts=generatedAmounts.filter(v=>!sourceAmounts.some(s=>bfR2Normalize(s)===bfR2Normalize(v)));
@@ -3419,8 +3419,8 @@ function bfR2Commercial(text,message,rows){
 }
 function bfR2ApplyCommercialGuard(rows,agreement,message){
  const source=String(agreement||'')+' '+String(message||'');
- const amountRe=/(?:[$£€]\s?\d[\d,]*(?:\.\d{1,2})?|\b(?:USD|GBP|EUR|KES|KSh)\s?\d[\d,]*(?:\.\d{1,2})?)/gi;
- const dateRe=/\b(?:by|before|within|in)\s+(?:\d+\s+(?:business\s+)?days?|monday|tuesday|wednesday|thursday|friday|saturday|sunday|\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?)\b/gi;
+ const amountRe=/(?:[$£€]\s?\d[\d,]*(?:\.\d{1,2})?|\b(?:USD|GBP|EUR|KES|KSh)\s?\d[\d,]*(?:\.\d{1,2})?|\b\d[\d,]*(?:\.\d{1,2})?\s?(?:USD|GBP|EUR|KES|KSh|dollars?|pounds?|euros?|shillings?)\b|\b(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million)(?:[-\s]+(?:and\s+)?(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million))*\s+(?:dollars?|pounds?|euros?|shillings?)\b)/gi;
+ const dateRe=/\b(?:(?:by|before|within|in|on|for)\s+(?:(?:the\s+)?next\s+)?(?:\d+\s+(?:business\s+)?days?|today|tomorrow|end of (?:day|week|month)|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?:\s+\d{1,2}(?:st|nd|rd|th)?)?|\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?|\d{1,2}\s+(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)(?:\s+\d{4})?|(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+\d{1,2}(?:,?\s+\d{4})?)|today|tomorrow|next\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|week|month)|end of (?:day|week|month))\b/gi;
  const amounts=source.match(amountRe)||[],dates=source.match(dateRe)||[];
  const allowed=(value,list)=>list.some(x=>bfR2Normalize(x)===bfR2Normalize(value));
  (rows||[]).forEach(row=>{

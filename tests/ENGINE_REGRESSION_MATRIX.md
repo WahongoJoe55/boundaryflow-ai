@@ -180,3 +180,5 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 | BF-R79 | Conflicting revision allowances | Distinct numeric allowances remain unresolved; no arbitrary last-clause selection or remaining balance | Regression runner |
 
 | BF-L39 | Scope-claim association | Attach a claim to the request named by its content, not the first request | Regression runner |
+
+| BF-C08 | Topic-isolated contradiction detection | A clear exclusion for one deliverable and inclusion for another in the same sentence is not a false conflict | Regression runner |

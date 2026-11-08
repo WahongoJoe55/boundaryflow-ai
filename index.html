@@ -3621,7 +3621,7 @@ function analyze(){
     if(explicitPageCreationAtomic && agreementRequiresPageApproval && ledgerPageRecords.length===0){
       c.type='New page requiring separate written approval'; c.detected=c.type;
       c.status='Likely additional'; c.confidence='High'; c.risk='High';
-      const pageScopeEvidence=scopeEvidence(a,['new pages']);
+      const pageScopeEvidence=scopeEvidence(a,['new pages','new website pages']);
       const pageMessage=String(a||'')+'\\n'+String(r||'');
       const extractedPageClaims=extractClaimsAndRequests(pageMessage).claims;
       const fallbackPageClaim=pageMessage.match(/[^.!?]*(?:client says|client claims|i thought|we discussed|we agreed|as discussed|you promised|you said|we were told|i was told)[^.!?]*/i);

@@ -2965,9 +2965,20 @@ function reanalyzeWithClarification(n){
       z.q=replacements[0].q; z.c=replacements[0].c;
     }
   } else if(plan.mode==='agreement'){
-    const augmentedAgreement=document.getElementById('a').value.trim()+'\n\n[Additional freelancer-provided clarification — not an amendment to the agreement]\n'+answer;
-    z.c=classify(z.q,augmentedAgreement);
-    z.c.clarification={answer:answer,question:plan.question,whatChanged:'The governing scope reference supplied by the freelancer was added as separate clarification evidence; the original agreement text was not edited.'};
+    // A user-supplied version label or clause excerpt cannot decide which
+    // conflicting agreement governs. Do not append it to the classifier input:
+    // doing so would let an unverified clarification silently overwrite the
+    // existing Scope conflict. Preserve the baseline decision and both records.
+    z.c=Object.assign({},old,{
+      confidence:old.confidence||'Low',
+      evidence:String(old.evidence||'')+' Additional scope-version information was supplied: “'+answer.replace(/[<>]/g,'').slice(0,700)+'” It has not been treated as the governing version or as an amendment.',
+      boundary:String(old.boundary||'The original scope conflict remains unresolved.')+' The supplied clarification does not independently establish which version was approved, its effective date, the parties’ authority or whether it supersedes the conflicting term.',
+      action:'Keep this request on hold pending verification of the governing scope version. Compare the complete original agreement and any signed or otherwise qualifying amendment, including dates, parties, approval authority and supersession wording. Do not implement based on a version description or isolated excerpt alone.',
+      clarification:{answer:answer,question:plan.question,mode:'evidence_gate',source:'unverified',sourceMismatch:false,conflictDetected:true,whatChanged:'The supplied scope-version information was retained separately. The original Scope conflict and baseline agreement were preserved; no unverified version was allowed to override them.'}
+    });
+    renderResults();
+    document.getElementById('status').textContent='Scope conflict retained. The governing agreement version has not been established by the supplied clarification.';
+    return;
   } else if(authoritative && plan.mode==='context'){
     const agreement=document.getElementById('a').value.trim();
     const sourceDescription=evidenceSource==='approved_amendment'?'written approval described in supplied text':'additional context / unverified information';

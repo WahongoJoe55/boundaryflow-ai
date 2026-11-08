@@ -248,7 +248,7 @@ async function run(){
   const passed=results.filter(x=>x.pass).length;
   document.getElementById('runStatus').textContent='Completed '+results.length+' tests against the loaded application. '+passed+' passed; '+(results.length-passed)+' need review.';
   document.getElementById('download').disabled=false;
- }catch(e){document.getElementById('runStatus').textContent=e.message}
+ }catch(e){document.getElementById('runStatus').textContent=e&&e.stack?e.stack:String(e&&e.message||e)}
  finally{button.disabled=false}
 }
 function csv(){

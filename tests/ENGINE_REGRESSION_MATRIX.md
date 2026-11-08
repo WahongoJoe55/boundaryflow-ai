@@ -172,3 +172,5 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 | BF-R77 | Included individual responses preserve the actual request. | Copy Warm and Firm responses for an included dashboard-layout refinement. | Do not replace the request with a hard-coded spelling correction; preserve the revision-allowance condition. |
 
 | BF-R78 | Client-claim response tone is request-neutral | Warm/Firm response copy asks for verifiable written evidence without assuming a revision or spelling request | Regression runner |
+
+| BF-R77 | Included-work response tone | Warm/Firm framing preserves the complete request-specific inclusion explanation and revision caveat | Regression runner |

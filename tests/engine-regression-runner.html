@@ -193,7 +193,24 @@ function getEngine(){
 function waitEngine(timeout){
  return new Promise((resolve,reject)=>{
   const start=Date.now();
-  const poll=()=>{const w=getEngine();if(w)return resolve(w);if(Date.now()-start>timeout)return reject(new Error('The application engine did not become available. Check that the app and test page are hosted on the same GitHub Pages site, then refresh.'));setTimeout(poll,250)};
+  const poll=()=>{
+   const w=getEngine();
+   if(w)return resolve(w);
+   if(Date.now()-start>timeout){
+    const frame=document.getElementById('engine');
+    let diagnostic={frameSrc:frame&&frame.src,frameReadyState:'unavailable',bodyText:'',analyzeType:'unavailable',inputPresent:false,scriptCount:0};
+    try{
+     const child=frame&&frame.contentWindow;
+     const doc=child&&child.document;
+     diagnostic={frameSrc:frame&&frame.src,frameReadyState:doc&&doc.readyState||'unavailable',
+      bodyText:String(doc&&doc.body&&doc.body.innerText||'').slice(0,1200),
+      analyzeType:typeof(child&&child.analyze),inputPresent:!!(doc&&doc.getElementById('a')),
+      scriptCount:doc?doc.scripts.length:0,regressionMode:!!(child&&child.__BF_REGRESSION_MODE)};
+    }catch(error){diagnostic.frameAccessError=String(error&&error.message||error);}
+    return reject(new Error('Application engine unavailable after '+timeout+'ms. Frame diagnostics: '+JSON.stringify(diagnostic)));
+   }
+   setTimeout(poll,250);
+  };
   poll();
  });
 }

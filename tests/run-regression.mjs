@@ -48,7 +48,15 @@ try {
   const response=await page.goto('http://127.0.0.1:4173/tests/engine-regression-runner.html',{waitUntil:'domcontentloaded'});
   if(!response?.ok()) throw new Error('Regression runner failed to load.');
   await page.locator('#run').click();
-  await page.waitForFunction(()=>document.getElementById('runStatus')?.textContent.includes('Completed'),null,{timeout:30000});
+  // The runner can terminate with a useful engine-load diagnostic as well as
+  // with a completed suite. Wait for either outcome; do not hide the diagnostic
+  // behind a second generic Playwright timeout.
+  await page.waitForFunction(()=>{
+    const status=document.getElementById('runStatus')?.textContent||'';
+    return status.includes('Completed') || !status.includes('Loading the application engine');
+  },null,{timeout:25000});
+  const runnerStatus=await page.locator('#runStatus').innerText();
+  if(!runnerStatus.includes('Completed')) throw new Error('Regression runner stopped before executing cases: '+runnerStatus);
   const results=await page.locator('.case').evaluateAll(cards=>cards.map(card=>({
     id:card.querySelector('.casehead b')?.textContent||'',
     result:card.querySelector('.casehead .pass,.casehead .fail')?.textContent||'UNKNOWN',

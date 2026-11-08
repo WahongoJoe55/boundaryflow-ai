@@ -81,6 +81,20 @@ try{
     cloudDeleteContract.absent.retry===false&&cloudDeleteContract.failed.retry===true,
     JSON.stringify(cloudDeleteContract));
 
+  const cloudSaveRaceContract=await page.evaluate(()=>{
+    const metadata={cloudAnalysisId:'remote-1',cloudProjectId:'project-1',cloudAgreementId:'agreement-1',cloudSyncedAt:'2026-11-08T00:00:00.000Z'};
+    const deleted=window.bfCloudMergeSyncMetadata([],'deleted-analysis',metadata);
+    const latest=window.bfCloudMergeSyncMetadata([{id:'analysis-1',scope:'newer scope',request:'newer request',name:'Current project'}],'analysis-1',metadata);
+    return {deletedFound:deleted.found,deletedHistoryLength:deleted.history.length,
+      latestFound:latest.found,scope:latest.item&&latest.item.scope,request:latest.item&&latest.item.request,
+      cloudId:latest.item&&latest.item.cloudAnalysisId};
+  });
+  check('A pending cloud save cannot resurrect a deleted analysis or overwrite newer local edits',
+    cloudSaveRaceContract.deletedFound===false&&cloudSaveRaceContract.deletedHistoryLength===0&&
+    cloudSaveRaceContract.latestFound===true&&cloudSaveRaceContract.scope==='newer scope'&&
+    cloudSaveRaceContract.request==='newer request'&&cloudSaveRaceContract.cloudId==='remote-1',
+    JSON.stringify(cloudSaveRaceContract));
+
   await page.locator('#guideBtn').click();
   const guideText=await page.locator('#userGuide').innerText();
   const guideSteps=await page.locator('#userGuide .guide-step').count();

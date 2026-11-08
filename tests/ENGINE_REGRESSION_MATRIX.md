@@ -185,3 +185,5 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 
 
 | BF-E04 | Internal page link versus third-party integration exclusion. | Existing About and Services pages; third-party integrations require separate approval; request connects the two pages with an internal link. | Do not classify an internal link as an excluded third-party integration based on the generic verb “connect”. |
+
+| BF-E05 | Conditional boundary-risk presentation. | Conditional decision with an unresolved prerequisite. | Display Medium boundary risk; do not default to Low. |

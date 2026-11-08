@@ -2531,6 +2531,9 @@ function risk(s){
   if(s.includes('additional'))return['High','risk-high'];
   if(s.includes('claim'))return['High','risk-high'];
   if(s.includes('Clarify'))return['Medium','risk-medium'];
+  // Conditional decisions carry an unresolved prerequisite and must not be
+  // rendered as Low risk merely because their label is not in another branch.
+  if(s.includes('Conditional'))return['Medium','risk-medium'];
   if(s.includes('Constraint'))return['Low','risk-low'];
   return['Low','risk-low'];
 }

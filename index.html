@@ -4594,7 +4594,21 @@ function saveDraftFields(){try{localStorage.setItem(bfScopedKey('boundaryflow_dr
     return item;
   }
   function queueSave(item){if(!cloud.client||!cloud.user||!item)return Promise.resolve();const id=item.id||'current';const prior=cloud.pending.get(id)||Promise.resolve();const task=prior.catch(()=>{}).then(()=>{const latest=bfHistory().find(x=>x.id===id)||item;return saveItem(latest)});cloud.pending.set(id,task);task.then(()=>{status('Synced','completed');message('✓ Project, agreed scope and analysis saved to Supabase. Local autosave remains available.');}).catch(e=>cloudError(e,'Cloud save failed; your local copy is safe')).finally(()=>{if(cloud.pending.get(id)===task)cloud.pending.delete(id)});return task;}
-  async function deleteQueuedRemote(){const client=requireClient(),user=requireUser();const q=parseDeleteQueue();const remaining=[];for(const id of q){const res=await client.from('analyses').delete().eq('id',id).eq('user_id',user.id);if(res.error)remaining.push(id)}localStorage.setItem(scopedDeleteQueueKey(),JSON.stringify(remaining));if(remaining.length)message('Some cloud deletions are pending; tap Sync now to retry.');}
+  async function deleteQueuedRemote(){
+    const client=requireClient(),user=requireUser(),q=parseDeleteQueue(),remaining=[];
+    for(const id of q){
+      // Confirm the row is visible to this account before attempting deletion.
+      // Supabase may return zero rows without an error when RLS filters a write;
+      // never clear the retry queue merely because the request returned no error.
+      const existing=await client.from('analyses').select('id').eq('id',id).eq('user_id',user.id).maybeSingle();
+      if(existing.error){remaining.push(id);continue;}
+      if(!existing.data)continue; // Already absent or not visible to this account; never delete another tenant's row.
+      const deleted=await client.from('analyses').delete().eq('id',id).eq('user_id',user.id).select('id');
+      if(deleted.error||!(deleted.data||[]).some(row=>row.id===id))remaining.push(id);
+    }
+    localStorage.setItem(scopedDeleteQueueKey(),JSON.stringify(remaining));
+    if(remaining.length)message('Some cloud deletions are still pending or could not be confirmed; tap Sync now to retry.');
+  }
   function parseDeleteQueue(){try{return JSON.parse(localStorage.getItem(scopedDeleteQueueKey())||'[]').filter(x=>typeof x==='string')}catch(e){return []}}
   function cloudItem(row,projectNames){const d=row.result_json&&typeof row.result_json==='object'?row.result_json:{};const localId=d.localId||('cloud-'+row.id);return {id:localId,cloudAnalysisId:row.id,cloudProjectId:row.project_id,cloudAgreementId:row.agreement_id||null,cloudSyncedAt:row.created_at||new Date().toISOString(),name:d.name||projectNames[row.project_id]||'Untitled analysis',date:d.date||new Date(row.created_at).toLocaleString(),updatedAt:d.updatedAt||row.created_at,count:d.count||0,tone:d.tone||'professional',taskStatus:d.taskStatus||'in_progress',metrics:d.metrics||{},scope:d.scope||'',request:d.request||row.client_message||'',rows:Array.isArray(d.rows)?d.rows:[],autoSaved:!!d.autoSaved,manualSaved:!!d.manualSaved,engineVersion:d.engineVersion||'1.2.78',generatedResponse:row.generated_response||d.generatedResponse||null};}
   async function bfCloudSyncAll(){

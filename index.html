@@ -2941,7 +2941,7 @@ function reanalyzeWithClarification(n){
     const nextConfidence=old.confidence||'Medium';
     z.c=Object.assign({},old,{confidence:nextConfidence,
       evidence:baseEvidence+' Additional information was supplied as '+(sourceMismatch?'unverified context due to a source-label mismatch':sourceLabel)+'; it is retained separately and is not treated as an approved scope change.',
-      boundary:(old.boundary||'The existing scope assessment remains unchanged.')+(sourceMismatch?' The selected source label claims mutual confirmation, but the supplied wording does not establish confirmation by both parties. Do not treat it as mutual approval.':contradictory?' The supplied information appears to conflict with or challenge the existing scope record. Preserve both accounts and verify the underlying record.':' The additional information is context, not an established contractual term.')+' Pasted wording is unverified and does not authenticate the original record, sender identity, authority or approval conditions.',
+      boundary:(old.boundary||'The existing scope assessment remains unchanged.')+(sourceMismatch?' The selected source label claims mutual confirmation, but the supplied wording does not establish confirmation by both parties. Do not treat it as mutual approval.':contradictory?' The supplied information appears to conflict with or challenge the existing scope record. Preserve both accounts and verify the underlying record.':' The additional information is context, not an established contractual term.')+' Pasted wording is not authenticated and does not establish the original record, sender identity, authority or approval conditions.',
       action:(/\btestimonial(?:s)?\b/i.test(String(z.q||'')) && /\bnew\s+content\s+sections?\b/i.test(normalize(a)) && /\bexclud(?:e|ed|es|ing)\b/i.test(normalize(a)))?'Do not implement the testimonial section yet. The agreement excludes new content sections and the supplied clarification confirms that no separate written approval changing that exclusion has been provided. Ask for the final testimonial content, publication permissions and presentation preference; prepare a separate change proposal and obtain written approval before implementation. Continue the other work already covered by the agreement.':sourceMismatch?'Keep the existing scope decision pending verification. Correct the source selection or provide the actual written record showing both parties’ agreement before relying on it.':contradictory?'Keep the existing scope decision pending verification of the apparent evidence conflict.':'Retain the information as context; do not treat it as an approved scope change.',
       clarification:{answer:answer,question:plan.question,mode:'evidence_gate',source:evidenceSource,sourceMismatch:sourceMismatch,whatChanged:sourceMismatch?'The selected mutual-confirmation label did not match the supplied wording. The evidence was retained as unverified context; the prior classification, confidence and risk were preserved.':contradictory?'The information was recorded as '+sourceLabel+' and flagged as potentially inconsistent with the existing scope record.':'The information was recorded as '+sourceLabel+' but was not promoted to agreed scope evidence.'}});
     renderResults();
@@ -3304,7 +3304,7 @@ function bfR2TopicState(clause){
 function bfR2Topics(clause){
  const s=bfR2Normalize(clause),topics=[];
  const map=[
-  ['new pages',/\bnew\s+pages?\b|\bpage creation\b/],
+  ['new pages',/\bnew\s+pages?\b|\bpage creation\b|\bnew\s+[a-z0-9][a-z0-9 &'-]*?\s+page\b/],
   ['new functionality',/\bnew functionality\b|\bnew features?\b|\bbooking form\b/],
   ['integrations',/\bintegrations?\b|\bthird.party connections?\b/],
   ['revisions',/\brevision rounds?\b|\brevisions?\b/],
@@ -3622,7 +3622,10 @@ function analyze(){
       c.type='New page requiring separate written approval'; c.detected=c.type;
       c.status='Likely additional'; c.confidence='High'; c.risk='High';
       const pageScopeEvidence=scopeEvidence(a,['new pages']);
-      const pageClaims=extractClaimsAndRequests(item.originalMessage||'').claims;
+      const pageMessage=String(item.originalMessage||'');
+      const extractedPageClaims=extractClaimsAndRequests(pageMessage).claims;
+      const fallbackPageClaim=pageMessage.match(/[^.!?]*(?:client says|client claims|i thought|we discussed|we agreed|as discussed|you promised|you said|we were told|i was told)[^.!?]*/i);
+      const pageClaims=extractedPageClaims.length?extractedPageClaims:(fallbackPageClaim?[fallbackPageClaim[0].trim()]:[]);
       c.evidence=pageScopeEvidence+(pageClaims.length?' Unverified client assertion — not approval evidence: '+pageClaims.join(' | '):'');
       c.actual=atomicRequestText; c.request=atomicRequestText;
       c.boundary='The requested Careers page is a new deliverable, not a revision to either of the two agreed pages. The agreement expressly reserves new pages for separate written approval.';

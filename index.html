@@ -4589,20 +4589,46 @@ async function bfCloudDeleteQueuedRow(client,userId,id){
     map[mapKey]=id;setMap(AGREEMENT_MAP_KEY,map);return id;
   }
   async function saveItem(item){
-    const client=requireClient(),user=requireUser();if(!item||!item.scope||!item.request) return;
+    const client=requireClient(),user=requireUser();
+    if(!item||!item.scope||!item.request)return null;
+    const stillInLocalHistory=()=>bfHistory().some(x=>x&&x.id===item.id);
+    // A user can delete an analysis while an asynchronous cloud save is waiting.
+    // Do not fall back to the stale captured item or recreate it after deletion.
+    if(!stillInLocalHistory())return null;
     if(item.scope.length>200000)throw new Error('The agreement exceeds the database limit of 200,000 characters. It remains saved locally.');
     if(item.request.length>100000)throw new Error('The client message exceeds the database limit of 100,000 characters. It remains saved locally.');
-    const projectId=await ensureProject(item,user);const agreementId=await ensureAgreement(projectId,item.scope,user,item);const payload=localPayload(item);
+    const projectId=await ensureProject(item,user);
+    if(!stillInLocalHistory())return null;
+    const agreementId=await ensureAgreement(projectId,item.scope,user,item);
+    if(!stillInLocalHistory())return null;
+    const payload=localPayload(item);
     const row={user_id:user.id,project_id:projectId,agreement_id:agreementId,client_message:item.request,result_json:payload,generated_response:payload.generatedResponse};
     let cloudId=item.cloudAnalysisId;
     if(cloudId){const updated=await client.from('analyses').update(row).eq('id',cloudId).eq('user_id',user.id).select('id').maybeSingle();if(updated.error)throw updated.error;if(!updated.data)cloudId=null}
     if(!cloudId){const inserted=await client.from('analyses').insert(row).select('id').single();if(inserted.error)throw inserted.error;cloudId=inserted.data.id}
-    item.cloudAnalysisId=cloudId;item.cloudProjectId=projectId;item.cloudAgreementId=agreementId;item.cloudSyncedAt=new Date().toISOString();
-    const hist=bfHistory();const index=hist.findIndex(x=>x.id===item.id);if(index>=0)hist[index]=Object.assign({},hist[index],item);else hist.unshift(item);bfWriteHistory(hist);
-    try{const draft=JSON.parse(localStorage.getItem(bfScopedKey('boundaryflow_autosave_v1'))||'null');if(draft&&draft.id===item.id)localStorage.setItem(bfScopedKey('boundaryflow_autosave_v1'),JSON.stringify(Object.assign({},draft,item)))}catch(e){}
-    return item;
+    const hist=bfHistory(),index=hist.findIndex(x=>x&&x.id===item.id);
+    if(index<0){
+      // The user deleted the local item while the network write was in flight.
+      // Remove the just-written cloud row; if confirmation fails, keep a retry.
+      const cleanup=await bfCloudDeleteQueuedRow(client,user.id,cloudId);
+      if(cleanup.retry){
+        const q=parseDeleteQueue();if(!q.includes(cloudId)){q.push(cloudId);localStorage.setItem(scopedDeleteQueueKey(),JSON.stringify(q));}
+        message('The analysis was removed locally; its cloud deletion is queued for retry.');
+      }
+      return null;
+    }
+    const cloudSyncedAt=new Date().toISOString();
+    // Merge only cloud identifiers into the latest local version. Never replace
+    // newer edits with the stale payload that happened to finish uploading first.
+    const syncedItem=Object.assign({},hist[index],{cloudAnalysisId:cloudId,cloudProjectId:projectId,cloudAgreementId:agreementId,cloudSyncedAt});
+    hist[index]=syncedItem;bfWriteHistory(hist);
+    try{
+      const draft=JSON.parse(localStorage.getItem(bfScopedKey('boundaryflow_autosave_v1'))||'null');
+      if(draft&&draft.id===item.id)localStorage.setItem(bfScopedKey('boundaryflow_autosave_v1'),JSON.stringify(Object.assign({},draft,{cloudAnalysisId:cloudId,cloudProjectId:projectId,cloudAgreementId:agreementId,cloudSyncedAt})));
+    }catch(e){}
+    return syncedItem;
   }
-  function queueSave(item){if(!cloud.client||!cloud.user||!item)return Promise.resolve();const id=item.id||'current';const prior=cloud.pending.get(id)||Promise.resolve();const task=prior.catch(()=>{}).then(()=>{const latest=bfHistory().find(x=>x.id===id)||item;return saveItem(latest)});cloud.pending.set(id,task);task.then(()=>{status('Synced','completed');message('✓ Project, agreed scope and analysis saved to Supabase. Local autosave remains available.');}).catch(e=>cloudError(e,'Cloud save failed; your local copy is safe')).finally(()=>{if(cloud.pending.get(id)===task)cloud.pending.delete(id)});return task;}
+  function queueSave(item){if(!cloud.client||!cloud.user||!item)return Promise.resolve();const id=item.id||'current';const prior=cloud.pending.get(id)||Promise.resolve();const task=prior.catch(()=>{}).then(()=>{const latest=bfHistory().find(x=>x&&x.id===id);if(!latest)return null;return saveItem(latest)});cloud.pending.set(id,task);task.then(saved=>{if(!saved)return;status('Synced','completed');message('✓ Project, agreed scope and analysis saved to Supabase. Local autosave remains available.');}).catch(e=>cloudError(e,'Cloud save failed; your local copy is safe')).finally(()=>{if(cloud.pending.get(id)===task)cloud.pending.delete(id)});return task;}
   async function deleteQueuedRemote(){
     const client=requireClient(),user=requireUser(),q=parseDeleteQueue(),remaining=[];
     for(const id of q){

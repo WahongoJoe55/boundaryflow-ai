@@ -3350,14 +3350,21 @@ function bfR2Contradictions(text){
 function bfR2Revision(text,message){
  const a=String(text||''),m=String(message||'');
  const allowanceClauses=bfR2Clauses(a).filter(x=>(/\brevision rounds?\b/i.test(x)||/\brounds?\s+of\s+revisions?\b/i.test(x))&&/\b(?:includ(?:ed|es?)|allowed|provided|maximum|up to)\b/i.test(x));
- let allowance=null;
- allowanceClauses.forEach(x=>{const n=bfR2Number(x);if(n!==null)allowance=n;});
+ const allowanceCandidates=[...new Set(allowanceClauses.map(x=>bfR2Number(x)).filter(n=>n!==null))];
+ // Never let the last matching clause silently overwrite a different numeric
+ // allowance. Different counts may refer to separate pages or conflicting
+ // terms; without a reliable request-to-clause mapping, keep the balance unknown.
+ const allowanceConflict=allowanceCandidates.length>1;
+ const allowance=allowanceCandidates.length===1?allowanceCandidates[0]:null;
  const usedMatches=[...m.matchAll(/\b(?:first|one|second|two|third|three|fourth|four|fifth|five|\d+)\s+(?:included\s+)?revision rounds?\s+(?:(?:has|have)\s+(?:already\s+)?been\s+|(?:was|were)\s+(?:already\s+)?|)(?:used|completed|exhausted)\b/gi)];
  let completed=null;
  if(usedMatches.length){completed=0;usedMatches.forEach(x=>{const n=bfR2Number(x[0]);if(n!==null)completed=Math.max(completed,n);});}
  const currentMatch=m.match(/\b(?:second|third|fourth|fifth|\d+)(?:\s+included)?\s+revision round\b/i);
  const current=currentMatch?bfR2Number(currentMatch[0]):null;
- return {allowance,completed,current,remaining:allowance!==null&&completed!==null?Math.max(0,allowance-completed):null,confidence:allowance!==null&&completed!==null?'Explicit text count; verify against the project history.':'Insufficient explicit usage records to calculate remaining rounds.',warning:allowance!==null&&completed===null?'The agreement states an allowance, but the supplied message does not establish how many rounds have actually been completed.':(allowance===null?'No numeric revision-round allowance was found.':'Do not count individual edits as separate revision rounds.')};
+ const remaining=allowance!==null&&completed!==null?Math.max(0,allowance-completed):null;
+ const confidence=allowanceConflict?'Conflicting numeric allowances; clarify which clause applies to this request.':(allowance!==null&&completed!==null?'Explicit text count; verify against the project history.':'Insufficient explicit usage records to calculate remaining rounds.');
+ const warning=allowanceConflict?'The agreement contains different numeric revision allowances. Do not calculate a remaining balance until the applicable page, workstream or clause is confirmed.':(allowance!==null&&completed===null?'The agreement states an allowance, but the supplied message does not establish how many rounds have actually been completed.':(allowance===null?'No single numeric revision-round allowance could be established.':'Do not count individual edits as separate revision rounds.'));
+ return {allowance,allowanceCandidates,allowanceConflict,completed,current,remaining,confidence,warning};
 }
 function bfR2Dependencies(message,rows){
  const text=String(message||''),edges=[];

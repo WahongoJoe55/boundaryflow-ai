@@ -3397,13 +3397,13 @@ function bfR2Panel(data){
  const r=data.revisions||{},c=data.commercial||{},ledger=window.bfLedgerAnalysisMeta||null;
  const ledgerSummary=ledger&&ledger.totalEntries?section('Project ledger context',
   '<p class="note">Project: '+esc2(ledger.projectName)+' · '+ledger.totalEntries+' user-recorded ledger entr'+(ledger.totalEntries===1?'y':'ies')+'. Ledger context is local to this signed-in account and project.</p>'+
-  (ledger.used.length?'<p class="note"><b>Used as supplemental scope context (not independently authenticated):</b></p><ul>'+ledger.used.map(x=>'<li>'+esc2(x.title)+' — '+esc2(x.type)+' · '+esc2(x.sourceType)+' · '+esc2(x.status)+(x.sourceDate?' · source date '+esc2(x.sourceDate):'')+'</li>').join('')+'</ul>':'<p class="note">No baseline or approved supplemental scope records qualified for use in this analysis.</p>')+
+  (ledger.used.length?'<p class="note"><b>Candidate records surfaced for manual review only — not inserted into the agreement text or treated as proof:</b></p><ul>'+ledger.used.map(x=>'<li>'+esc2(x.title)+' — '+esc2(x.type)+' · '+esc2(x.sourceType)+' · '+esc2(x.status)+(x.sourceDate?' · source date '+esc2(x.sourceDate):'')+'</li>').join('')+'</ul>':'<p class="note">No candidate baseline or approved supplemental records were found in the ledger.</p>')+
   (ledger.revisionEvents.length?'<p class="note"><b>Revision history (user-recorded):</b></p><ul>'+ledger.revisionEvents.map(x=>'<li>'+esc2(x.title)+' — '+esc2(x.status)+' · '+esc2(x.detail)+'</li>').join('')+'</ul>':'')+
   (ledger.requestRevisionUsage&&ledger.requestRevisionUsage.length?'<p class="note"><b>Revision allowance checked per request:</b></p><ul>'+ledger.requestRevisionUsage.map(x=>'<li>'+esc2(x.request)+' — '+(x.scope==='per_page'?'per-page':'project-wide')+' history; '+(x.completed===null?'completed rounds not established':x.completed+' completed round(s) recorded')+(x.allowance!==null?' of '+x.allowance+' allowed':'')+(x.page?' · page: '+esc2(x.page):'')+'</li>').join('')+'</ul>':'')+
   (ledger.unverifiedClaims.length?'<p class="note"><b>Excluded from scope facts — client assertions:</b> '+ledger.unverifiedClaims.map(x=>esc2(x.title)).join('; ')+'. These remain claims, not approval proof.</p>':'')+
   (ledger.pending.length?'<p class="note"><b>Not applied — pending/proposed records:</b> '+ledger.pending.map(x=>esc2(x.title)+' ('+esc2(x.status)+')').join('; ')+'.</p>':'')+
   (ledger.excluded.length?'<p class="note"><b>Not applied — declined/superseded records:</b> '+ledger.excluded.map(x=>esc2(x.title)+' ('+esc2(x.status)+')').join('; ')+'.</p>':'')+
-  '<p class="note">User-entered status and source labels are not authentication. Check original documents, sender authority, dates and complete project history before relying on a record.</p>') : '';
+  '<p class="note">Ledger records are not fed into the scope classifier. A page-specific approved entry may trigger Conditional review only. To change a scope decision, inspect the original record and paste its exact relevant wording into the agreed-scope field; verify sender authority, dates, approval conditions and the complete project history.</p>') : '';
  return '<div class="card" style="margin-top:14px"><b>Reasoning safeguards · v'+esc2(data.version)+'</b><p class="note">Evidence and consistency checks. These flags do not authenticate documents or replace your review.</p>'+ledgerSummary+
  section('Evidence sources found',list(ev,'No clearly labelled source types were detected. Paste or label the actual record if available.'))+
  section('Potential agreement contradictions',list(con,'No opposing included/excluded statements were detected for the topics this check recognises.'))+
@@ -4144,16 +4144,14 @@ function bfLedgerAnalysisContext(baseScope){
  }).filter(x=>Number.isFinite(x)&&x>0);
  const revisionNotes=revisions.filter(x=>x.status==='delivered').map(x=>'User-recorded completed revision event: '+String(x.title||'')+'. '+String(x.detail||''));
  const analysisMessage=String(window.document.getElementById('r')?.value||'').trim()+(revisionNotes.length?'\n\n[PROJECT LEDGER REVISION HISTORY — user-recorded, not independently authenticated]\n'+revisionNotes.join('\n'):'');
- // The agreement already pasted into the analysis field is the primary input.
- // If the same wording was also recorded as the ledger baseline, do not append
- // a second copy: duplicate evidence can distort clause matching and diagnostics.
+ // The analysis field remains the sole source of agreement wording.
+ // Ledger entries are user-entered metadata, not authenticated source documents.
+ // Never append their free text to the classifier input: a manually selected
+ // "approved" status or an email label must not silently rewrite the baseline.
+ // A page-specific matching entry may be surfaced as Conditional below, but
+ // the freelancer must inspect the original record before treating it as scope.
  const baseText=String(baseScope||'');
- const normalizeEvidenceText=value=>String(value||'').replace(/\s+/g,' ').trim().toLowerCase();
- const additions=used.filter(x=>!(x.type==='baseline'&&normalizeEvidenceText(x.detail)===normalizeEvidenceText(baseText))).map(x=>{
-  const label=x.type==='baseline'?'User-recorded original scope baseline':'User-recorded approved supplemental scope record';
-  return '['+label+'; source: '+String(x.sourceType||'not established')+'; status: '+String(x.status||'not specified')+'; source date: '+String(x.sourceDate||'not supplied')+'; not independently authenticated]\n'+String(x.detail||'');
- });
- const analysisScope=baseText+(additions.length?'\n\n[SUPPLEMENTAL PROJECT LEDGER CONTEXT — user-entered records; verify the original document and authority before relying on them. These records do not independently establish signature, identity, authority, chronology or legal effect.]\n'+additions.join('\n\n'):'');
+ const analysisScope=baseText;
  return {
   projectName:bfLedgerProjectName(),totalEntries:entries.length,analysisScope,analysisMessage,
   used:used.map(x=>({id:x.id,title:x.title,detail:x.detail,type:x.type,sourceType:x.sourceType,status:x.status,sourceDate:x.sourceDate,related:x.related})),

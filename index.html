@@ -2925,7 +2925,7 @@ function reanalyzeWithClarification(n){
   const evidenceSource='unverified';
   const sourceLabel=evidenceClass+' (not authenticated)';
   const authoritative=false;
-  const formExistsClarification=/\b(?:there is|there's|already (?:a|an)|existing)\b[\s\S]*\bcontact form\b/i.test(answer) &&
+  const formExistsClarification=(/\b(?:there is|there's|already (?:a|an)|existing)\b[\s\S]*\bcontact form\b/i.test(answer) || /\bcontact form\b[\s\S]{0,80}\b(?:already exists|already in place|is already present)\b/i.test(answer)) &&
     /\b(?:submit button|button)\b[\s\S]*\b(?:not working|doesn\'t work|does not work|isn\'t working|is not working|is broken|isn\'t functioning|is not functioning)\b/i.test(answer);
   const noFormNewClarification=/\b(?:no|not)\b[\s\S]*\bcontact form\b/i.test(answer) &&
     /\b(?:add|create|new)\b[\s\S]*\b(?:form|functionality|one)\b/i.test(answer) &&
@@ -2941,7 +2941,7 @@ function reanalyzeWithClarification(n){
     const nextConfidence=old.confidence||'Medium';
     z.c=Object.assign({},old,{confidence:nextConfidence,
       evidence:baseEvidence+' Additional information was supplied as '+(sourceMismatch?'unverified context due to a source-label mismatch':sourceLabel)+'; it is retained separately and is not treated as an approved scope change.',
-      boundary:(old.boundary||'The existing scope assessment remains unchanged.')+(sourceMismatch?' The selected source label claims mutual confirmation, but the supplied wording does not establish confirmation by both parties. Do not treat it as mutual approval.':contradictory?' The supplied information appears to conflict with or challenge the existing scope record. Preserve both accounts and verify the underlying record.':' The additional information is context, not an established contractual term.'),
+      boundary:(old.boundary||'The existing scope assessment remains unchanged.')+(sourceMismatch?' The selected source label claims mutual confirmation, but the supplied wording does not establish confirmation by both parties. Do not treat it as mutual approval.':contradictory?' The supplied information appears to conflict with or challenge the existing scope record. Preserve both accounts and verify the underlying record.':' The additional information is context, not an established contractual term.')+' Pasted wording is unverified and does not authenticate the original record, sender identity, authority or approval conditions.',
       action:(/\btestimonial(?:s)?\b/i.test(String(z.q||'')) && /\bnew\s+content\s+sections?\b/i.test(normalize(a)) && /\bexclud(?:e|ed|es|ing)\b/i.test(normalize(a)))?'Do not implement the testimonial section yet. The agreement excludes new content sections and the supplied clarification confirms that no separate written approval changing that exclusion has been provided. Ask for the final testimonial content, publication permissions and presentation preference; prepare a separate change proposal and obtain written approval before implementation. Continue the other work already covered by the agreement.':sourceMismatch?'Keep the existing scope decision pending verification. Correct the source selection or provide the actual written record showing both parties’ agreement before relying on it.':contradictory?'Keep the existing scope decision pending verification of the apparent evidence conflict.':'Retain the information as context; do not treat it as an approved scope change.',
       clarification:{answer:answer,question:plan.question,mode:'evidence_gate',source:evidenceSource,sourceMismatch:sourceMismatch,whatChanged:sourceMismatch?'The selected mutual-confirmation label did not match the supplied wording. The evidence was retained as unverified context; the prior classification, confidence and risk were preserved.':contradictory?'The information was recorded as '+sourceLabel+' and flagged as potentially inconsistent with the existing scope record.':'The information was recorded as '+sourceLabel+' but was not promoted to agreed scope evidence.'}});
     renderResults();
@@ -3294,7 +3294,7 @@ function bfR2TopicState(clause){
  // simultaneous included/excluded evidence. Otherwise "not within scope"
  // can match the positive "within scope" expression.
  const negatedPositive=/\bnot\s+(?:expressly\s+)?(?:included|within\s+(?:the\s+)?(?:agreed\s+)?scope|part\s+of\s+(?:the\s+)?(?:agreed\s+)?(?:scope|agreement)|covered\s+by\s+(?:the\s+)?agreement)\b/.test(s);
- const excluded=negatedPositive||/\b(?:excluded|not included|outside (?:the )?(?:scope|agreement)|requires? separate approval|subject to separate approval|only with written approval)\b/.test(s);
+ const excluded=negatedPositive||/\b(?:exclud(?:e|es|ed|ing)|not included|outside (?:the )?(?:scope|agreement)|requires? separate approval|subject to separate approval|only with written approval)\b/.test(s);
  const included=!negatedPositive&&/\b(?:included|within (?:the )?scope|part of (?:the )?(?:scope|agreement)|covered by (?:the )?agreement)\b/.test(s);
  if(excluded&&included)return 'mixed';
  if(excluded)return 'excluded';
@@ -3621,7 +3621,9 @@ function analyze(){
     if(explicitPageCreationAtomic && agreementRequiresPageApproval && ledgerPageRecords.length===0){
       c.type='New page requiring separate written approval'; c.detected=c.type;
       c.status='Likely additional'; c.confidence='High'; c.risk='High';
-      c.evidence='The agreement expressly states that any new website page, including a Careers page, is outside the original agreed scope and requires separate written approval before work begins.';
+      const pageScopeEvidence=scopeEvidence(a,['new pages']);
+      const pageClaims=extractClaimsAndRequests(item.originalMessage||'').claims;
+      c.evidence=pageScopeEvidence+(pageClaims.length?' Unverified client assertion — not approval evidence: '+pageClaims.join(' | '):'');
       c.actual=atomicRequestText; c.request=atomicRequestText;
       c.boundary='The requested Careers page is a new deliverable, not a revision to either of the two agreed pages. The agreement expressly reserves new pages for separate written approval.';
       c.action='Obtain written approval for the Careers page and agree its fee and any timeline adjustment before implementation.';
@@ -3837,6 +3839,20 @@ function analyze(){
       c.response='The SEO metadata for the agreed pages is included. I’ll complete the specified metadata within the agreed page allowance; any separate keyword research or ongoing SEO work would need to be scoped independently.';
       c.why='The specific SEO metadata item is expressly included in the supplied agreement.';
     }
+    // A recognised opposing included/excluded pair must become a visible
+    // per-request conflict, not merely a hidden reasoning-panel flag.
+    const requestTopics=bfR2Topics(item.resolved||item.original||'');
+    const relevantConflicts=bfR2Contradictions(a).filter(hit=>requestTopics.includes(hit.topic));
+    if(relevantConflicts.length && c.status!=='Client claim'){
+      const hit=relevantConflicts[0];
+      c.type='Conflicting agreement references';
+      c.status='Scope conflict'; c.confidence='Low'; c.risk='High';
+      c.evidence='Opposing scope wording for '+hit.topic+': “'+hit.earlier+'” / “'+hit.later+'”. Neither clause has been selected as governing.';
+      c.boundary='The supplied agreement contains opposing scope statements about '+hit.topic+'. The available text does not establish which clause governs this request or whether a later record validly supersedes the earlier term.';
+      c.action='Keep this request unresolved. Compare the complete original agreement and any signed or otherwise qualifying amendment, including dates, parties, approval authority and supersession wording before deciding whether the request is included or additional.';
+      c.response='I found conflicting wording about '+hit.topic+' in the supplied scope documents. Could you provide the complete governing agreement and any approved amendment so we can confirm which term applies before I proceed?';
+      c.clarification={question:'Please provide the complete governing agreement and any signed or otherwise qualifying amendment for this '+hit.topic+' request.',mode:'agreement',source:'unverified',conflictDetected:true};
+    }
     rows.push({q:item.original,c});
   });
 
@@ -3971,7 +3987,7 @@ function buildFullResponse(rows){
     conflicts.forEach(x=>{
       const plan=clarificationPlan(x.c,x.q);
       const question=x.c.clarification.question || (plan&&plan.question) || 'Could you provide the complete records needed to establish which scope term governs this request?';
-      questions.push(question);
+      questions.push('For “'+String(x.q||'this request')+'”: '+question);
     });
     conditional.forEach(x=>{
       const plan=clarificationPlan(x.c,x.q);

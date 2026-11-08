@@ -163,3 +163,6 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 | BF-L36 | User-entered approval metadata must not rewrite classifier agreement input. | Ledger email manually marked approved conflicts with base exclusion. | Keep ledger text out of classifier scope; surface as candidate metadata for manual verification. |
 
 | BF-C03 | Unverified clarification cannot select a governing agreement version. | Conflicting signed-agreement exclusion and later project note; clarification asserts the note was approved. | Preserve Scope conflict and retain the clarification separately until the governing record, chronology and authority are verified. |
+
+| BF-C04 | Operational fact clarification resolves existing-vs-new functionality without implying approval. | Existing Contact form; broken submit button; minor corrections included. | Resolve only the factual condition and keep the source unverified. |
+| BF-C05 | Pasted wording claiming mutual email approval cannot authenticate the approval. | New functionality excluded; pasted statement claims both parties approved by email. | Preserve the existing exclusion decision; require inspection of the actual approval record. |

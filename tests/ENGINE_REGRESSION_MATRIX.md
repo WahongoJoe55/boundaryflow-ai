@@ -182,3 +182,6 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 | BF-L39 | Scope-claim association | Attach a claim to the request named by its content, not the first request | Regression runner |
 
 | BF-C08 | Topic-isolated contradiction detection | A clear exclusion for one deliverable and inclusion for another in the same sentence is not a false conflict | Regression runner |
+
+
+| BF-E04 | Internal page link versus third-party integration exclusion. | Existing About and Services pages; third-party integrations require separate approval; request connects the two pages with an internal link. | Do not classify an internal link as an excluded third-party integration based on the generic verb “connect”. |

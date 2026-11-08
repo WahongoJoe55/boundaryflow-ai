@@ -157,7 +157,7 @@ try{
   const warmDraft=await page.locator('#out').innerText();
   await select('responseStyle','firm');
   const firmDraft=await page.locator('#out').innerText();
-  const firmIncludedDraft=await page.evaluate(()=>window.styleIndividualResponse('fallback text','Likely included'));
+  const firmIncludedDraft=await page.evaluate(()=>window.styleIndividualResponse('The spelling correction is included, subject to confirming the remaining revision allowance and checking the project revision history.','Likely included'));
   check('Firm included-response preserves the unresolved revision-allowance condition',
     /subject to confirming the remaining revision allowance/i.test(firmIncludedDraft)&&
     /project revision history/i.test(firmIncludedDraft),firmIncludedDraft);

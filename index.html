@@ -3290,8 +3290,12 @@ function bfR2Evidence(text,origin){
 }
 function bfR2TopicState(clause){
  const s=bfR2Normalize(clause);
- const excluded=/\b(?:excluded|not included|outside (?:the )?(?:scope|agreement)|requires? separate approval|subject to separate approval|only with written approval)\b/.test(s);
- const included=/\b(?:included|within (?:the )?scope|part of (?:the )?(?:scope|agreement)|covered by (?:the )?agreement)\b/.test(s);
+ // Negated positive-scope phrases must be treated as exclusions, not as
+ // simultaneous included/excluded evidence. Otherwise "not within scope"
+ // can match the positive "within scope" expression.
+ const negatedPositive=/\bnot\s+(?:expressly\s+)?(?:included|within\s+(?:the\s+)?(?:agreed\s+)?scope|part\s+of\s+(?:the\s+)?(?:agreed\s+)?(?:scope|agreement)|covered\s+by\s+(?:the\s+)?agreement)\b/.test(s);
+ const excluded=negatedPositive||/\b(?:excluded|not included|outside (?:the )?(?:scope|agreement)|requires? separate approval|subject to separate approval|only with written approval)\b/.test(s);
+ const included=!negatedPositive&&/\b(?:included|within (?:the )?scope|part of (?:the )?(?:scope|agreement)|covered by (?:the )?agreement)\b/.test(s);
  if(excluded&&included)return 'mixed';
  if(excluded)return 'excluded';
  if(included)return 'included';

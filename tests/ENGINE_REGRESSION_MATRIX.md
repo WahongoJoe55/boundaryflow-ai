@@ -161,3 +161,5 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 | BF-E03 | Client assertion names a deliverable but supplies no approval record. | New pages require written approval; client says it was agreed on a call. | Keep the written-approval boundary; label the call statement as an unverified assertion, not approval evidence. |
 
 | BF-L36 | User-entered approval metadata must not rewrite classifier agreement input. | Ledger email manually marked approved conflicts with base exclusion. | Keep ledger text out of classifier scope; surface as candidate metadata for manual verification. |
+
+| BF-C03 | Unverified clarification cannot select a governing agreement version. | Conflicting signed-agreement exclusion and later project note; clarification asserts the note was approved. | Preserve Scope conflict and retain the clarification separately until the governing record, chronology and authority are verified. |

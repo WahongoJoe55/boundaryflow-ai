@@ -166,3 +166,5 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 
 | BF-C04 | Operational fact clarification resolves existing-vs-new functionality without implying approval. | Existing Contact form; broken submit button; minor corrections included. | Resolve only the factual condition and keep the source unverified. |
 | BF-C05 | Pasted wording claiming mutual email approval cannot authenticate the approval. | New functionality excluded; pasted statement claims both parties approved by email. | Preserve the existing exclusion decision; require inspection of the actual approval record. |
+
+| BF-C06 | Full client response preserves all request categories when one request has a scope conflict. | Mixed included, additional, conditional and client-claim items alongside conflicting agreement versions. | Communicate each category, preserve unverified claims, and hold disputed work pending verification. |

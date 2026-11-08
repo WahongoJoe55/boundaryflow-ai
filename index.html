@@ -4485,6 +4485,15 @@ function saveDraftFields(){try{localStorage.setItem(bfScopedKey('boundaryflow_dr
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2.119.0"></script>
 <script>
+async function bfCloudDeleteQueuedRow(client,userId,id){
+  const existing=await client.from('analyses').select('id').eq('id',id).eq('user_id',userId).maybeSingle();
+  if(existing.error)return {deleted:false,retry:true,reason:'lookup_error'};
+  if(!existing.data)return {deleted:false,retry:false,reason:'not_visible'};
+  const result=await client.from('analyses').delete().eq('id',id).eq('user_id',userId).select('id');
+  if(result.error)return {deleted:false,retry:true,reason:'delete_error'};
+  const confirmed=(result.data||[]).some(row=>row.id===id);
+  return {deleted:confirmed,retry:!confirmed,reason:confirmed?'confirmed':'not_confirmed'};
+}
 (function(){
   'use strict';
   const CFG_KEY='boundaryflow_supabase_config_v1';
@@ -4597,14 +4606,8 @@ function saveDraftFields(){try{localStorage.setItem(bfScopedKey('boundaryflow_dr
   async function deleteQueuedRemote(){
     const client=requireClient(),user=requireUser(),q=parseDeleteQueue(),remaining=[];
     for(const id of q){
-      // Confirm the row is visible to this account before attempting deletion.
-      // Supabase may return zero rows without an error when RLS filters a write;
-      // never clear the retry queue merely because the request returned no error.
-      const existing=await client.from('analyses').select('id').eq('id',id).eq('user_id',user.id).maybeSingle();
-      if(existing.error){remaining.push(id);continue;}
-      if(!existing.data)continue; // Already absent or not visible to this account; never delete another tenant's row.
-      const deleted=await client.from('analyses').delete().eq('id',id).eq('user_id',user.id).select('id');
-      if(deleted.error||!(deleted.data||[]).some(row=>row.id===id))remaining.push(id);
+      const result=await bfCloudDeleteQueuedRow(client,user.id,id);
+      if(result.retry)remaining.push(id);
     }
     localStorage.setItem(scopedDeleteQueueKey(),JSON.stringify(remaining));
     if(remaining.length)message('Some cloud deletions are still pending or could not be confirmed; tap Sync now to retry.');

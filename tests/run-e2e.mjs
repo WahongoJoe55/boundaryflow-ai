@@ -57,6 +57,30 @@ try{
   await page.waitForFunction(()=>typeof window.analyze==='function'&&typeof window.bfLedgerAdd==='function');
   check('Candidate application loads with analysis and ledger controls',true);
 
+  const cloudDeleteContract=await page.evaluate(async()=>{
+    const fakeClient=(existing,deletedRows,error=null)=>({
+      from(){
+        const state={deleting:false};
+        return {
+          select(){return state.deleting?Promise.resolve({data:deletedRows,error}):this;},
+          delete(){state.deleting=true;return this;},
+          eq(){return this;},
+          maybeSingle(){return Promise.resolve({data:existing?{id:'analysis-1'}:null,error:null});}
+        };
+      }
+    });
+    const pending=await window.bfCloudDeleteQueuedRow(fakeClient(true,[]),'account-a','analysis-1');
+    const confirmed=await window.bfCloudDeleteQueuedRow(fakeClient(true,[{id:'analysis-1'}]),'account-a','analysis-1');
+    const absent=await window.bfCloudDeleteQueuedRow(fakeClient(false,[]),'account-a','analysis-1');
+    const failed=await window.bfCloudDeleteQueuedRow(fakeClient(true,null,{message:'simulated delete failure'}),'account-a','analysis-1');
+    return {pending,confirmed,absent,failed};
+  });
+  check('Cloud deletion retry is retained unless Supabase confirms the row was deleted',
+    cloudDeleteContract.pending.retry===true&&cloudDeleteContract.pending.deleted===false&&
+    cloudDeleteContract.confirmed.deleted===true&&cloudDeleteContract.confirmed.retry===false&&
+    cloudDeleteContract.absent.retry===false&&cloudDeleteContract.failed.retry===true,
+    JSON.stringify(cloudDeleteContract));
+
   await page.locator('#guideBtn').click();
   const guideText=await page.locator('#userGuide').innerText();
   const guideSteps=await page.locator('#userGuide .guide-step').count();

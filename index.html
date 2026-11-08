@@ -3947,12 +3947,32 @@ function buildFullResponse(rows){
   const intro=styleText[style]||styleText.professional;
   lines.push(intro);
   if(conflicts.length){
+    // A conflict must not suppress the other independently classified requests.
+    // Summarise each safe category, keep disputed work on hold, and never imply
+    // that a client assertion or operational detail resolves the conflict.
+    const includedItems=joinRequests(included);
+    const additionalItems=joinRequests(additional);
+    if(includedItems) lines.push('The following request(s) appear to fit the agreed scope: '+includedItems+'.');
+    if(additionalItems) lines.push('The following request(s) appear to be outside the agreed scope and must remain on hold pending separate written approval: '+additionalItems+'.');
+    const questions=[];
     conflicts.forEach(x=>{
       const plan=clarificationPlan(x.c,x.q);
-      const question=x.c.clarification.question || (plan&&plan.question) || 'Could you confirm the approval for this specific change in writing?';
-      lines.push(question);
+      const question=x.c.clarification.question || (plan&&plan.question) || 'Could you provide the complete records needed to establish which scope term governs this request?';
+      questions.push(question);
     });
-    lines.push('I’ll keep this addition out of the current work until the proposal has been reviewed and the specific change is approved in writing. The other agreed work can continue as planned.');
+    conditional.forEach(x=>{
+      const plan=clarificationPlan(x.c,x.q);
+      questions.push(plan&&plan.question?plan.question:'Please confirm which stated condition applies before this request proceeds.');
+    });
+    clarify.forEach(x=>{
+      const plan=clarificationPlan(x.c,x.q);
+      if(plan&&plan.question) questions.push(plan.question);
+    });
+    if(questions.length) lines.push('Before proceeding with the disputed or unresolved item(s), please clarify: '+[...new Set(questions)].join(' '));
+    if(claims.length) lines.push('I have noted the scope-related statement separately. It has not been treated as verified approval; I will compare the actual source record, chronology and authority with the governing agreement before changing any decision.');
+    if(constraints.length) lines.push('I’ll keep the remaining agreed work unchanged while these specific scope questions are resolved.');
+    lines.push('The conflicting item(s) will remain on hold until the governing scope wording and any qualifying approval are verified. No disputed or additional work will begin on the basis of an unverified statement.');
+    if(additionalItems) lines.push('Any separately approved additional work can then be documented with the agreed fee and any timeline adjustment before implementation.');
     return '<div class="scope-response"><h3>Full-scope client response</h3><div class="note">Generated from BoundaryFlow’s decisions. Choose a communication style without changing the underlying scope analysis.</div><div class="response">'+esc(lines.join(' '))+'</div><div class="copybar"><button class="btn accent" data-copy-all="1">Copy full response</button><button class="btn secondary" data-save="1">Save analysis</button></div></div>';
   }
   // Mixed requests need one coherent client-facing response rather than

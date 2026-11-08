@@ -2547,7 +2547,7 @@ function styleIndividualResponse(base,status){
     // A generic spelling template would misdescribe included non-spelling work.
     'Likely included':'Thanks for confirming the request. '+base,
     'Scope conflict':'I’m happy to sort this out with you. I noticed the agreement contains conflicting scope references, so let’s confirm which one should govern before I proceed.',
-    'Client claim':'I understand you’d like this included in the current revision. Could you tell me the exact change you’d like so we can confirm together how it fits within the agreed scope?',
+    'Client claim':'I understand you believe this request may already be included. Could you share the relevant written approval or agreement reference so we can verify it before changing the scope decision?',
     'Conditional':'I’d be happy to handle this, provided the stated condition remains within the agreed scope. Let’s confirm that detail before I proceed.'
   };
   const firm={
@@ -2555,7 +2555,7 @@ function styleIndividualResponse(base,status){
     'Likely additional':'This request is outside the agreed deliverables. Please confirm approval, including any applicable fee and timeline adjustment, before implementation.',
     'Likely included':'The agreed scope position is: '+base,
     'Scope conflict':'The agreement contains conflicting scope references. Please confirm which version governs before I proceed with this request.',
-    'Client claim':'You’ve indicated that this should be included in the current revision. Please specify the exact change so I can verify it against the agreed scope.',
+    'Client claim':'You’ve indicated that this request was previously agreed. Please provide the relevant written approval or agreement reference so it can be checked before the scope decision is changed.',
     'Conditional':'This request is covered only if the stated condition remains within the agreed scope. Please confirm that condition before implementation.'
   };
   const map=style==='warm'?warm:firm;

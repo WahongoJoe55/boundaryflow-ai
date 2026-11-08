@@ -27,6 +27,17 @@ try {
   await context.route('**/*',route=>{
     const url=new URL(route.request().url());
     if(url.hostname==='127.0.0.1' || url.hostname==='localhost') return route.continue();
+    // The engine page includes optional hosted SDKs. Stub them deterministically
+    // instead of aborting their requests: this prevents external loading errors
+    // from interfering with app initialisation while keeping all cloud access off.
+    if(url.hostname==='unpkg.com') return route.fulfill({
+      status:200,contentType:'text/javascript',
+      body:'window.supabase={createClient:function(){throw new Error("Supabase is disabled in isolated regression mode.");}};'
+    });
+    if(url.hostname==='challenges.cloudflare.com') return route.fulfill({
+      status:200,contentType:'text/javascript',
+      body:'window.turnstile={render:function(){return 1;},reset:function(){}};'
+    });
     return route.abort();
   });
   const page=await context.newPage();

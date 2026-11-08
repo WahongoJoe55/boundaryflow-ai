@@ -20,8 +20,13 @@ jobs:
       image: mcr.microsoft.com/playwright:v1.56.1-noble
     timeout-minutes: 10
     steps:
-      - name: Check out candidate branch
+      - name: Check out exact pull-request candidate
         uses: actions/checkout@v4
+        with:
+          # This suite validates the candidate branch itself, not GitHub's
+          # synthetic merge commit (which can contain stale test harness files
+          # while the long-lived branches are being reconciled).
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Install matching Playwright package
         run: npm install --no-save playwright@1.56.1
       - name: Run isolated engine regression suite

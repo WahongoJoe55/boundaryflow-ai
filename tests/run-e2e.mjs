@@ -81,6 +81,29 @@ try{
     cloudDeleteContract.absent.retry===false&&cloudDeleteContract.failed.retry===true,
     JSON.stringify(cloudDeleteContract));
 
+  const cloudIdempotencyContract=await page.evaluate(async()=>{
+    const calls=[];
+    const fakeClient={from(table){
+      calls.push(['from',table]);
+      const builder={
+        select(columns){calls.push(['select',columns]);return this;},
+        eq(column,value){calls.push(['eq',column,value]);return this;},
+        order(column,options){calls.push(['order',column,options.ascending]);return this;},
+        limit(value){calls.push(['limit',value]);return this;},
+        maybeSingle(){return Promise.resolve({data:{id:'existing-cloud-analysis'},error:null});}
+      };
+      return builder;
+    }};
+    const found=await window.bfCloudFindExistingAnalysis(fakeClient,'account-a','local-analysis-42');
+    return {found,calls};
+  });
+  check('Cloud save retry looks up the existing row by user-scoped local analysis ID before inserting',
+    cloudIdempotencyContract.found?.id==='existing-cloud-analysis'&&
+    cloudIdempotencyContract.calls.some(x=>x[0]==='eq'&&x[1]==='user_id'&&x[2]==='account-a')&&
+    cloudIdempotencyContract.calls.some(x=>x[0]==='eq'&&x[1]==='result_json->>localId'&&x[2]==='local-analysis-42')&&
+    cloudIdempotencyContract.calls.some(x=>x[0]==='limit'&&x[1]===1),
+    JSON.stringify(cloudIdempotencyContract));
+
   const cloudSaveRaceContract=await page.evaluate(()=>{
     const metadata={cloudAnalysisId:'remote-1',cloudProjectId:'project-1',cloudAgreementId:'agreement-1',cloudSyncedAt:'2026-11-08T00:00:00.000Z'};
     const deleted=window.bfCloudMergeSyncMetadata([],'deleted-analysis',metadata);

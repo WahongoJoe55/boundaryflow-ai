@@ -181,6 +181,8 @@ expect:'Reordering the same client requests must not change either classificatio
 
 ,{id:'BF-E04',title:'Internal page links do not match third-party integration exclusions',agreement:'The website includes About and Services pages. Third-party integrations require separate approval.',message:'Connect the About page to the Services page with a normal internal link.',check:rows=>rows.length===1&&norm(rows[0].status)!=='likely additional',expect:'An internal page-to-page link must not be classified as an excluded third-party integration merely because the request says connect.'}
 
+,{id:'BF-E05',title:'Conditional decisions retain medium boundary risk in the UI',agreement:'A Contact form correction is included only if the existing form is retained. New forms require separate approval.',message:'Update the existing Contact form if it can be done without adding a new form.',reasoningProbe:w=>w.risk('Conditional'),reasoningCheck:(_d,_w,_r,p)=>Array.isArray(p)&&p[0]==='Medium'&&p[1]==='risk-medium',expect:'A Conditional classification must display Medium boundary risk rather than falling through to Low.'}
+
 ,{id:'BF-C08',title:'Different topics in one sentence are not false contradictions',agreement:'New pages are excluded, but minor edits to existing pages are included.',message:'Create a new Careers page and make a minor edit to the About page.',reasoningProbe:w=>w.bfR2Contradictions('New pages are excluded, but minor edits to existing pages are included.'),reasoningCheck:(_d,_w,_r,p)=>Array.isArray(p)&&p.length===0,expect:'Do not report a contradiction when the same sentence clearly excludes one topic and includes a different topic.'}
 
 ];

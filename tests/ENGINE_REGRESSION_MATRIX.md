@@ -178,3 +178,5 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 | BF-C07 | Negated scope-language interpretation | “Not within scope”, “not part of the agreement” and “not covered by the agreement” remain exclusions | Regression runner |
 
 | BF-R79 | Conflicting revision allowances | Distinct numeric allowances remain unresolved; no arbitrary last-clause selection or remaining balance | Regression runner |
+
+| BF-L39 | Scope-claim association | Attach a claim to the request named by its content, not the first request | Regression runner |

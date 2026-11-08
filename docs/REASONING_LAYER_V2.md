@@ -48,7 +48,7 @@ These are source labels inferred from wording. BoundaryFlow does not authenticat
 
 ## Regression coverage
 
-The regression matrix contains 69 scenarios: 43 reasoning-engine cases and 26 project-ledger integrity / analysis-integration cases. The Playwright runner must execute exactly 69 cases and fail on a count mismatch. The runner checks the actual application build in isolated regression mode; CI blocks non-local network requests and does not use Save, Sync or History.
+The isolated Playwright regression runner now executes exactly 108 named scenarios and fails on a count mismatch. The scenario matrix is maintained separately; its IDs and expectations must be reconciled with the runner before release. The runner checks the actual application build in isolated regression mode; CI blocks non-local network requests and does not use Save, Sync or History.
 
 ## Release requirements
 

@@ -3288,23 +3288,9 @@ function bfR2Evidence(text,origin){
  clauses.forEach((clause,index)=>patterns.forEach(p=>{if(p.re.test(clause))out.push({tier:p.tier,label:p.label,clause,index,origin:origin||'Supplied text',verification:p.tier===1&&p.label==='Agreement / contract heading (document type only)'?'The heading identifies a document type only; it does not establish execution, signatures, authenticity, sender identity or authority.':'Source type is inferred from supplied wording only; authenticity, signatures, sender identity and authority are not verified.'});}));
  return out.sort((a,b)=>a.tier-b.tier||a.index-b.index);
 }
-function bfR2TopicState(clause){
- const s=bfR2Normalize(clause);
- // Negated positive-scope phrases must be treated as exclusions, not as
- // simultaneous included/excluded evidence. Otherwise "not within scope"
- // can match the positive "within scope" expression.
- const negatedPositive=/\bnot\s+(?:expressly\s+)?(?:included|within\s+(?:the\s+)?(?:agreed\s+)?scope|part\s+of\s+(?:the\s+)?(?:agreed\s+)?(?:scope|agreement)|covered\s+by\s+(?:the\s+)?agreement)\b/.test(s);
- const excluded=negatedPositive||/\b(?:exclud(?:e|es|ed|ing)|not included|outside (?:the )?(?:scope|agreement)|requires? separate approval|subject to separate approval|only with written approval)\b/.test(s);
- const included=!negatedPositive&&/\b(?:included|within (?:the )?scope|part of (?:the )?(?:scope|agreement)|covered by (?:the )?agreement)\b/.test(s);
- if(excluded&&included)return 'mixed';
- if(excluded)return 'excluded';
- if(included)return 'included';
- return '';
-}
-function bfR2Topics(clause){
- const s=bfR2Normalize(clause),topics=[];
- const map=[
-  ['new pages',/\bnew\s+pages?\b|\bpage creation\b|\bnew\s+[a-z0-9][a-z0-9 &'-]*?\s+page\b/],
+function bfR2TopicMap(){
+ return [
+  ['new pages',/\bnew\s+(?:[a-z0-9][a-z0-9 &'-]*?\s+)?pages?\b|\bpage creation\b/],
   ['new functionality',/\bnew functionality\b|\bnew features?\b|\bbooking form\b/],
   ['integrations',/\bintegrations?\b|\bthird.party connections?\b/],
   ['revisions',/\brevision rounds?\b|\brevisions?\b/],
@@ -3314,35 +3300,71 @@ function bfR2Topics(clause){
   ['training',/\btraining\b|\bwalkthrough session\b/],
   ['source files',/\bsource files?\b|\beditable working files?\b/],
   ['content sections',/\bcontent sections?\b|\btestimonial sections?\b/],
+  ['minor edits',/\bminor\s+(?:(?:content|visual)\s+)?edits?\b|\bminor changes? to existing pages\b/],
+  ['spelling corrections',/\bspelling corrections?\b/],
   ['workshops',/\bworkshops?\b|\bstrategy sessions?\b/],
-  // Broaden conflict matching beyond the original small list of deliverables.
-  // Topic matches signal a possible conflict; they do not decide which term governs.
   ['customer portal',/\bcustomer portals?\b|\bclient portals?\b|\border history\b|\binvoice downloads?\b/],
   ['analytics and reporting',/\banalytics?\b|\breporting dashboards?\b|\bperformance reports?\b/],
   ['e-commerce and payments',/\be[ -]?commerce\b|\bonline payments?\b|\bpayment gateways?\b|\bshopping carts?\b/],
   ['authentication and access',/\bauthentication\b|\buser logins?\b|\brole.based access\b|\baccess controls?\b/],
   ['hosting and infrastructure',/\bhosting\b|\bserver management\b|\bdomain configuration\b|\bcloud infrastructure\b/],
   ['accessibility',/\baccessibility\b|\bwcag\b|\bscreen.reader support\b/],
-  ['security',/\bsecurity audits?\b|\bpenetration testing\b|\bvulnerability assessments?\b/], ];
- map.forEach(([name,re])=>{if(re.test(s))topics.push(name);});
+  ['security',/\bsecurity audits?\b|\bpenetration testing\b|\bvulnerability assessments?\b/]
+ ];
+}
+function bfR2Topics(clause){
+ const s=bfR2Normalize(clause),topics=[];
+ bfR2TopicMap().forEach(([name,re])=>{if(re.test(s))topics.push(name);});
  return topics;
 }
-function bfR2Contradictions(text){
- const clauses=bfR2Clauses(text),hits=[];
- for(let i=0;i<clauses.length;i++){
-  const stateA=bfR2TopicState(clauses[i]);
-  const topicsA=bfR2Topics(clauses[i]);
-  if(stateA==='mixed'){
-   topicsA.forEach(topic=>hits.push({topic,earlier:clauses[i],later:clauses[i],kind:'Conflicting scope statements in one clause',resolution:'The same clause contains both included and excluded language. Preserve the conflict and ask which specific deliverable or condition each phrase governs.'}));
-   continue;
+function bfR2TopicState(clause,topic){
+ const s=bfR2Normalize(clause);
+ let segments=[s];
+ if(topic){
+  const pattern=bfR2TopicMap().find(x=>x[0]===topic)?.[1];
+  if(pattern){
+   const split=s.split(/\b(?:but|whereas|while|however|although|yet)\b/i);
+   const relevant=split.filter(part=>pattern.test(part));
+   const hasOtherTopic=split.some(part=>bfR2Topics(part).some(name=>name!==topic));
+   // Split a contrastive sentence only when each side names its own topic.
+   // If the second side uses a pronoun ("they are included"), retain the full
+   // sentence so the same topic can still be recognised as mixed.
+   if(relevant.length&&hasOtherTopic)segments=relevant;
   }
-  if(!stateA)continue;
-  for(let j=i+1;j<clauses.length;j++){
-   const stateB=bfR2TopicState(clauses[j]);if(!stateB||stateB==='mixed'||stateA===stateB)continue;
-   const common=topicsA.filter(t=>bfR2Topics(clauses[j]).includes(t));
-   if(!common.length)continue;
-   const later=clauses[j],supersedes=/\b(?:supersedes|replaces|amends|overrides)\b/i.test(later);
-   hits.push({topic:common[0],earlier:clauses[i],later,kind:supersedes?'Possible superseding term':'Conflicting scope statements',resolution:supersedes?'The later clause expressly uses superseding language, but authority, date and approval still need verification.':'Do not choose one clause automatically. Check document dates, signatures, approval conditions and whether the later record validly changes the earlier term.'});
+ }
+ let excluded=false,included=false;
+ for(const part of segments){
+  const negatedPositive=/\bnot\s+(?:expressly\s+)?(?:included|within\s+(?:the\s+)?(?:agreed\s+)?scope|part\s+of\s+(?:the\s+)?(?:agreed\s+)?(?:scope|agreement)|covered\s+by\s+(?:the\s+)?agreement)\b/.test(part);
+  if(negatedPositive||/\b(?:exclud(?:e|es|ed|ing)|not included|outside (?:the )?(?:scope|agreement)|requires? separate approval|subject to separate approval|only with written approval)\b/.test(part))excluded=true;
+  if(!negatedPositive&&/\b(?:included|within (?:the )?scope|part of (?:the )?(?:scope|agreement)|covered by (?:the )?agreement)\b/.test(part))included=true;
+ }
+ if(excluded&&included)return 'mixed';
+ if(excluded)return 'excluded';
+ if(included)return 'included';
+ return '';
+}
+function bfR2Contradictions(text){
+ const clauses=bfR2Clauses(text),hits=[],seen=new Set();
+ const add=(hit)=>{
+  const key=[hit.topic,hit.earlier,hit.later].join('|');
+  if(!seen.has(key)){seen.add(key);hits.push(hit);}
+ };
+ for(let i=0;i<clauses.length;i++){
+  const topicsA=bfR2Topics(clauses[i]);
+  for(const topic of topicsA){
+   const stateA=bfR2TopicState(clauses[i],topic);
+   if(stateA==='mixed'){
+    add({topic,earlier:clauses[i],later:clauses[i],kind:'Conflicting scope statements in one clause',resolution:'The same topic has both included and excluded language. Preserve the conflict and ask which specific deliverable or condition each phrase governs.'});
+    continue;
+   }
+   if(!stateA)continue;
+   for(let j=i+1;j<clauses.length;j++){
+    if(!bfR2Topics(clauses[j]).includes(topic))continue;
+    const stateB=bfR2TopicState(clauses[j],topic);
+    if(!stateB||stateB==='mixed'||stateA===stateB)continue;
+    const later=clauses[j],supersedes=/\b(?:supersedes|replaces|amends|overrides)\b/i.test(later);
+    add({topic,earlier:clauses[i],later,kind:supersedes?'Possible superseding term':'Conflicting scope statements',resolution:supersedes?'The later clause expressly uses superseding language, but authority, date and approval still need verification.':'Do not choose one clause automatically. Check document dates, signatures, approval conditions and whether the later record validly changes the earlier term.'});
+   }
   }
  }
  return hits;

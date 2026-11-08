@@ -244,7 +244,7 @@ async function run(){
     const probe=typeof c.reasoningProbe==='function'?c.reasoningProbe(w,actual,setup):setup;
     const pass=typeof c.reasoningCheck==='function'?!!c.reasoningCheck(reasoning,w,actual,probe):!!c.check(actual);
     results.push({id:c.id,title:c.title,expect:c.expect,actual,pass,probe:probe===undefined?null:probe,diagnostic:reasoning?{contradictions:reasoning.contradictions.length,dependencies:reasoning.dependencies.length,evidence:reasoning.evidence.length,revisions:reasoning.revisions,commercial:reasoning.commercial}:null,error:''});
-   }catch(e){results.push({id:c.id,title:c.title,expect:c.expect,actual:[],pass:false,error:String(e&&e.message||e)})}
+   }catch(e){results.push({id:c&&c.id||'UNKNOWN_CASE_'+i,title:c&&c.title||'Malformed scenario',expect:c&&c.expect||'',actual:[],pass:false,error:String(e&&e.stack||e&&e.message||e)})}
   }
   lastResults=results;render(results);
   const passed=results.filter(x=>x.pass).length;

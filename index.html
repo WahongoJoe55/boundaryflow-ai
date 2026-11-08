@@ -2918,10 +2918,18 @@ function reanalyzeWithClarification(n){
   const identifiesChange=/\b(?:testimonial|section|page|form|feature|integration|deliverable|change request|requested work)\b/i.test(answer) && /\b(?:included|approve|approved|agree|agreed|authori[sz]e|authori[sz]ed)\b/i.test(answer);
   const sourceMismatch=false;
   const evidenceClass=mutualWording&&writtenApproval&&identifiesChange?'written approval described in supplied text':'additional context / unverified information';
-  const evidenceSource=mutualWording&&writtenApproval&&identifiesChange?'mutual_confirmation':'unverified';
-  const sourceLabel=evidenceClass;
-  const authoritative=evidenceSource==='mutual_confirmation';
-  if(!authoritative && plan.mode!=='underlying'){
+  // Pasted text cannot authenticate the original record, sender identity,
+  // authority, completeness or legal effect. Never auto-promote it to approval.
+  const evidenceSource='unverified';
+  const sourceLabel=evidenceClass+' (not authenticated)';
+  const authoritative=false;
+  const formExistsClarification=/\b(?:there is|there's|already (?:a|an)|existing)\b[\s\S]*\bcontact form\b/i.test(answer) &&
+    /\b(?:submit button|button)\b[\s\S]*\b(?:not working|doesn\'t work|does not work|isn\'t working|is not working|is broken|isn\'t functioning|is not functioning)\b/i.test(answer);
+  const noFormNewClarification=/\b(?:no|not)\b[\s\S]*\bcontact form\b/i.test(answer) &&
+    /\b(?:add|create|new)\b[\s\S]*\b(?:form|functionality|one)\b/i.test(answer) &&
+    /\b(?:submit|submission|enquir(?:y|ies)|inquir(?:y|ies))\b/i.test(answer);
+  const factualContextCanResolve=plan.mode==='context'&&(formExistsClarification||noFormNewClarification);
+  if(!authoritative && !['underlying','agreement'].includes(plan.mode) && !factualContextCanResolve){
     const baseEvidence=String(old.evidence||'').replace(/ Additional information was supplied as [^\.]+; it has not been treated as an approved change to the agreement\.?/g,'');
     const contradictory=/\b(?:contradicts?|conflicts? with|different from|instead of|not what|never agreed|did not agree)\b/i.test(answer);
     const relevant=/\b(?:included|exclude|excluded|revision|scope|agreement|contract|approved|agreed|section|testimonial|deliverable|change)\b/i.test(answer);
@@ -3061,11 +3069,8 @@ function reanalyzeWithClarification(n){
   } else {
     // Surgical conditional resolution: explicit clarification selects the
     // already-declared branch instead of merely being stored as evidence.
-    const formExists=/\b(?:there is|there's|already (?:a|an)|existing)\b[\s\S]*\bcontact form\b/i.test(answer) &&
-      /\b(?:submit button|button)\b[\s\S]*\b(?:not working|doesn\'t work|does not work|isn\'t working|is not working|is broken|isn\'t functioning|is not functioning)\b/i.test(answer);
-    const noFormNew=/\b(?:no|not)\b[\s\S]*\bcontact form\b/i.test(answer) &&
-      /\b(?:add|create|new)\b[\s\S]*\b(?:form|functionality|one)\b/i.test(answer) &&
-      /\b(?:submit|submission|enquir(?:y|ies)|inquir(?:y|ies))\b/i.test(answer);
+    const formExists=formExistsClarification;
+    const noFormNew=noFormNewClarification;
     const agreement=document.getElementById('a').value.trim();
     const clarificationAgreementMatch=(terms)=>scopeEvidence(agreement,terms);
     if(formExists){
@@ -3089,9 +3094,14 @@ function reanalyzeWithClarification(n){
         clarification:{answer:answer,question:plan.question,whatChanged:'The clarification confirmed that no Contact form exists and a new form/functionality is being requested. BoundaryFlow resolved the new-functionality branch against the unchanged agreement.'}
       };
     } else {
-      const augmentedAgreement=agreement+'\n\n[Additional freelancer-provided clarification — not an amendment to the agreement]\n'+answer;
-      z.c=classify(z.q,augmentedAgreement);
-      z.c.clarification={answer:answer,question:plan.question,whatChanged:'The supplied condition/scope detail was added as separate clarification evidence; it did not automatically override the agreement.'};
+      // General operational context is not agreement text. Preserve the prior
+      // decision unless a specifically supported factual branch was resolved.
+      z.c=Object.assign({},old,{
+        evidence:String(old.evidence||'')+' Additional operational context was supplied: “'+answer.replace(/[<>]/g,'').slice(0,700)+'” It was retained separately and not appended to the agreement or used as approval evidence.',
+        boundary:String(old.boundary||'The original scope assessment remains in place.')+' This contextual statement may clarify circumstances, but it does not establish an amendment or entitlement to additional work.',
+        action:String(old.action||'Retain the current scope decision pending verification.')+' Verify any claimed scope change against the actual approved record before implementation.',
+        clarification:{answer:answer,question:plan.question,mode:'context_only',source:'unverified',whatChanged:'The context was retained separately. It did not alter the governing agreement text or the existing scope classification.'}
+      });
     }
   }
   if(z.c && z.c.clarification){ z.c.clarification.source=evidenceSource; z.c.clarification.sourceLabel=sourceLabel; }

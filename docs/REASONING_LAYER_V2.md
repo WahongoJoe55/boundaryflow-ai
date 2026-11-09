@@ -108,3 +108,8 @@ Twenty-six ledger tests verify baseline provenance, amendment append behavior, r
 ## 9 November 2026 — regression harness correction
 
 The first 108-case CI execution reported 106 passes and 3 failures, including one malformed empty array slot and two incorrectly escaped placeholder assertions. The runner has been corrected; the new run must independently verify the full suite. The prior result is retained as a failed run, not overwritten or described as passing.
+
+
+## 9 November 2026 — negated scope-language safeguard
+
+A negated exclusion (for example, “not excluded” or “not outside the scope”) is not affirmative proof that work is included. The topic-state parser now removes these negated exclusion phrases before checking for exclusion markers, leaving the topic unresolved unless separate positive scope language exists. Direct exclusion and “not expressly included” wording remain conservative exclusion signals. Three regression cases (BF-C12 to BF-C14) cover the neutral, direct-exclusion and not-expressly-included paths. This is a bounded language safeguard, not a general natural-language contract interpreter.

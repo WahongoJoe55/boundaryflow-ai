@@ -103,3 +103,8 @@ Twenty-six ledger tests verify baseline provenance, amendment append behavior, r
 - User-recorded events remain unverified history and must be checked against the original project record.
 
 - Page matching for approval and revision records uses the ledger title, detail and Related item field; this is still a text match, not document authentication.
+
+
+## 9 November 2026 — regression harness correction
+
+The first 108-case CI execution reported 106 passes and 3 failures, including one malformed empty array slot and two incorrectly escaped placeholder assertions. The runner has been corrected; the new run must independently verify the full suite. The prior result is retained as a failed run, not overwritten or described as passing.

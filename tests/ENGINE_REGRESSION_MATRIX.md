@@ -212,3 +212,8 @@ The first 108-case execution exposed an empty array slot caused by a duplicate s
 | BF-C12 | “New pages are not excluded from the agreed scope” and “new functionality is not outside the agreed scope”. | Do not turn a negated exclusion into a positive exclusion or positive inclusion; leave the topic unresolved. |
 | BF-C13 | Direct exclusion of new pages and separate written approval for new functionality. | Preserve both explicit exclusion signals after the negation safeguard. |
 | BF-C14 | “New pages are not expressly included in the agreed scope”. | Preserve the conservative exclusion signal. |
+
+
+## Scope-language parser correction — 9 November 2026
+
+The first attempt to add BF-C12–BF-C14 failed before scenario execution because the runner array had a duplicated separator before BF-C12 and a missing separator before BF-C08. The phrase normalizer also needed to recognise “not outside the agreed scope”, not only “not outside the scope”. These are corrected before re-running the suite.

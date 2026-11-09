@@ -113,3 +113,8 @@ The first 108-case CI execution reported 106 passes and 3 failures, including on
 ## 9 November 2026 — negated scope-language safeguard
 
 A negated exclusion (for example, “not excluded” or “not outside the scope”) is not affirmative proof that work is included. The topic-state parser now removes these negated exclusion phrases before checking for exclusion markers, leaving the topic unresolved unless separate positive scope language exists. Direct exclusion and “not expressly included” wording remain conservative exclusion signals. Three regression cases (BF-C12 to BF-C14) cover the neutral, direct-exclusion and not-expressly-included paths. This is a bounded language safeguard, not a general natural-language contract interpreter.
+
+
+## 9 November 2026 — parser and harness correction
+
+Run #314 failed at JavaScript parse time (`Unexpected token '{'`) before executing the scenarios. Inspection found a duplicate array separator before BF-C12 and a missing separator before BF-C08. The negated-exclusion normalizer also now recognises the phrase “not outside the agreed scope”. This run is a harness failure, not evidence about the underlying regression cases.

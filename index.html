@@ -3341,7 +3341,7 @@ function bfR2TopicState(clause,topic){
   // A negated exclusion is not affirmative evidence of inclusion or exclusion.
   // Remove that phrase before scanning for exclusion markers, then leave the
   // topic unresolved unless separate positive scope language is present.
-  const exclusionText=part.replace(/\bnot\s+(?:expressly\s+)?(?:excluded|outside\s+(?:the\s+)?(?:scope|agreement)|subject\s+to\s+separate\s+approval|only\s+with\s+written\s+approval)\b/g,' ');
+  const exclusionText=part.replace(/\bnot\s+(?:expressly\s+)?(?:excluded|outside\s+(?:the\s+)?(?:agreed\s+)?(?:scope|agreement)|subject\s+to\s+separate\s+approval|only\s+with\s+written\s+approval)\b/g,' ');
   if(negatedPositive||/\b(?:exclud(?:e|es|ed|ing)|not included|outside (?:the )?(?:scope|agreement)|requires? separate approval|subject to separate approval|only with written approval)\b/.test(exclusionText))excluded=true;
   if(!negatedPositive&&/\b(?:included|within (?:the )?scope|part of (?:the )?(?:scope|agreement)|covered by (?:the )?agreement)\b/.test(part))included=true;
  }

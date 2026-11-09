@@ -203,3 +203,12 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 ## Runner integrity correction — 9 November 2026
 
 The first 108-case execution exposed an empty array slot caused by a duplicate separator before BF-C09, plus over-escaped placeholder assertions in BF-C09 and BF-C10. The runner was corrected to remove the empty slot and match literal square-bracket placeholders. Re-run all cases; do not count the prior run as a pass.
+
+
+## Negated scope-language safeguards — 9 November 2026
+
+| ID | Agreement wording | Expected behaviour |
+|---|---|---|
+| BF-C12 | “New pages are not excluded from the agreed scope” and “new functionality is not outside the agreed scope”. | Do not turn a negated exclusion into a positive exclusion or positive inclusion; leave the topic unresolved. |
+| BF-C13 | Direct exclusion of new pages and separate written approval for new functionality. | Preserve both explicit exclusion signals after the negation safeguard. |
+| BF-C14 | “New pages are not expressly included in the agreed scope”. | Preserve the conservative exclusion signal. |

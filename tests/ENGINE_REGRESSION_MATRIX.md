@@ -198,3 +198,8 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 | BF-C09 | New functionality requires separate written approval; no fee is agreed. | Add a newsletter feature. | Unsupported fees expressed as “500 USD”, “five hundred dollars” or “300 KES” must be replaced with “fee to be agreed”. |
 | BF-C10 | New functionality requires separate written approval; no delivery date is agreed. | Add a newsletter feature. | Unsupported relative dates such as “tomorrow”, “next Friday” and “end of week” must be replaced with “delivery timing to be agreed”. |
 | BF-C11 | An approved change order states a fee of 500 USD and delivery next Friday; content is limited to 500 words. | Complete the approved change order. | Preserve the grounded fee/date and do not mistake the 500-word content limit for a fee. |
+
+
+## Runner integrity correction — 9 November 2026
+
+The first 108-case execution exposed an empty array slot caused by a duplicate separator before BF-C09, plus over-escaped placeholder assertions in BF-C09 and BF-C10. The runner was corrected to remove the empty slot and match literal square-bracket placeholders. Re-run all cases; do not count the prior run as a pass.

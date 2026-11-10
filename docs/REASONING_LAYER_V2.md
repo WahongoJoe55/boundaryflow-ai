@@ -128,3 +128,5 @@ Run #316 executed the regression suite and found one failure: “requires separa
 ## 10 November 2026 — request-to-clause evidence matching
 
 Added `bfR2MatchEvidence(request, agreement)` as a conservative diagnostic. It extracts recognised request topics, matches only clauses sharing the same mapped topic, and reports `matched`, `partial`, `needs_review` or `unmatched`. It does not use general keyword proximity to borrow a clause from another topic, and explicitly states that textual matching does not authenticate a source or establish legal effect. Three adversarial regression cases (BF-E06–BF-E08) cover unrelated nearby clauses, absent topic evidence and mixed/conditional topic language. This helper is diagnostic only; it does not silently override the primary classifier.
+
+The request-to-clause matching diagnostic is now included in the Reasoning safeguards panel for each actionable request. Each row displays its match state, directly matched clauses, and the reason for any unmatched or partial result. The result remains advisory and does not replace or silently alter the primary classification.

@@ -135,3 +135,8 @@ The request-to-clause matching diagnostic is now included in the Reasoning safeg
 ## 10 November 2026 — evidence conflict and confidence calibration
 
 `bfR2MatchEvidence` now detects opposing included/excluded states across separate clauses for the same request topic and returns `needs_review`. Added `bfR2ApplyEvidenceConfidenceGuard`: for actionable requests with recognised topics, a non-matched evidence result caps an existing High confidence rating at Medium and records the match status, reason and matched clauses on the request. It never promotes confidence from lexical matching, does not change the scope classification, and does not downgrade solely because the topic map cannot recognise the request. Regression cases BF-E09–BF-E11 cover cross-clause contradiction, partial multi-topic coverage and the confidence cap.
+
+
+## 10 November 2026 — regression test fixture corrections
+
+Run #327 exposed two test-fixture issues, not a need to weaken the engine safeguards. BF-E10 correctly mapped “online payments” to the canonical topic `e-commerce and payments`; the test expectation now uses that exact canonical topic. BF-E11 originally inspected a naturally classified row whose confidence was already Medium, so it did not prove the cap transition. The revised test supplies a controlled High-confidence row to the guard and asserts the transition to Medium with an unmatched evidence status and recorded cap reason. Re-run all 117 scenarios before accepting the implementation.

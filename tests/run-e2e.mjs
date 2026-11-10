@@ -252,6 +252,16 @@ try{
     unnumberedRevision.completed===null&&unnumberedRevision.remaining===null&&
     unnumberedRevision.historyUnknown===true&&unnumberedRevision.unresolvedRoundEvents?.length===1,
     JSON.stringify(unnumberedRevision));
+  const normalizedRevisionStatus=await page.evaluate(()=>{
+    return window.bfLedgerRevisionUsage({revisionEvents:[
+      {status:'  DELIVERED  ',title:'First revision round completed for the Portfolio page',detail:'',related:'Portfolio page'}
+    ]},'Portfolio page','Each page includes up to 3 revision rounds.');
+  });
+  check('Whitespace and case variations in delivered status are normalized',
+    normalizedRevisionStatus.completed===1&&normalizedRevisionStatus.remaining===2&&
+    normalizedRevisionStatus.historyUnknown===false,
+    JSON.stringify(normalizedRevisionStatus));
+
 
 
   await setProject('E2E Evidence Deliverable Isolation');

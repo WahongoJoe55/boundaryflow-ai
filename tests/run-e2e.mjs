@@ -81,6 +81,25 @@ try{
     cloudDeleteContract.absent.retry===false&&cloudDeleteContract.failed.retry===true,
     JSON.stringify(cloudDeleteContract));
 
+  const ledgerNormalizationContract=await page.evaluate(()=>{
+    const reviewed=window.bfLedgerReviewAmendments([
+      {id:'baseline-1',type:' BASELINE ',sourceType:' AGREEMENT ',status:' APPROVED ',sourceDate:'2026-01-01'},
+      {id:'approval-1',type:' AMENDMENT ',sourceType:' EMAIL ',status:' APPROVED ',sourceDate:'2026-02-01',related:'Careers page'}
+    ]);
+    const claim=window.bfLedgerReviewAmendments([
+      {id:'claim-1',type:' APPROVAL ',sourceType:' CLIENT_CLAIM ',status:' APPROVED ',sourceDate:'2026-02-01',related:'Careers page'}
+    ]);
+    const incomplete=window.bfLedgerReviewAmendments([
+      {id:'approval-2',type:' APPROVAL ',sourceType:' EMAIL ',status:' APPROVED ',related:'Careers page'}
+    ]);
+    return {reviewed:reviewed[0]?.state,claim:claim[0]?.state,incomplete:incomplete[0]?.state};
+  });
+  check('Ledger review normalizes case and surrounding whitespace without promoting claims or incomplete records',
+    ledgerNormalizationContract.reviewed==='candidate_for_manual_verification'&&
+    ledgerNormalizationContract.claim==='claim_only'&&
+    ledgerNormalizationContract.incomplete==='metadata_incomplete',
+    JSON.stringify(ledgerNormalizationContract));
+
   const cloudIdempotencyContract=await page.evaluate(async()=>{
     const calls=[];
     const fakeClient={from(table){

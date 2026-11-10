@@ -118,3 +118,8 @@ A negated exclusion (for example, “not excluded” or “not outside the scope
 ## 9 November 2026 — parser and harness correction
 
 Run #314 failed at JavaScript parse time (`Unexpected token '{'`) before executing the scenarios. Inspection found a duplicate array separator before BF-C12 and a missing separator before BF-C08. The negated-exclusion normalizer also now recognises the phrase “not outside the agreed scope”. This run is a harness failure, not evidence about the underlying regression cases.
+
+
+## 10 November 2026 — written-approval matcher correction
+
+Run #316 executed the regression suite and found one failure: “requires separate written approval” was not recognised by the topic-state exclusion matcher, which only accepted “requires separate approval”. The matcher now accepts the optional word “written” in both “requires separate … approval” and “subject to separate … approval”. BF-C13 preserves this phrase as a direct exclusion/approval condition. Re-run the full suite before relying on the change.

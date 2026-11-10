@@ -3727,6 +3727,15 @@ function analyze(){
       c.action='Inspect the original record and correct the ledger status only after verifying what was actually approved. Do not treat this entry as authority to proceed.';
       c.response='The project record’s status says approved, but the wording appears to contain a qualification or exclusion. Could we check the original approval before treating this page as authorised work?';
       c.why='The manually recorded approval status and the text of the same record are inconsistent.';
+    }else if(explicitPageCreationAtomic && agreementRequiresPageApproval && ledgerPageRecords.length===1 && (ledgerContext.amendmentReview||[]).some(x=>x.id===ledgerPageRecords[0].id && x.state!=='candidate_for_manual_verification')){
+      const review=(ledgerContext.amendmentReview||[]).find(x=>x.id===ledgerPageRecords[0].id);
+      c.type='Approval record requires chronology review'; c.status='Clarify'; c.confidence='Low'; c.risk='High';
+      c.evidence='A user-recorded approval entry exists, but its amendment review state is '+String(review&&review.state||'unavailable')+'. It cannot be treated as a clean candidate approval.';
+      c.detected=c.type; c.actual=atomicRequestText; c.request=atomicRequestText;
+      c.boundary='The agreement requires separate approval, but the matching ledger record has an unresolved chronology, status or source issue. Its presence does not establish that this page was validly approved.';
+      c.action='Inspect the original approval and baseline documents, verify their dates, authority and exact deliverable, and resolve the ledger review before treating the page as approved.';
+      c.response='I can see a project record referring to approval for this page, but its chronology or source details need checking. Could we verify the original approval document and the applicable agreement before proceeding?';
+      c.why='A ledger entry marked approved is not sufficient when its independent amendment review is unresolved.';
     }else if(explicitPageCreationAtomic && agreementRequiresPageApproval && approvedLedgerRecord){
       c.type='Potentially approved new page';
       c.status='Conditional';

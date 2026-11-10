@@ -182,13 +182,14 @@ try{
   await page.locator('#closeGuide').click();
 
   async function select(id,value){await page.locator('#'+id).selectOption(value)}
-  async function addRecord({type,title,detail,source='email',status='not_specified',related=''}) {
+  async function addRecord({type,title,detail,source='email',status='not_specified',related='',sourceDate=''}) {
     await select('bfLedgerType',type);
     await page.locator('#bfLedgerTitle').fill(title);
     await page.locator('#bfLedgerDetail').fill(detail);
     await select('bfLedgerSource',source);
     await select('bfLedgerStatusValue',status);
     await page.locator('#bfLedgerRelated').fill(related);
+    await page.locator('#bfLedgerSourceDate').fill(sourceDate);
     await page.locator('#bfLedgerAdd').click();
     const message=await page.locator('#bfLedgerStatus').innerText();
     if(!message.includes('Record added'))throw new Error('Ledger entry was not added: '+message);
@@ -223,7 +224,7 @@ try{
   check('Prepare baseline drafts agreement text without saving automatically',await page.locator('#bfLedgerCount').innerText().then(x=>x==='0 records')&&await page.locator('#bfLedgerTitle').inputValue()==='Original agreed scope / baseline'&&await page.locator('#bfLedgerDetail').inputValue()===scope);
   await page.locator('#bfLedgerAdd').click();
   check('Prepared baseline is saved only after explicit Add ledger record action',await page.locator('#bfLedgerCount').innerText().then(x=>x==='1 record'));
-  await addRecord({type:'amendment',title:'Careers page approval',detail:'The Careers page is approved and included in the agreed project scope.',source:'amendment',status:'approved',related:'Careers page'});
+  await addRecord({type:'amendment',title:'Careers page approval',detail:'The Careers page is approved and included in the agreed project scope.',source:'amendment',status:'approved',related:'Careers page',sourceDate:'2026-02-01'});
   await addRecord({type:'evidence',title:'Client says Careers was already approved',detail:'The client says the Careers page was agreed during a call.',source:'client_claim'});
   await addRecord({type:'revision',title:'First revision round completed',detail:'First revision round completed for the Portfolio page.',source:'email',status:'delivered',related:'Portfolio page'});
   check('Baseline, approval, client claim and revision records can be added through the UI',await page.locator('#bfLedgerCount').innerText().then(x=>x==='4 records'));

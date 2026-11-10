@@ -245,3 +245,8 @@ BF-C13 exercises the wording “requires separate written approval”. The topic
 ## 10 November 2026 — regression test fixture corrections
 
 Run #327 exposed two test-fixture issues, not a need to weaken the engine safeguards. BF-E10 correctly mapped “online payments” to the canonical topic `e-commerce and payments`; the test expectation now uses that exact canonical topic. BF-E11 originally inspected a naturally classified row whose confidence was already Medium, so it did not prove the cap transition. The revised test supplies a controlled High-confidence row to the guard and asserts the transition to Medium with an unmatched evidence status and recorded cap reason. Re-run all 117 scenarios before accepting the implementation.
+
+
+## 10 November 2026 — amendment lifecycle and chronology review
+
+Added `bfLedgerReviewAmendments(records)` as a conservative diagnostic over user-maintained project ledger entries. Proposed/awaiting-approval changes remain pending; declined/superseded entries are not applicable; client-claim source remains a claim even if its status field says approved; approved candidates require an eligible record/source type, a valid ISO source date and a related deliverable/workstream. A recorded amendment date earlier than a recorded baseline date is flagged as a chronology conflict. Even a candidate passing these checks remains unapplied and requires review of original records, parties, authority, approval wording, effective date, conditions and supersession effect. No ledger text is merged into the agreement or automatically changes classification. Regression tests BF-A01–BF-A03 cover pending changes, client claims and chronology conflicts.

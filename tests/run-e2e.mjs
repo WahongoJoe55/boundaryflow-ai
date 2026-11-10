@@ -252,6 +252,19 @@ try{
     unnumberedRevision.completed===null&&unnumberedRevision.remaining===null&&
     unnumberedRevision.historyUnknown===true&&unnumberedRevision.unresolvedRoundEvents?.length===1,
     JSON.stringify(unnumberedRevision));
+  const malformedRevisionCollections=await page.evaluate(()=>{
+    const agreement='Each page includes up to 3 revision rounds.';
+    const cases=[
+      ['missing',{},'Portfolio page'],
+      ['null',{revisionEvents:null},'Portfolio page'],
+      ['object',{revisionEvents:{status:'delivered'}},'Portfolio page'],
+      ['null-entry',{revisionEvents:[null,{status:'delivered',title:'First revision round completed for the Portfolio page',related:'Portfolio page'}]},'Portfolio page']
+    ];
+    return cases.map(([name,context,request])=>({name,result:window.bfLedgerRevisionUsage(context,request,agreement)}));
+  });
+  check('Missing or malformed revision collections keep allowance unknown',
+    malformedRevisionCollections.every(x=>x.result.historyUnknown===true&&x.result.collectionUnknown===true&&x.result.completed===null&&x.result.remaining===null),
+    JSON.stringify(malformedRevisionCollections));
   const normalizedRevisionStatus=await page.evaluate(()=>{
     return window.bfLedgerRevisionUsage({revisionEvents:[
       {status:'  DELIVERED  ',title:'First revision round completed for the Portfolio page',detail:'',related:'Portfolio page'}

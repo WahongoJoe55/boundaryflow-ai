@@ -261,6 +261,27 @@ try{
     normalizedRevisionStatus.completed===1&&normalizedRevisionStatus.remaining===2&&
     normalizedRevisionStatus.historyUnknown===false,
     JSON.stringify(normalizedRevisionStatus));
+  const revisionChronologyChecks=await page.evaluate(()=>{
+    const agreement='Each page includes up to 3 revision rounds.';
+    const reversed=window.bfLedgerRevisionUsage({revisionEvents:[
+      {status:'delivered',title:'First revision round completed for the Portfolio page',detail:'',related:'Portfolio page',sourceDate:'2026-03-12'},
+      {status:'delivered',title:'Second revision round completed for the Portfolio page',detail:'',related:'Portfolio page',sourceDate:'2026-03-10'}
+    ]},'Portfolio page',agreement);
+    const ordered=window.bfLedgerRevisionUsage({revisionEvents:[
+      {status:'delivered',title:'First revision round completed for the Portfolio page',detail:'',related:'Portfolio page',sourceDate:'2026-03-10'},
+      {status:'delivered',title:'Second revision round completed for the Portfolio page',detail:'',related:'Portfolio page',sourceDate:'2026-03-12'}
+    ]},'Portfolio page',agreement);
+    return {reversed,ordered};
+  });
+  check('A later revision round dated before an earlier round makes history unknown',
+    revisionChronologyChecks.reversed.completed===null&&revisionChronologyChecks.reversed.remaining===null&&
+    revisionChronologyChecks.reversed.historyUnknown===true&&revisionChronologyChecks.reversed.chronologyConflicts?.length===1,
+    JSON.stringify(revisionChronologyChecks.reversed));
+  check('Chronologically ordered dated revision rounds remain countable',
+    revisionChronologyChecks.ordered.completed===2&&revisionChronologyChecks.ordered.remaining===1&&
+    revisionChronologyChecks.ordered.historyUnknown===false,
+    JSON.stringify(revisionChronologyChecks.ordered));
+
 
 
 

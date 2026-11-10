@@ -4435,10 +4435,19 @@ function bfLedgerRevisionUsage(context,request,agreement){
  // A highest observed round is not proof that all earlier rounds happened.
  // Require a contiguous sequence beginning at round 1 before calculating usage.
  const sequenceGaps=rounds.length?Array.from({length:rounds[rounds.length-1]},(_,i)=>i+1).filter(n=>!rounds.includes(n)):[];
- const historyConflict=conflicting.length>0;
+ // When source dates are present and parseable, a later numbered round must
+ // not predate an earlier round. Missing dates remain unknown, not fabricated.
+ const datedRounds=rounds.map(round=>({round,dates:relevant.filter(x=>x.round===round).map(x=>({raw:x.sourceDate,time:Date.parse(x.sourceDate)})).filter(x=>x.raw&&Number.isFinite(x.time)).map(x=>x.time)})).filter(x=>x.dates.length);
+ const chronologyConflicts=[];
+ for(let i=1;i<datedRounds.length;i++){
+  const previous=datedRounds[i-1],current=datedRounds[i];
+  const previousLatest=Math.max(...previous.dates),currentEarliest=Math.min(...current.dates);
+  if(current.round>previous.round&&currentEarliest<previousLatest)chronologyConflicts.push({previousRound:previous.round,currentRound:current.round,previousLatest:new Date(previousLatest).toISOString(),currentEarliest:new Date(currentEarliest).toISOString()});
+ }
+ const historyConflict=conflicting.length>0||chronologyConflicts.length>0;
  const historyIncomplete=sequenceGaps.length>0||unresolvedRoundEvents.length>0;
  const completed=historyConflict||historyIncomplete?null:(relevant.length?Math.max(...rounds):null);
- return {scope:perPage?'per_page':'project',page:targetPage||null,allowance,completed,remaining:allowance!==null&&completed!==null?Math.max(0,allowance-completed):null,matchedEvents:relevant.map(x=>({round:x.round,page:x.page,title:x.title,sourceDate:x.sourceDate,status:x.recordedStatus})),conflictingEvents:conflicting.map(x=>({round:x.round,textPage:x.textPage,textPages:x.textPages,relatedPage:x.relatedPage,title:x.title,sourceDate:x.sourceDate,status:x.recordedStatus})),unresolvedRoundEvents:unresolvedRoundEvents.map(x=>({title:x.title,page:x.page,textPages:x.textPages,relatedPage:x.relatedPage,sourceDate:x.sourceDate,status:x.recordedStatus})),sequenceGaps,historyUnknown:(perPage&&!targetPage)||historyConflict||historyIncomplete}
+ return {scope:perPage?'per_page':'project',page:targetPage||null,allowance,completed,remaining:allowance!==null&&completed!==null?Math.max(0,allowance-completed):null,matchedEvents:relevant.map(x=>({round:x.round,page:x.page,title:x.title,sourceDate:x.sourceDate,status:x.recordedStatus})),conflictingEvents:conflicting.map(x=>({round:x.round,textPage:x.textPage,textPages:x.textPages,relatedPage:x.relatedPage,title:x.title,sourceDate:x.sourceDate,status:x.recordedStatus})),chronologyConflicts,unresolvedRoundEvents:unresolvedRoundEvents.map(x=>({title:x.title,page:x.page,textPages:x.textPages,relatedPage:x.relatedPage,sourceDate:x.sourceDate,status:x.recordedStatus})),sequenceGaps,historyUnknown:(perPage&&!targetPage)||historyConflict||historyIncomplete}
 }
 function bfLedgerAdd(record){
  if(!window.__bfUserId)throw new Error('Sign in before recording project evidence.');

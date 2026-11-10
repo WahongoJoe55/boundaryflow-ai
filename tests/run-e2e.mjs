@@ -223,6 +223,16 @@ try{
   check('Client assertion remains excluded from approval evidence',alpha.meta?.unverifiedClaims?.some(x=>x.title==='Client says Careers was already approved')===true&&!alpha.meta?.used?.some(x=>x.title==='Client says Careers was already approved'));
   check('Specific Careers approval with incomplete chronology remains Clarify pending source verification',careers?.status==='Clarify'&&/chronology|review/i.test(String(careers?.type||'')+' '+String(careers?.boundary||'')),JSON.stringify(careers||null));
   check('Portfolio revision usage is matched to the correct page',portfolio?.allowance===2&&portfolio?.completed===1&&portfolio?.remaining===1,JSON.stringify(portfolio||null));
+  await setProject('E2E Evidence Deliverable Isolation');
+  await page.locator('#a').fill(scope);
+  await addRecord({type:'baseline',title:'Original agreed scope',detail:scope,source:'agreement',status:'approved',related:'All agreed pages'});
+  await addRecord({type:'amendment',title:'Careers page approval',detail:'Careers page was approved and included.',source:'amendment',status:'approved',related:'Careers page'});
+  const unrelatedEvidence=await analyse(scope,'Create a new Portfolio page.');
+  const unrelatedPage=unrelatedEvidence.rows.find(x=>/portfolio/i.test(x.request||''));
+  check('Approval for Careers page cannot transfer to a different Portfolio page',unrelatedPage?.status==='Likely additional'&&!/Careers page approval/i.test(unrelatedPage?.evidence||''),JSON.stringify(unrelatedPage||null));
+  const unrelatedContext=unrelatedEvidence.meta?.used||[];
+  check('Structured related-deliverable field remains explicit in analysis context',unrelatedContext.some(x=>x.title==='Careers page approval'&&x.related==='Careers page'));
+
   await setProject('E2E Mixed Message Acceptance');
   const mixedScope='WEBSITE DEVELOPMENT AGREEMENT. The agreed website includes the Home page and About page. The project includes one revision round for the agreed deliverables. Spelling corrections and minor adjustments to existing agreed pages are included, subject to the agreed revision allowance. Any new website page, including a Careers page, is outside the original agreed scope and requires separate written approval before work begins. No additional fees or delivery timelines have been agreed for work outside the original scope.';
   const mixedMessage='Hi,\n\nI have reviewed the website and would like you to make two changes.\n\nFirst, please create a new Careers page where potential employees can learn about available opportunities and submit their applications.\n\nSecond, I noticed a spelling mistake on the existing About page. Please correct it.\n\nI would appreciate it if you could handle both changes as part of the current project.\n\nThanks.';

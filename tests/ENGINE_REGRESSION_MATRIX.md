@@ -240,3 +240,8 @@ BF-C13 exercises the wording “requires separate written approval”. The topic
 | BF-E09 | Same recognised request topic has one included and one excluded clause. | Return `needs_review`; do not label the evidence as cleanly matched. |
 | BF-E10 | Multi-topic request has direct evidence for accessibility but none for online payments. | Return `partial`; keep the unmatched topic separate. |
 | BF-E11 | Recognised customer-portal request has no matching agreement topic. | Cap an existing High confidence rating to Medium and retain an explicit evidence-match reason. |
+
+
+## 10 November 2026 — regression test fixture corrections
+
+Run #327 exposed two test-fixture issues, not a need to weaken the engine safeguards. BF-E10 correctly mapped “online payments” to the canonical topic `e-commerce and payments`; the test expectation now uses that exact canonical topic. BF-E11 originally inspected a naturally classified row whose confidence was already Medium, so it did not prove the cap transition. The revised test supplies a controlled High-confidence row to the guard and asserts the transition to Medium with an unmatched evidence status and recorded cap reason. Re-run all 117 scenarios before accepting the implementation.

@@ -223,6 +223,27 @@ try{
   check('Client assertion remains excluded from approval evidence',alpha.meta?.unverifiedClaims?.some(x=>x.title==='Client says Careers was already approved')===true&&!alpha.meta?.used?.some(x=>x.title==='Client says Careers was already approved'));
   check('Specific Careers approval with incomplete chronology remains Clarify pending source verification',careers?.status==='Clarify'&&/chronology|review/i.test(String(careers?.type||'')+' '+String(careers?.boundary||'')),JSON.stringify(careers||null));
   check('Portfolio revision usage is matched to the correct page',portfolio?.allowance===2&&portfolio?.completed===1&&portfolio?.remaining===1,JSON.stringify(portfolio||null));
+  const revisionSequenceChecks=await page.evaluate(()=>{
+    const agreement='Each page includes up to 3 revision rounds.';
+    const missingEarly=window.bfLedgerRevisionUsage({revisionEvents:[
+      {status:'delivered',title:'Third revision round completed for the Portfolio page',detail:'',related:'Portfolio page'}
+    ]},'Portfolio page',agreement);
+    const contiguous=window.bfLedgerRevisionUsage({revisionEvents:[
+      {status:'delivered',title:'First revision round completed for the Portfolio page',detail:'',related:'Portfolio page'},
+      {status:'delivered',title:'Second revision round completed for the Portfolio page',detail:'',related:'Portfolio page'}
+    ]},'Portfolio page',agreement);
+    return {missingEarly,contiguous};
+  });
+  check('A later revision round cannot imply missing earlier rounds were completed',
+    revisionSequenceChecks.missingEarly.completed===null&&revisionSequenceChecks.missingEarly.remaining===null&&
+    revisionSequenceChecks.missingEarly.historyUnknown===true&&
+    JSON.stringify(revisionSequenceChecks.missingEarly.sequenceGaps)==='[1,2]',
+    JSON.stringify(revisionSequenceChecks.missingEarly));
+  check('A contiguous recorded revision sequence can still be counted',
+    revisionSequenceChecks.contiguous.completed===2&&revisionSequenceChecks.contiguous.remaining===1&&
+    revisionSequenceChecks.contiguous.historyUnknown===false,
+    JSON.stringify(revisionSequenceChecks.contiguous));
+
   await setProject('E2E Evidence Deliverable Isolation');
   await page.locator('#a').fill(scope);
   await addRecord({type:'baseline',title:'Original agreed scope',detail:scope,source:'agreement',status:'approved',related:'All agreed pages'});

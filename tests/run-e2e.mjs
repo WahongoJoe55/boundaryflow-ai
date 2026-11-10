@@ -92,6 +92,15 @@ try{
     const incomplete=window.bfLedgerReviewAmendments([
       {id:'approval-2',type:' APPROVAL ',sourceType:' EMAIL ',status:' APPROVED ',related:'Careers page'}
     ]);
+    const declined=window.bfLedgerReviewAmendments([
+      {id:'declined-1',type:' AMENDMENT ',sourceType:' EMAIL ',status:' DECLINED ',sourceDate:'2026-02-01',related:'Careers page'}
+    ]);
+    const pending=window.bfLedgerReviewAmendments([
+      {id:'pending-1',type:' AMENDMENT ',sourceType:' EMAIL ',status:' AWAITING_APPROVAL ',sourceDate:'2026-02-01',related:'Careers page'}
+    ]);
+    const unconfirmed=window.bfLedgerReviewAmendments([
+      {id:'unconfirmed-1',type:' AMENDMENT ',sourceType:' EMAIL ',status:' NOT_SPECIFIED ',sourceDate:'2026-02-01',related:'Careers page'}
+    ]);
     const priorUser=window.__bfUserId;
     const projectInput=document.getElementById('projectName');
     const priorProject=projectInput.value;
@@ -111,13 +120,16 @@ try{
       window.__bfUserId=priorUser;
       projectInput.value=priorProject;
     }
-    return {reviewed:reviewed[0]?.state,claim:claim[0]?.state,incomplete:incomplete[0]?.state,
+    return {reviewed:reviewed[0]?.state,claim:claim[0]?.state,incomplete:incomplete[0]?.state,declined:declined[0]?.state,pending:pending[0]?.state,unconfirmed:unconfirmed[0]?.state,
       used:context.used.map(x=>({type:x.type,sourceType:x.sourceType,status:x.status})),reviewType:context.amendmentReview[0]?.type};
   });
   check('Ledger review normalizes case and surrounding whitespace without promoting claims or incomplete records',
     ledgerNormalizationContract.reviewed==='candidate_for_manual_verification'&&
     ledgerNormalizationContract.claim==='claim_only'&&
     ledgerNormalizationContract.incomplete==='metadata_incomplete'&&
+    ledgerNormalizationContract.declined==='not_applicable'&&
+    ledgerNormalizationContract.pending==='pending_not_applied'&&
+    ledgerNormalizationContract.unconfirmed==='status_unconfirmed'&&
     ledgerNormalizationContract.used.some(x=>x.type==='amendment'&&x.sourceType==='email'&&x.status==='approved')&&
     ledgerNormalizationContract.reviewType==='amendment',
     JSON.stringify(ledgerNormalizationContract));

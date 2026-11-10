@@ -4289,7 +4289,7 @@ function bfLedgerReviewAmendments(records){
   if(!x||x.type!=='baseline')return false;
   const source=String(x.sourceType||'other').toLowerCase();
   const status=String(x.status||'not_specified').toLowerCase();
-  return source==='agreement'&&['approved','not_specified'].includes(status);
+  return source==='agreement'&&['approved','not_specified'].includes(status)&&!['declined','superseded'].includes(status);
  });
  const changes=entries.filter(x=>x&&['amendment','approval','change_request','client_decision'].includes(x.type));
  const parseDate=value=>{

@@ -3336,10 +3336,32 @@ function bfR2MatchEvidence(request,agreement){
  });
  const covered=[...new Set(matches.map(x=>x.topic))];
  const unresolved=matches.some(x=>x.state==='mixed'||x.state==='unspecified');
+ const contradictory=requestTopics.some(topic=>{
+  const states=new Set(matches.filter(x=>x.topic===topic).map(x=>x.state));
+  return states.has('included')&&states.has('excluded');
+ });
  const complete=requestTopics.every(topic=>covered.includes(topic));
- const status=!matches.length?'unmatched':!complete?'partial':unresolved?'needs_review':'matched';
+ const status=!matches.length?'unmatched':!complete?'partial':unresolved||contradictory?'needs_review':'matched';
  const reason=status==='matched'?'Every recognised request topic has a directly topic-matched clause with an explicit scope state. This is a textual match, not proof of authenticity, authority or legal effect.':status==='partial'?'Only some recognised request topics have directly matching clauses. Unmatched topics remain unresolved; do not borrow evidence from a neighbouring topic.':status==='needs_review'?'A topic-matched clause is ambiguous or internally mixed. Preserve the uncertainty and request clarification.':'No agreement clause directly names a recognised request topic. Do not substitute a nearby clause merely because it shares general words.';
  return {status,requestTopics,matches,unmatchedTopics:requestTopics.filter(topic=>!covered.includes(topic)),reason};
+}
+function bfR2ApplyEvidenceConfidenceGuard(rows,agreement){
+ (rows||[]).forEach(row=>{
+  const c=row&&row.c||{};
+  if(!row||!row.q||String(c.status||'').toLowerCase()==='client claim'||c.type==='Constraint / instruction')return;
+  const match=bfR2MatchEvidence(row.q,agreement);
+  c.evidenceMatchStatus=match.status;
+  c.evidenceMatchReason=match.reason;
+  c.matchedScopeClauses=match.matches.map(x=>({topic:x.topic,state:x.state,clause:x.clause}));
+  // Do not promote confidence from lexical matching. Only cap an existing
+  // High rating when recognised request topics lack clear, consistent scope
+  // evidence. An unrecognised request topic alone is not enough to downgrade.
+  const hasRecognisedTopics=match.requestTopics.length>0;
+  if(hasRecognisedTopics&&match.status!=='matched'&&String(c.confidence||'').toLowerCase()==='high'){
+   c.confidence='Medium';
+   c.evidenceConfidenceCap='High confidence reduced because request-to-clause evidence is '+match.status+'.';
+  }
+ });
 }
 function bfR2TopicState(clause,topic){
  const s=bfR2Normalize(clause);
@@ -3975,6 +3997,7 @@ function analyze(){
     }
   }
 
+  bfR2ApplyEvidenceConfidenceGuard(rows,a);
   bfR2ApplyCommercialGuard(rows,a,r);
   window.rows=rows;
   // C-DEPENDENCY-20: give each separate claim card the same claim-specific

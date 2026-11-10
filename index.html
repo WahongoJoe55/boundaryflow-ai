@@ -3694,7 +3694,14 @@ function analyze(){
     const pageSubjectMatch=atomicRequestText.match(/\bnew\s+([a-z0-9][a-z0-9 &-]*?)\s+page\b/i);
     const pageSubject=pageSubjectMatch?String(pageSubjectMatch[1]).trim().toLowerCase():'';
     const ledgerRecordText=x=>[x&&x.title,x&&x.detail,x&&x.related].map(v=>String(v||'')).join(' ');
-    const ledgerPageRecords=pageSubject?ledgerContext.used.filter(x=>x.status==='approved'&&x.type!=='baseline'&&ledgerRecordText(x).toLowerCase().includes(pageSubject)): [];
+    const ledgerPageRecords=pageSubject?ledgerContext.used.filter(x=>{
+      if(x.status!=='approved'||x.type==='baseline')return false;
+      // Match a complete deliverable phrase, not an arbitrary substring
+      // (e.g. "Home" must not match "Homepage").
+      const haystack=ledgerRecordText(x).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+      const needle=pageSubject.replace(/[^a-z0-9]+/g,' ').trim();
+      return needle&&(' '+haystack+' ').includes(' '+needle+' ');
+    }): [];
     const negativeApprovalWording=x=>/\b(?:not approved|not authorised|not authorized|not agreed|not accepted|declined|rejected|excluded|not included|outside scope)\b/i.test(ledgerRecordText(x));
     const approvedLedgerRecord=ledgerPageRecords.length===1&&!negativeApprovalWording(ledgerPageRecords[0])&&/\b(?:included|in scope|approved|authorised|authorized|agreed)\b/i.test(ledgerRecordText(ledgerPageRecords[0]))?ledgerPageRecords[0]:null;
     if(explicitPageCreationAtomic && agreementRequiresPageApproval && ledgerPageRecords.length===0){

@@ -92,14 +92,25 @@ try{
     const incomplete=window.bfLedgerReviewAmendments([
       {id:'approval-2',type:' APPROVAL ',sourceType:' EMAIL ',status:' APPROVED ',related:'Careers page'}
     ]);
+    const priorUser=window.__bfUserId;
+    const projectInput=document.getElementById('projectName');
+    const priorProject=projectInput.value;
     window.__bfUserId='ledger-normalization-test';
-    document.getElementById('projectName').value='Normalization Project';
+    projectInput.value='Normalization Project';
     const key=window.bfLedgerKey();
-    localStorage.setItem(key,JSON.stringify([
-      {id:'base',type:' BASELINE ',sourceType:' AGREEMENT ',status:' APPROVED ',title:'Baseline',detail:'Original scope'},
-      {id:'approval',type:' AMENDMENT ',sourceType:' EMAIL ',status:' APPROVED ',title:'Careers page approval',detail:'Careers page approved and included',related:'Careers page',sourceDate:'2026-02-01'}
-    ]));
-    const context=window.bfLedgerAnalysisContext('Original scope');
+    const priorLedger=localStorage.getItem(key);
+    let context;
+    try{
+      localStorage.setItem(key,JSON.stringify([
+        {id:'base',type:' BASELINE ',sourceType:' AGREEMENT ',status:' APPROVED ',title:'Baseline',detail:'Original scope'},
+        {id:'approval',type:' AMENDMENT ',sourceType:' EMAIL ',status:' APPROVED ',title:'Careers page approval',detail:'Careers page approved and included',related:'Careers page',sourceDate:'2026-02-01'}
+      ]));
+      context=window.bfLedgerAnalysisContext('Original scope');
+    }finally{
+      if(priorLedger===null)localStorage.removeItem(key);else localStorage.setItem(key,priorLedger);
+      window.__bfUserId=priorUser;
+      projectInput.value=priorProject;
+    }
     return {reviewed:reviewed[0]?.state,claim:claim[0]?.state,incomplete:incomplete[0]?.state,
       used:context.used.map(x=>({type:x.type,sourceType:x.sourceType,status:x.status})),reviewType:context.amendmentReview[0]?.type};
   });

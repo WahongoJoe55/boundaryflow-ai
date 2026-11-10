@@ -4302,12 +4302,12 @@ function bfLedgerReviewAmendments(records){
  // unspecified status may establish the chronology reference. A proposed
  // baseline, client assertion or internal note must never move that date.
  const baselines=entries.filter(x=>{
-  if(!x||x.type!=='baseline')return false;
-  const source=String(x.sourceType||'other').toLowerCase();
-  const status=String(x.status||'not_specified').toLowerCase();
+  if(!x||String(x.type||'').trim().toLowerCase()!=='baseline')return false;
+  const source=String(x.sourceType||'other').trim().toLowerCase();
+  const status=String(x.status||'not_specified').trim().toLowerCase();
   return source==='agreement'&&['approved','not_specified'].includes(status)&&!['declined','superseded'].includes(status);
  });
- const changes=entries.filter(x=>x&&['amendment','approval','change_request','client_decision'].includes(x.type));
+ const changes=entries.filter(x=>x&&['amendment','approval','change_request','client_decision'].includes(String(x.type||'').trim().toLowerCase()));
  const parseDate=value=>{
   // Validated YYYYMMDD keys avoid timezone-dependent parsing and reject impossible dates.
   const raw=String(value||'').trim();
@@ -4323,13 +4323,13 @@ function bfLedgerReviewAmendments(records){
  const baselineDates=baselines.map(x=>parseDate(x.sourceDate)).filter(x=>x!==null);
  const latestBaseline=baselineDates.length?Math.max(...baselineDates):null;
  return changes.map(x=>{
-  const status=String(x.status||'not_specified').toLowerCase();
-  const source=String(x.sourceType||'other').toLowerCase();
+  const status=String(x.status||'not_specified').trim().toLowerCase();
+  const source=String(x.sourceType||'other').trim().toLowerCase();
   const sourceDate=parseDate(x.sourceDate);
   const claim=source==='client_claim';
   const pending=['proposed','awaiting_approval'].includes(status);
   const excluded=['declined','superseded'].includes(status);
-  const eligibleType=['amendment','approval','client_decision'].includes(x.type);
+  const eligibleType=['amendment','approval','client_decision'].includes(String(x.type||'').trim().toLowerCase());
   const eligibleSource=['agreement','amendment','email'].includes(source);
   const dateConflict=sourceDate!==null&&latestBaseline!==null&&sourceDate<latestBaseline;
   const metadataMissing=!String(x.related||'').trim()||sourceDate===null;
@@ -4347,20 +4347,20 @@ function bfLedgerReviewAmendments(records){
 }
 function bfLedgerAnalysisContext(baseScope){
  const entries=bfLedgerRead();
- const active=entries.filter(x=>!['superseded','declined'].includes(String(x.status||'').toLowerCase()));
+ const active=entries.filter(x=>!['superseded','declined'].includes(String(x.status||'').trim().toLowerCase()));
  // A baseline is usable only when it is a supplied agreement record whose
  // status is explicitly approved or deliberately left unspecified.
  // Proposed / awaiting-approval baselines must never become scope facts.
- const baseline=active.filter(x=>x.type==='baseline'&&x.sourceType==='agreement'&&['not_specified','approved'].includes(String(x.status||'not_specified').toLowerCase()));
- const approved=active.filter(x=>['amendment','approval','client_decision'].includes(x.type)&&x.status==='approved'&&['agreement','amendment','email'].includes(x.sourceType)&&x.sourceType!=='client_claim');
+ const baseline=active.filter(x=>String(x.type||'').trim().toLowerCase()==='baseline'&&String(x.sourceType||'').trim().toLowerCase()==='agreement'&&['not_specified','approved'].includes(String(x.status||'not_specified').trim().toLowerCase()));
+ const approved=active.filter(x=>['amendment','approval','client_decision'].includes(String(x.type||'').trim().toLowerCase())&&String(x.status||'').trim().toLowerCase()==='approved'&&['agreement','amendment','email'].includes(String(x.sourceType||'').trim().toLowerCase()));
  const used=[...baseline,...approved];
- const revisions=active.filter(x=>x.type==='revision');
- const completedRevisionRounds=revisions.filter(x=>x.status==='delivered').map(x=>{
+ const revisions=active.filter(x=>String(x.type||'').trim().toLowerCase()==='revision');
+ const completedRevisionRounds=revisions.filter(x=>String(x.status||'').trim().toLowerCase()==='delivered').map(x=>{
   const m=String(x.title||'')+' '+String(x.detail||'');
   const match=m.match(/\b(?:first|one|second|two|third|three|fourth|four|fifth|five|\d+)\s+(?:included\s+)?revision round\b/i);
   return match?bfR2Number(match[0]):null;
  }).filter(x=>Number.isFinite(x)&&x>0);
- const revisionNotes=revisions.filter(x=>x.status==='delivered').map(x=>'User-recorded completed revision event: '+String(x.title||'')+'. '+String(x.detail||''));
+ const revisionNotes=revisions.filter(x=>String(x.status||'').trim().toLowerCase()==='delivered').map(x=>'User-recorded completed revision event: '+String(x.title||'')+'. '+String(x.detail||''));
  const analysisMessage=String(window.document.getElementById('r')?.value||'').trim()+(revisionNotes.length?'\n\n[PROJECT LEDGER REVISION HISTORY — user-recorded, not independently authenticated]\n'+revisionNotes.join('\n'):'');
  // The analysis field remains the sole source of agreement wording.
  // Ledger entries are user-entered metadata, not authenticated source documents.
@@ -4376,9 +4376,9 @@ function bfLedgerAnalysisContext(baseScope){
   amendmentReview:bfLedgerReviewAmendments(entries),
   revisionEvents:revisions.map(x=>({title:x.title,detail:x.detail,status:x.status,sourceType:x.sourceType,sourceDate:x.sourceDate,related:x.related})),
   completedRevisionRounds,
-  unverifiedClaims:entries.filter(x=>x.sourceType==='client_claim').map(x=>({title:x.title,detail:x.detail,status:x.status,sourceType:x.sourceType})),
-  pending:entries.filter(x=>['proposed','awaiting_approval'].includes(x.status)).map(x=>({title:x.title,detail:x.detail,status:x.status,sourceType:x.sourceType})),
-  excluded:entries.filter(x=>['superseded','declined'].includes(x.status)).map(x=>({title:x.title,status:x.status}))
+  unverifiedClaims:entries.filter(x=>String(x.sourceType||'').trim().toLowerCase()==='client_claim').map(x=>({title:x.title,detail:x.detail,status:x.status,sourceType:x.sourceType})),
+  pending:entries.filter(x=>['proposed','awaiting_approval'].includes(String(x.status||'').trim().toLowerCase())).map(x=>({title:x.title,detail:x.detail,status:x.status,sourceType:x.sourceType})),
+  excluded:entries.filter(x=>['superseded','declined'].includes(String(x.status||'').trim().toLowerCase())).map(x=>({title:x.title,status:x.status}))
  };
 }
 function bfLedgerRevisionUsage(context,request,agreement){

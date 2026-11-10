@@ -3509,6 +3509,7 @@ function bfR2Panel(data){
  const ledgerSummary=ledger&&ledger.totalEntries?section('Project ledger context',
   '<p class="note">Project: '+esc2(ledger.projectName)+' · '+ledger.totalEntries+' user-recorded ledger entr'+(ledger.totalEntries===1?'y':'ies')+'. Ledger context is local to this signed-in account and project.</p>'+
   (ledger.used.length?'<p class="note"><b>Candidate records surfaced for manual review only — not inserted into the agreement text or treated as proof:</b></p><ul>'+ledger.used.map(x=>'<li>'+esc2(x.title)+' — '+esc2(x.type)+' · '+esc2(x.sourceType)+' · '+esc2(x.status)+(x.sourceDate?' · source date '+esc2(x.sourceDate):'')+'</li>').join('')+'</ul>':'<p class="note">No candidate baseline or approved supplemental records were found in the ledger.</p>')+
+  (ledger.amendmentReview&&ledger.amendmentReview.length?'<p class="note"><b>Amendment and approval chronology — diagnostic only; no ledger change is applied:</b></p><ul>'+ledger.amendmentReview.map(x=>'<li>'+esc2(x.title)+' — '+esc2(x.state)+' · '+esc2(x.reason)+'</li>').join('')+'</ul>':'')+
   (ledger.revisionEvents.length?'<p class="note"><b>Revision history (user-recorded):</b></p><ul>'+ledger.revisionEvents.map(x=>'<li>'+esc2(x.title)+' — '+esc2(x.status)+' · '+esc2(x.detail)+'</li>').join('')+'</ul>':'')+
   (ledger.requestRevisionUsage&&ledger.requestRevisionUsage.length?'<p class="note"><b>Revision allowance checked per request:</b></p><ul>'+ledger.requestRevisionUsage.map(x=>'<li>'+esc2(x.request)+' — '+(x.scope==='per_page'?'per-page':'project-wide')+' history; '+(x.completed===null?'completed rounds not established':x.completed+' completed round(s) recorded')+(x.allowance!==null?' of '+x.allowance+' allowed':'')+(x.page?' · page: '+esc2(x.page):'')+'</li>').join('')+'</ul>':'')+
   (ledger.unverifiedClaims.length?'<p class="note"><b>Excluded from scope facts — client assertions:</b> '+ledger.unverifiedClaims.map(x=>esc2(x.title)).join('; ')+'. These remain claims, not approval proof.</p>':'')+
@@ -4279,6 +4280,41 @@ document.addEventListener('change',e=>{if(e.target&&e.target.id==='responseStyle
 function bfLedgerProjectName(){return String(document.getElementById('projectName')?.value||'').trim()}
 function bfLedgerKey(){const name=bfLedgerProjectName();return name?bfScopedKey('boundaryflow_project_ledger_v1_'+bfHash(name.toLocaleLowerCase())):null}
 function bfLedgerRead(){const key=bfLedgerKey();if(!key||!window.__bfUserId)return[];try{const v=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(v)?v:[]}catch(e){return[]}}
+function bfLedgerReviewAmendments(records){
+ const entries=Array.isArray(records)?records:[];
+ const baselines=entries.filter(x=>x&&x.type==='baseline');
+ const changes=entries.filter(x=>x&&['amendment','approval','change_request','client_decision'].includes(x.type));
+ const parseDate=value=>{
+  const raw=String(value||'').trim();
+  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(raw))return null;
+  const d=new Date(raw+'T00:00:00Z');
+  return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===raw?d.getTime():null;
+ };
+ const baselineDates=baselines.map(x=>parseDate(x.sourceDate)).filter(x=>x!==null);
+ const latestBaseline=baselineDates.length?Math.max(...baselineDates):null;
+ return changes.map(x=>{
+  const status=String(x.status||'not_specified').toLowerCase();
+  const source=String(x.sourceType||'other').toLowerCase();
+  const sourceDate=parseDate(x.sourceDate);
+  const claim=source==='client_claim';
+  const pending=['proposed','awaiting_approval'].includes(status);
+  const excluded=['declined','superseded'].includes(status);
+  const eligibleType=['amendment','approval','client_decision'].includes(x.type);
+  const eligibleSource=['agreement','amendment','email'].includes(source);
+  const dateConflict=sourceDate!==null&&latestBaseline!==null&&sourceDate<latestBaseline;
+  const metadataMissing=!String(x.related||'').trim()||sourceDate===null;
+  let state='manual_review_required',reason='A ledger status is user-recorded metadata, not verified authority or proof that the original agreement was validly changed.';
+  if(claim){state='claim_only';reason='A client assertion is not approval evidence, even if its ledger status was incorrectly labelled approved.';}
+  else if(excluded){state='not_applicable';reason='The record is marked declined or superseded in the user-maintained ledger; it is not applied.';}
+  else if(pending){state='pending_not_applied';reason='The change is proposed or awaiting approval; it must not be treated as an effective scope change.';}
+  else if(status!=='approved'){state='status_unconfirmed';reason='The record is not marked approved in the ledger; its effective status is unresolved.';}
+  else if(!eligibleType||!eligibleSource){state='source_or_record_type_unverified';reason='The record type or source category is insufficient to treat this as a candidate approved scope change.';}
+  else if(dateConflict){state='chronology_conflict';reason='The recorded source date predates the recorded baseline date. Check document versions and chronology; do not assume this amendment supersedes the baseline.';}
+  else if(metadataMissing){state='metadata_incomplete';reason='A source date and a related deliverable/workstream are required for a useful chronology and applicability review.';}
+  else {state='candidate_for_manual_verification';reason='Candidate only: verify the original document, parties, authority, exact approval wording, effective date, conditions and supersession effect before changing any scope decision.';}
+  return {id:x.id||null,title:String(x.title||''),type:x.type,sourceType:source,status,sourceDate:x.sourceDate||null,related:String(x.related||''),state,reason,applied:false};
+ });
+}
 function bfLedgerAnalysisContext(baseScope){
  const entries=bfLedgerRead();
  const active=entries.filter(x=>!['superseded','declined'].includes(String(x.status||'').toLowerCase()));
@@ -4307,6 +4343,7 @@ function bfLedgerAnalysisContext(baseScope){
  return {
   projectName:bfLedgerProjectName(),totalEntries:entries.length,analysisScope,analysisMessage,
   used:used.map(x=>({id:x.id,title:x.title,detail:x.detail,type:x.type,sourceType:x.sourceType,status:x.status,sourceDate:x.sourceDate,related:x.related})),
+  amendmentReview:bfLedgerReviewAmendments(entries),
   revisionEvents:revisions.map(x=>({title:x.title,detail:x.detail,status:x.status,sourceType:x.sourceType,sourceDate:x.sourceDate,related:x.related})),
   completedRevisionRounds,
   unverifiedClaims:entries.filter(x=>x.sourceType==='client_claim').map(x=>({title:x.title,detail:x.detail,status:x.status,sourceType:x.sourceType})),

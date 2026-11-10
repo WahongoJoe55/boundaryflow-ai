@@ -3386,9 +3386,11 @@ function bfR2TopicState(clause,topic){
   const qualifiedNonInclusion=/\bnot\s+(?:(?:expressly|automatically|necessarily|generally|ordinarily|normally|always)\s+)+(?:included|within\s+(?:the\s+)?(?:agreed\s+)?scope|part\s+of\s+(?:the\s+)?(?:agreed\s+)?(?:scope|agreement)|covered\s+by\s+(?:the\s+)?agreement)\b/.test(part);
   // A negated exclusion is not affirmative evidence of inclusion or exclusion.
   // Remove it before scanning for exclusion markers.
+  const explicitNegative=/\bnot\s+(?:expressly\s+)?(?:included|within\s+(?:the\s+)?(?:agreed\s+)?scope|part\s+of\s+(?:the\s+)?(?:agreed\s+)?(?:scope|agreement)|covered\s+by\s+(?:the\s+)?agreement)\b/.test(part);
   const exclusionText=part.replace(/\bnot\s+(?:expressly\s+)?(?:excluded|outside\s+(?:the\s+)?(?:agreed\s+)?(?:scope|agreement)|subject\s+to\s+separate\s+approval|only\s+with\s+written\s+approval)\b/g,' ');
-  if(/\b(?:exclud(?:e|es|ed|ing)|not included|outside (?:the )?(?:scope|agreement)|requires? separate (?:written )?approval|subject to separate (?:written )?approval|only with written approval)\b/.test(exclusionText))excluded=true;
-  if(!qualifiedNonInclusion&&/\b(?:included|within (?:the )?scope|part of (?:the )?(?:scope|agreement)|covered by (?:the )?agreement)\b/.test(part))included=true;
+  if(/\b(?:exclud(?:e|es|ed|ing)|not included|not within (?:the )?(?:agreed )?scope|not part of (?:the )?(?:agreed )?(?:scope|agreement)|not covered by (?:the )?agreement|outside (?:the )?(?:scope|agreement)|requires? separate (?:written )?approval|subject to separate (?:written )?approval|only with written approval)\b/.test(exclusionText))excluded=true;
+  const positiveText=part.replace(/\bnot\s+(?:(?:expressly|automatically|necessarily|generally|ordinarily|normally|always)\s+)?(?:included|within\s+(?:the\s+)?(?:agreed\s+)?scope|part\s+of\s+(?:the\s+)?(?:agreed\s+)?(?:scope|agreement)|covered\s+by\s+(?:the\s+)?agreement)\b/g,' ');
+  if(!explicitNegative&&!qualifiedNonInclusion&&/\b(?:included|within (?:the )?scope|part of (?:the )?(?:scope|agreement)|covered by (?:the )?agreement)\b/.test(positiveText))included=true;
  }
  if(excluded&&included)return 'mixed';
  if(excluded)return 'excluded';

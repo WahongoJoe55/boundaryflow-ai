@@ -3462,6 +3462,7 @@ function bfR2Inspect(agreement,message,rows){
  return {
   version:'2.0.0',
   evidence:[...bfR2Evidence(agreement,'Agreement / scope text'),...bfR2Evidence(message,'Latest client message')].sort((a,b)=>a.tier-b.tier||a.index-b.index),
+  requestEvidence:(rows||[]).filter(x=>String(x.c&&x.c.status||'').toLowerCase()!=='client claim'&&x.c&&x.c.type!=='Constraint / instruction').map(x=>({request:String(x.q||''),...bfR2MatchEvidence(x.q,agreement)})),
   contradictions:bfR2Contradictions(agreement),
   revisions:bfR2Revision(agreement,message),
   dependencies:bfR2Dependencies(message,rows),
@@ -3478,6 +3479,10 @@ function bfR2Panel(data){
  const ev=(data.evidence||[]).map(x=>x.label+' — '+x.clause+' ('+x.verification+')');
  const con=(data.contradictions||[]).map(x=>x.topic+': '+x.earlier+' / '+x.later+' — '+x.resolution);
  const dep=(data.dependencies||[]).map(x=>x.kind+': '+x.evidence+' — '+x.status);
+ const requestEvidence=(data.requestEvidence||[]).map(x=>{
+  const matches=(x.matches||[]).map(m=>m.topic+' ['+m.state+']: '+m.clause);
+  return x.request+' — '+x.status+'. '+x.reason+(matches.length?' Matched clauses: '+matches.join(' | '):'');
+ });
  const r=data.revisions||{},c=data.commercial||{},ledger=window.bfLedgerAnalysisMeta||null;
  const ledgerSummary=ledger&&ledger.totalEntries?section('Project ledger context',
   '<p class="note">Project: '+esc2(ledger.projectName)+' · '+ledger.totalEntries+' user-recorded ledger entr'+(ledger.totalEntries===1?'y':'ies')+'. Ledger context is local to this signed-in account and project.</p>'+
@@ -3490,6 +3495,7 @@ function bfR2Panel(data){
   '<p class="note">Ledger records are not fed into the scope classifier. A page-specific approved entry may trigger Conditional review only. To change a scope decision, inspect the original record and paste its exact relevant wording into the agreed-scope field; verify sender authority, dates, approval conditions and the complete project history.</p>') : '';
  return '<div class="card" style="margin-top:14px"><b>Reasoning safeguards · v'+esc2(data.version)+'</b><p class="note">Evidence and consistency checks. These flags do not authenticate documents or replace your review.</p>'+ledgerSummary+
  section('Evidence sources found',list(ev,'No clearly labelled source types were detected. Paste or label the actual record if available.'))+
+ section('Request-to-clause evidence matching',list(requestEvidence,'No actionable requests were available for clause matching.'))+
  section('Potential agreement contradictions',list(con,'No opposing included/excluded statements were detected for the topics this check recognises.'))+
  section('Revision allowance snapshot','<p class="note">Allowance: '+esc2(r.allowance===null?'Not established':r.allowance)+' · Completed: '+esc2(r.completed===null?'Not established':r.completed)+' · Current round mentioned: '+esc2(r.current===null?'Not established':r.current)+' · Remaining: '+esc2(r.remaining===null?'Cannot calculate':r.remaining)+'</p><p class="note">'+esc2(r.warning)+'</p>')+
  section('Dependencies and sequence',list(dep,'No explicit dependency wording was detected.'))+

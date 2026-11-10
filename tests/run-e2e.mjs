@@ -262,9 +262,17 @@ try{
     ];
     return cases.map(([name,context,request])=>({name,result:window.bfLedgerRevisionUsage(context,request,agreement)}));
   });
+  const unknownRevisionCollections=malformedRevisionCollections.filter(x=>x.name!=='null-entry');
+  const nullEntryRevisionCollection=malformedRevisionCollections.find(x=>x.name==='null-entry');
   check('Missing or malformed revision collections keep allowance unknown',
-    malformedRevisionCollections.every(x=>x.result.historyUnknown===true&&x.result.collectionUnknown===true&&x.result.completed===null&&x.result.remaining===null),
-    JSON.stringify(malformedRevisionCollections));
+    unknownRevisionCollections.every(x=>x.result.historyUnknown===true&&x.result.collectionUnknown===true&&x.result.completed===null&&x.result.remaining===null),
+    JSON.stringify(unknownRevisionCollections));
+  check('Null entries are ignored safely without discarding valid delivered evidence',
+    nullEntryRevisionCollection.result.collectionUnknown===false&&
+    nullEntryRevisionCollection.result.historyUnknown===false&&
+    nullEntryRevisionCollection.result.completed===1&&
+    nullEntryRevisionCollection.result.remaining===2,
+    JSON.stringify(nullEntryRevisionCollection));
   const normalizedRevisionStatus=await page.evaluate(()=>{
     return window.bfLedgerRevisionUsage({revisionEvents:[
       {status:'  DELIVERED  ',title:'First revision round completed for the Portfolio page',detail:'',related:'Portfolio page'}

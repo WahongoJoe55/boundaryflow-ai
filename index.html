@@ -4420,17 +4420,25 @@ function bfLedgerRevisionUsage(context,request,agreement){
   const textPage=uniqueTextPages.length===1?uniqueTextPages[0]:(uniqueTextPages[0]||'');
   const page=pageConflict?'':(relatedPage||textPage);
   return {round,page,textPage,textPages:uniqueTextPages,relatedPage,pageConflict,title:x.title||'',sourceDate:x.sourceDate||null,recordedStatus:x.status};
- }).filter(x=>Number.isFinite(x.round)&&x.round>0);
+ });
  const conflicting=perPage?parsed.filter(x=>x.pageConflict&&(x.textPages.includes(targetPage)||x.relatedPage===targetPage)):[];
- const relevant=perPage?parsed.filter(x=>!x.pageConflict&&targetPage&&x.page===targetPage):parsed.filter(x=>!x.pageConflict);
+ const relevant=perPage?parsed.filter(x=>Number.isFinite(x.round)&&x.round>0&&!x.pageConflict&&targetPage&&x.page===targetPage):parsed.filter(x=>Number.isFinite(x.round)&&x.round>0&&!x.pageConflict);
+ // Delivered revision records without a recognisable round number cannot be
+ // silently discarded: they may represent uncounted work in the same history.
+ const unresolvedRoundEvents=parsed.filter(x=>!(Number.isFinite(x.round)&&x.round>0)).filter(x=>{
+  if(!perPage)return true;
+  if(!targetPage)return true;
+  if(x.pageConflict)return x.textPages.includes(targetPage)||x.relatedPage===targetPage;
+  return !x.page||x.page===targetPage;
+ });
  const rounds=[...new Set(relevant.map(x=>x.round))].sort((a,b)=>a-b);
  // A highest observed round is not proof that all earlier rounds happened.
  // Require a contiguous sequence beginning at round 1 before calculating usage.
  const sequenceGaps=rounds.length?Array.from({length:rounds[rounds.length-1]},(_,i)=>i+1).filter(n=>!rounds.includes(n)):[];
  const historyConflict=conflicting.length>0;
- const historyIncomplete=sequenceGaps.length>0;
+ const historyIncomplete=sequenceGaps.length>0||unresolvedRoundEvents.length>0;
  const completed=historyConflict||historyIncomplete?null:(relevant.length?Math.max(...rounds):null);
- return {scope:perPage?'per_page':'project',page:targetPage||null,allowance,completed,remaining:allowance!==null&&completed!==null?Math.max(0,allowance-completed):null,matchedEvents:relevant.map(x=>({round:x.round,page:x.page,title:x.title,sourceDate:x.sourceDate,status:x.recordedStatus})),conflictingEvents:conflicting.map(x=>({round:x.round,textPage:x.textPage,textPages:x.textPages,relatedPage:x.relatedPage,title:x.title,sourceDate:x.sourceDate,status:x.recordedStatus})),sequenceGaps,historyUnknown:(perPage&&!targetPage)||historyConflict||historyIncomplete}
+ return {scope:perPage?'per_page':'project',page:targetPage||null,allowance,completed,remaining:allowance!==null&&completed!==null?Math.max(0,allowance-completed):null,matchedEvents:relevant.map(x=>({round:x.round,page:x.page,title:x.title,sourceDate:x.sourceDate,status:x.recordedStatus})),conflictingEvents:conflicting.map(x=>({round:x.round,textPage:x.textPage,textPages:x.textPages,relatedPage:x.relatedPage,title:x.title,sourceDate:x.sourceDate,status:x.recordedStatus})),unresolvedRoundEvents:unresolvedRoundEvents.map(x=>({title:x.title,page:x.page,textPages:x.textPages,relatedPage:x.relatedPage,sourceDate:x.sourceDate,status:x.recordedStatus})),sequenceGaps,historyUnknown:(perPage&&!targetPage)||historyConflict||historyIncomplete}
 }
 function bfLedgerAdd(record){
  if(!window.__bfUserId)throw new Error('Sign in before recording project evidence.');

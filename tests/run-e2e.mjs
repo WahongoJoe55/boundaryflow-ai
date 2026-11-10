@@ -243,6 +243,16 @@ try{
     revisionSequenceChecks.contiguous.completed===2&&revisionSequenceChecks.contiguous.remaining===1&&
     revisionSequenceChecks.contiguous.historyUnknown===false,
     JSON.stringify(revisionSequenceChecks.contiguous));
+  const unnumberedRevision=await page.evaluate(()=>{
+    return window.bfLedgerRevisionUsage({revisionEvents:[
+      {status:'delivered',title:'Revision work completed for the Portfolio page',detail:'Client-requested revisions delivered.',related:'Portfolio page'}
+    ]},'Portfolio page','Each page includes up to 3 revision rounds.');
+  });
+  check('Unnumbered delivered revision record keeps the remaining allowance unknown',
+    unnumberedRevision.completed===null&&unnumberedRevision.remaining===null&&
+    unnumberedRevision.historyUnknown===true&&unnumberedRevision.unresolvedRoundEvents?.length===1,
+    JSON.stringify(unnumberedRevision));
+
 
   await setProject('E2E Evidence Deliverable Isolation');
   await page.locator('#a').fill(scope);

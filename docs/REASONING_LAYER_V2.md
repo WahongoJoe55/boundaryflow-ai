@@ -123,3 +123,8 @@ Run #314 failed at JavaScript parse time (`Unexpected token '{'`) before executi
 ## 10 November 2026 — written-approval matcher correction
 
 Run #316 executed the regression suite and found one failure: “requires separate written approval” was not recognised by the topic-state exclusion matcher, which only accepted “requires separate approval”. The matcher now accepts the optional word “written” in both “requires separate … approval” and “subject to separate … approval”. BF-C13 preserves this phrase as a direct exclusion/approval condition. Re-run the full suite before relying on the change.
+
+
+## 10 November 2026 — request-to-clause evidence matching
+
+Added `bfR2MatchEvidence(request, agreement)` as a conservative diagnostic. It extracts recognised request topics, matches only clauses sharing the same mapped topic, and reports `matched`, `partial`, `needs_review` or `unmatched`. It does not use general keyword proximity to borrow a clause from another topic, and explicitly states that textual matching does not authenticate a source or establish legal effect. Three adversarial regression cases (BF-E06–BF-E08) cover unrelated nearby clauses, absent topic evidence and mixed/conditional topic language. This helper is diagnostic only; it does not silently override the primary classifier.

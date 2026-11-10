@@ -145,3 +145,8 @@ Run #327 exposed two test-fixture issues, not a need to weaken the engine safegu
 ## 10 November 2026 — amendment lifecycle and chronology review
 
 Added `bfLedgerReviewAmendments(records)` as a conservative diagnostic over user-maintained project ledger entries. Proposed/awaiting-approval changes remain pending; declined/superseded entries are not applicable; client-claim source remains a claim even if its status field says approved; approved candidates require an eligible record/source type, a valid ISO source date and a related deliverable/workstream. A recorded amendment date earlier than a recorded baseline date is flagged as a chronology conflict. Even a candidate passing these checks remains unapplied and requires review of original records, parties, authority, approval wording, effective date, conditions and supersession effect. No ledger text is merged into the agreement or automatically changes classification. Regression tests BF-A01–BF-A03 cover pending changes, client claims and chronology conflicts.
+
+
+## 10 November 2026 — amendment date validator correction
+
+Run #332 revealed that the ISO date regular expression was over-escaped in the JavaScript source, causing valid dates to be rejected as missing metadata. Corrected the expression and added BF-A04 (invalid calendar date remains unverified) and BF-A05 (valid ISO date is compared against the baseline). The original chronology safeguard remains conservative: no amendment is automatically applied.

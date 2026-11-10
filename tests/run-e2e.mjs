@@ -234,6 +234,21 @@ try{
   check('Approved amendment is included as supplemental analysis context',alpha.meta?.used?.some(x=>x.title==='Careers page approval')===true);
   check('Client assertion remains excluded from approval evidence',alpha.meta?.unverifiedClaims?.some(x=>x.title==='Client says Careers was already approved')===true&&!alpha.meta?.used?.some(x=>x.title==='Client says Careers was already approved'));
   check('Specific Careers approval with incomplete chronology remains Clarify pending source verification',careers?.status==='Clarify'&&/chronology|review/i.test(String(careers?.type||'')+' '+String(careers?.boundary||'')),JSON.stringify(careers||null));
+
+  await setProject('E2E Missing Approval Identity');
+  await addRecord({type:'baseline',title:'Original agreed scope',detail:scope,source:'agreement',status:'approved',related:'All agreed pages'});
+  await addRecord({type:'amendment',title:'Careers page approval',detail:'The Careers page is approved and included in the agreed project scope.',source:'amendment',status:'approved',related:'Careers page'});
+  await page.evaluate(()=>{
+    const key=window.bfLedgerKey();
+    const records=JSON.parse(localStorage.getItem(key)||'[]');
+    records.forEach(record=>{if(record.type==='amendment')delete record.id;});
+    localStorage.setItem(key,JSON.stringify(records));
+  });
+  const missingApprovalIdentity=await analyse(scope,'Create a new Careers page.');
+  const missingIdentityCareers=missingApprovalIdentity.rows.find(x=>/careers/i.test(x.request||''));
+  check('An approval record without a stable ID cannot bypass chronology review or become conditional approval',
+    missingIdentityCareers?.status==='Clarify'&&/chronology|review/i.test(String(missingIdentityCareers?.type||'')+' '+String(missingIdentityCareers?.boundary||'')),
+    JSON.stringify(missingIdentityCareers||null));
   check('Portfolio revision usage is matched to the correct page',portfolio?.allowance===2&&portfolio?.completed===1&&portfolio?.remaining===1,JSON.stringify(portfolio||null));
   const revisionSequenceChecks=await page.evaluate(()=>{
     const agreement='Each page includes up to 3 revision rounds.';

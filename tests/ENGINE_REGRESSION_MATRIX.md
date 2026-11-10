@@ -222,3 +222,12 @@ The first attempt to add BF-C12–BF-C14 failed before scenario execution becaus
 ## Written-approval phrase coverage — 10 November 2026
 
 BF-C13 exercises the wording “requires separate written approval”. The topic-state exclusion matcher now recognises both “requires separate approval” and “requires separate written approval”, with the same optional written qualifier for “subject to separate approval”. This avoids an unresolved topic state when the agreement explicitly requires written approval.
+
+
+## Request-to-clause evidence matching — 10 November 2026
+
+| ID | Scenario | Expected safeguard |
+|---|---|---|
+| BF-E06 | New Careers page request with unrelated SEO inclusion clause and directly matching new-page exclusion. | Attach only the new-page clause; do not borrow SEO wording. |
+| BF-E07 | Customer portal request when agreement only mentions SEO and existing pages. | Return unmatched; do not infer a boundary from general website wording. |
+| BF-E08 | Same topic has exclusion and conditional inclusion language in one clause. | Flag for review rather than report a clean match. |

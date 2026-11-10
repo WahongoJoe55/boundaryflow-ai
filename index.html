@@ -3380,13 +3380,17 @@ function bfR2TopicState(clause,topic){
  }
  let excluded=false,included=false;
  for(const part of segments){
-  const negatedPositive=/\bnot\s+(?:expressly\s+)?(?:included|within\s+(?:the\s+)?(?:agreed\s+)?scope|part\s+of\s+(?:the\s+)?(?:agreed\s+)?(?:scope|agreement)|covered\s+by\s+(?:the\s+)?agreement)\b/.test(part);
+  // Qualified non-inclusion ("not expressly/automatically/necessarily included")
+  // is not the same as an explicit exclusion. Keep it unresolved unless a
+  // separate, unqualified scope statement resolves the topic.
+  const qualifiedNonInclusion=/\bnot\s+(?:(?:expressly|automatically|necessarily|generally|ordinarily|normally|always)\s+)+(?:included|within\s+(?:the\s+)?(?:agreed\s+)?scope|part\s+of\s+(?:the\s+)?(?:agreed\s+)?(?:scope|agreement)|covered\s+by\s+(?:the\s+)?agreement)\b/.test(part);
   // A negated exclusion is not affirmative evidence of inclusion or exclusion.
-  // Remove that phrase before scanning for exclusion markers, then leave the
-  // topic unresolved unless separate positive scope language is present.
+  // Remove it before scanning for exclusion markers.
+  const explicitNegative=/\bnot\s+(?:expressly\s+)?(?:included|within\s+(?:the\s+)?(?:agreed\s+)?scope|part\s+of\s+(?:the\s+)?(?:agreed\s+)?(?:scope|agreement)|covered\s+by\s+(?:the\s+)?agreement)\b/.test(part);
   const exclusionText=part.replace(/\bnot\s+(?:expressly\s+)?(?:excluded|outside\s+(?:the\s+)?(?:agreed\s+)?(?:scope|agreement)|subject\s+to\s+separate\s+approval|only\s+with\s+written\s+approval)\b/g,' ');
-  if(negatedPositive||/\b(?:exclud(?:e|es|ed|ing)|not included|outside (?:the )?(?:scope|agreement)|requires? separate (?:written )?approval|subject to separate (?:written )?approval|only with written approval)\b/.test(exclusionText))excluded=true;
-  if(!negatedPositive&&/\b(?:included|within (?:the )?scope|part of (?:the )?(?:scope|agreement)|covered by (?:the )?agreement)\b/.test(part))included=true;
+  if(/\b(?:exclud(?:e|es|ed|ing)|not included|not within (?:the )?(?:agreed )?scope|not part of (?:the )?(?:agreed )?(?:scope|agreement)|not covered by (?:the )?agreement|outside (?:the )?(?:scope|agreement)|requires? separate (?:written )?approval|subject to separate (?:written )?approval|only with written approval)\b/.test(exclusionText))excluded=true;
+  const positiveText=part.replace(/\bnot\s+(?:(?:expressly|automatically|necessarily|generally|ordinarily|normally|always)\s+)?(?:included|within\s+(?:the\s+)?(?:agreed\s+)?scope|part\s+of\s+(?:the\s+)?(?:agreed\s+)?(?:scope|agreement)|covered\s+by\s+(?:the\s+)?agreement)\b/g,' ');
+  if(!explicitNegative&&!qualifiedNonInclusion&&/\b(?:included|within (?:the )?scope|part of (?:the )?(?:scope|agreement)|covered by (?:the )?agreement)\b/.test(positiveText))included=true;
  }
  if(excluded&&included)return 'mixed';
  if(excluded)return 'excluded';

@@ -4285,11 +4285,17 @@ function bfLedgerReviewAmendments(records){
  const baselines=entries.filter(x=>x&&x.type==='baseline');
  const changes=entries.filter(x=>x&&['amendment','approval','change_request','client_decision'].includes(x.type));
  const parseDate=value=>{
+  // Validated YYYYMMDD keys avoid timezone-dependent parsing and reject impossible dates.
   const raw=String(value||'').trim();
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(raw))return null;
-  const d=new Date(raw+'T00:00:00Z');
-  return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===raw?d.getTime():null;
- };
+  const m=raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(!m)return null;
+  const year=Number(m[1]),month=Number(m[2]),day=Number(m[3]);
+  if(year<1||month<1||month>12||day<1)return null;
+  const leap=year%4===0&&(year%100!==0||year%400===0);
+  const days=[31,leap?29:28,31,30,31,30,31,31,30,31,30,31];
+  if(day>days[month-1])return null;
+  return year*10000+month*100+day;
+ };;
  const baselineDates=baselines.map(x=>parseDate(x.sourceDate)).filter(x=>x!==null);
  const latestBaseline=baselineDates.length?Math.max(...baselineDates):null;
  return changes.map(x=>{

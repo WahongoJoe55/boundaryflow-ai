@@ -3320,6 +3320,27 @@ function bfR2Topics(clause){
  bfR2TopicMap().forEach(([name,re])=>{if(re.test(s))topics.push(name);});
  return topics;
 }
+function bfR2MatchEvidence(request,agreement){
+ const requestTopics=bfR2Topics(request);
+ const clauses=bfR2Clauses(agreement);
+ if(!requestTopics.length)return {status:'unmatched',requestTopics:[],matches:[],reason:'No recognised topic could be extracted from the request; do not attach nearby clauses by keyword proximity.'};
+ const matches=[];
+ clauses.forEach((clause,index)=>{
+  const clauseTopics=bfR2Topics(clause);
+  const shared=requestTopics.filter(topic=>clauseTopics.includes(topic));
+  if(!shared.length)return;
+  shared.forEach(topic=>{
+   const state=bfR2TopicState(clause,topic);
+   matches.push({topic,clause,index,state:state||'unspecified'});
+  });
+ });
+ const covered=[...new Set(matches.map(x=>x.topic))];
+ const unresolved=matches.some(x=>x.state==='mixed'||x.state==='unspecified');
+ const complete=requestTopics.every(topic=>covered.includes(topic));
+ const status=!matches.length?'unmatched':!complete?'partial':unresolved?'needs_review':'matched';
+ const reason=status==='matched'?'Every recognised request topic has a directly topic-matched clause with an explicit scope state. This is a textual match, not proof of authenticity, authority or legal effect.':status==='partial'?'Only some recognised request topics have directly matching clauses. Unmatched topics remain unresolved; do not borrow evidence from a neighbouring topic.':status==='needs_review'?'A topic-matched clause is ambiguous or internally mixed. Preserve the uncertainty and request clarification.':'No agreement clause directly names a recognised request topic. Do not substitute a nearby clause merely because it shares general words.';
+ return {status,requestTopics,matches,unmatchedTopics:requestTopics.filter(topic=>!covered.includes(topic)),reason};
+}
 function bfR2TopicState(clause,topic){
  const s=bfR2Normalize(clause);
  let segments=[s];

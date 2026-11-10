@@ -217,3 +217,8 @@ The first 108-case execution exposed an empty array slot caused by a duplicate s
 ## Scope-language parser correction — 9 November 2026
 
 The first attempt to add BF-C12–BF-C14 failed before scenario execution because the runner array had a duplicated separator before BF-C12 and a missing separator before BF-C08. The phrase normalizer also needed to recognise “not outside the agreed scope”, not only “not outside the scope”. These are corrected before re-running the suite.
+
+
+## Written-approval phrase coverage — 10 November 2026
+
+BF-C13 exercises the wording “requires separate written approval”. The topic-state exclusion matcher now recognises both “requires separate approval” and “requires separate written approval”, with the same optional written qualifier for “subject to separate approval”. This avoids an unresolved topic state when the agreement explicitly requires written approval.

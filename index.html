@@ -4406,7 +4406,7 @@ function bfLedgerRevisionUsage(context,request,agreement){
   return v==='homepage'||v==='home'?'home':v;
  };
  const targetPage=pageName(request);
- const events=(context&&context.revisionEvents||[]).filter(x=>String(x.status||'').toLowerCase()==='delivered');
+ const events=(context&&Array.isArray(context.revisionEvents)?context.revisionEvents:[]).filter(x=>String(x&&x.status||'').trim().toLowerCase()==='delivered');
  const parsed=events.map(x=>{
   const source=String(x.title||'')+' '+String(x.detail||'');
   const match=source.match(/\b(?:first|one|second|two|third|three|fourth|four|fifth|five|\d+)\s+(?:included\s+)?revision\s+round\b/i);

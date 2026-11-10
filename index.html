@@ -4406,7 +4406,8 @@ function bfLedgerRevisionUsage(context,request,agreement){
   return v==='homepage'||v==='home'?'home':v;
  };
  const targetPage=pageName(request);
- const events=(context&&Array.isArray(context.revisionEvents)?context.revisionEvents:[]).filter(x=>String(x&&x.status||'').trim().toLowerCase()==='delivered');
+ const revisionEventsValid=!!context&&Array.isArray(context.revisionEvents);
+ const events=(revisionEventsValid?context.revisionEvents:[]).filter(x=>String(x&&x.status||'').trim().toLowerCase()==='delivered');
  const parsed=events.map(x=>{
   const source=String(x.title||'')+' '+String(x.detail||'');
   const match=source.match(/\b(?:first|one|second|two|third|three|fourth|four|fifth|five|\d+)\s+(?:included\s+)?revision\s+round\b/i);
@@ -4437,8 +4438,9 @@ function bfLedgerRevisionUsage(context,request,agreement){
  const sequenceGaps=rounds.length?Array.from({length:rounds[rounds.length-1]},(_,i)=>i+1).filter(n=>!rounds.includes(n)):[];
  const historyConflict=conflicting.length>0;
  const historyIncomplete=sequenceGaps.length>0||unresolvedRoundEvents.length>0;
- const completed=historyConflict||historyIncomplete?null:(relevant.length?Math.max(...rounds):null);
- return {scope:perPage?'per_page':'project',page:targetPage||null,allowance,completed,remaining:allowance!==null&&completed!==null?Math.max(0,allowance-completed):null,matchedEvents:relevant.map(x=>({round:x.round,page:x.page,title:x.title,sourceDate:x.sourceDate,status:x.recordedStatus})),conflictingEvents:conflicting.map(x=>({round:x.round,textPage:x.textPage,textPages:x.textPages,relatedPage:x.relatedPage,title:x.title,sourceDate:x.sourceDate,status:x.recordedStatus})),unresolvedRoundEvents:unresolvedRoundEvents.map(x=>({title:x.title,page:x.page,textPages:x.textPages,relatedPage:x.relatedPage,sourceDate:x.sourceDate,status:x.recordedStatus})),sequenceGaps,historyUnknown:(perPage&&!targetPage)||historyConflict||historyIncomplete}
+ const collectionUnknown=!revisionEventsValid;
+ const completed=collectionUnknown||historyConflict||historyIncomplete?null:(relevant.length?Math.max(...rounds):null);
+ return {scope:perPage?'per_page':'project',page:targetPage||null,allowance,completed,remaining:allowance!==null&&completed!==null?Math.max(0,allowance-completed):null,matchedEvents:relevant.map(x=>({round:x.round,page:x.page,title:x.title,sourceDate:x.sourceDate,status:x.recordedStatus})),conflictingEvents:conflicting.map(x=>({round:x.round,textPage:x.textPage,textPages:x.textPages,relatedPage:x.relatedPage,title:x.title,sourceDate:x.sourceDate,status:x.recordedStatus})),unresolvedRoundEvents:unresolvedRoundEvents.map(x=>({title:x.title,page:x.page,textPages:x.textPages,relatedPage:x.relatedPage,sourceDate:x.sourceDate,status:x.recordedStatus})),sequenceGaps,historyUnknown:collectionUnknown||(perPage&&!targetPage)||historyConflict||historyIncomplete,collectionUnknown}
 }
 function bfLedgerAdd(record){
  if(!window.__bfUserId)throw new Error('Sign in before recording project evidence.');

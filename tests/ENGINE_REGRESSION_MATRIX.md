@@ -231,3 +231,12 @@ BF-C13 exercises the wording “requires separate written approval”. The topic
 | BF-E06 | New Careers page request with unrelated SEO inclusion clause and directly matching new-page exclusion. | Attach only the new-page clause; do not borrow SEO wording. |
 | BF-E07 | Customer portal request when agreement only mentions SEO and existing pages. | Return unmatched; do not infer a boundary from general website wording. |
 | BF-E08 | Same topic has exclusion and conditional inclusion language in one clause. | Flag for review rather than report a clean match. |
+
+
+## Evidence conflict and confidence calibration — 10 November 2026
+
+| ID | Scenario | Expected safeguard |
+|---|---|---|
+| BF-E09 | Same recognised request topic has one included and one excluded clause. | Return `needs_review`; do not label the evidence as cleanly matched. |
+| BF-E10 | Multi-topic request has direct evidence for accessibility but none for online payments. | Return `partial`; keep the unmatched topic separate. |
+| BF-E11 | Recognised customer-portal request has no matching agreement topic. | Cap an existing High confidence rating to Medium and retain an explicit evidence-match reason. |

@@ -81,6 +81,47 @@ try{
     cloudDeleteContract.absent.retry===false&&cloudDeleteContract.failed.retry===true,
     JSON.stringify(cloudDeleteContract));
 
+  const ledgerNormalizationContract=await page.evaluate(()=>{
+    const reviewed=window.bfLedgerReviewAmendments([
+      {id:'baseline-1',type:' BASELINE ',sourceType:' AGREEMENT ',status:' APPROVED ',sourceDate:'2026-01-01'},
+      {id:'approval-1',type:' AMENDMENT ',sourceType:' EMAIL ',status:' APPROVED ',sourceDate:'2026-02-01',related:'Careers page'}
+    ]);
+    const claim=window.bfLedgerReviewAmendments([
+      {id:'claim-1',type:' APPROVAL ',sourceType:' CLIENT_CLAIM ',status:' APPROVED ',sourceDate:'2026-02-01',related:'Careers page'}
+    ]);
+    const incomplete=window.bfLedgerReviewAmendments([
+      {id:'approval-2',type:' APPROVAL ',sourceType:' EMAIL ',status:' APPROVED ',related:'Careers page'}
+    ]);
+    const priorUser=window.__bfUserId;
+    const projectInput=document.getElementById('projectName');
+    const priorProject=projectInput.value;
+    window.__bfUserId='ledger-normalization-test';
+    projectInput.value='Normalization Project';
+    const key=window.bfLedgerKey();
+    const priorLedger=localStorage.getItem(key);
+    let context;
+    try{
+      localStorage.setItem(key,JSON.stringify([
+        {id:'base',type:' BASELINE ',sourceType:' AGREEMENT ',status:' APPROVED ',title:'Baseline',detail:'Original scope'},
+        {id:'approval',type:' AMENDMENT ',sourceType:' EMAIL ',status:' APPROVED ',title:'Careers page approval',detail:'Careers page approved and included',related:'Careers page',sourceDate:'2026-02-01'}
+      ]));
+      context=window.bfLedgerAnalysisContext('Original scope');
+    }finally{
+      if(priorLedger===null)localStorage.removeItem(key);else localStorage.setItem(key,priorLedger);
+      window.__bfUserId=priorUser;
+      projectInput.value=priorProject;
+    }
+    return {reviewed:reviewed[0]?.state,claim:claim[0]?.state,incomplete:incomplete[0]?.state,
+      used:context.used.map(x=>({type:x.type,sourceType:x.sourceType,status:x.status})),reviewType:context.amendmentReview[0]?.type};
+  });
+  check('Ledger review normalizes case and surrounding whitespace without promoting claims or incomplete records',
+    ledgerNormalizationContract.reviewed==='candidate_for_manual_verification'&&
+    ledgerNormalizationContract.claim==='claim_only'&&
+    ledgerNormalizationContract.incomplete==='metadata_incomplete'&&
+    ledgerNormalizationContract.used.some(x=>x.type==='amendment'&&x.sourceType==='email'&&x.status==='approved')&&
+    ledgerNormalizationContract.reviewType==='amendment',
+    JSON.stringify(ledgerNormalizationContract));
+
   const cloudIdempotencyContract=await page.evaluate(async()=>{
     const calls=[];
     const fakeClient={from(table){

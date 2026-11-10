@@ -67,7 +67,11 @@ try {
   const passed=results.filter(x=>x.result==='PASS').length;
   const failed=results.length-passed;
   console.log(JSON.stringify({total:results.length,passed,failed,results},null,2));
-  if(results.length!==122 || failed>0) process.exitCode=1;
+  const declaredTotal=Number(await page.locator('#total').innerText());
+  if(!Number.isInteger(declaredTotal)||declaredTotal<=0||results.length!==declaredTotal||failed>0){
+    console.error(JSON.stringify({declaredTotal,executed:results.length,failed},null,2));
+    process.exitCode=1;
+  }
 } catch(error) {
   console.error(error);
   process.exitCode=1;

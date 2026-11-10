@@ -3715,7 +3715,13 @@ function analyze(){
       return phraseMatchesDeliverable(ledgerRecordText(x),pageSubject);
     }): [];
     const negativeApprovalWording=x=>/\b(?:not approved|not authorised|not authorized|not agreed|not accepted|declined|rejected|excluded|not included|outside scope)\b/i.test(ledgerRecordText(x));
-    const approvedLedgerRecord=ledgerPageRecords.length===1&&!negativeApprovalWording(ledgerPageRecords[0])&&/\b(?:included|in scope|approved|authorised|authorized|agreed)\b/i.test(ledgerRecordText(ledgerPageRecords[0]))?ledgerPageRecords[0]:null;
+    const soleLedgerPageRecord=ledgerPageRecords.length===1?ledgerPageRecords[0]:null;
+    // A record without a stable identity cannot be joined safely to its
+    // independent chronology review. Never let a missing ID bypass review.
+    const soleLedgerPageReview=soleLedgerPageRecord&&String(soleLedgerPageRecord.id||'').trim()
+      ?(ledgerContext.amendmentReview||[]).find(x=>x.id===soleLedgerPageRecord.id)
+      :null;
+    const approvedLedgerRecord=soleLedgerPageRecord&&soleLedgerPageReview?.state==='candidate_for_manual_verification'&&!negativeApprovalWording(soleLedgerPageRecord)&&/\b(?:included|in scope|approved|authorised|authorized|agreed)\b/i.test(ledgerRecordText(soleLedgerPageRecord))?soleLedgerPageRecord:null;
     if(explicitPageCreationAtomic && agreementRequiresPageApproval && ledgerPageRecords.length===0){
       c.type='New page requiring separate written approval'; c.detected=c.type;
       c.status='Likely additional'; c.confidence='High'; c.risk='High';
@@ -3746,7 +3752,7 @@ function analyze(){
       c.action='Inspect the original record and correct the ledger status only after verifying what was actually approved. Do not treat this entry as authority to proceed.';
       c.response='The project record’s status says approved, but the wording appears to contain a qualification or exclusion. Could we check the original approval before treating this page as authorised work?';
       c.why='The manually recorded approval status and the text of the same record are inconsistent.';
-    }else if(explicitPageCreationAtomic && agreementRequiresPageApproval && ledgerPageRecords.length===1 && (ledgerContext.amendmentReview||[]).some(x=>x.id===ledgerPageRecords[0].id && x.state!=='candidate_for_manual_verification')){
+    }else if(explicitPageCreationAtomic && agreementRequiresPageApproval && ledgerPageRecords.length===1 && (!String(ledgerPageRecords[0].id||'').trim() || !soleLedgerPageReview || soleLedgerPageReview.state!=='candidate_for_manual_verification')){
       const review=(ledgerContext.amendmentReview||[]).find(x=>x.id===ledgerPageRecords[0].id);
       c.type='Approval record requires chronology review'; c.status='Clarify'; c.confidence='Low'; c.risk='High';
       c.evidence='A user-recorded approval entry exists, but its amendment review state is '+String(review&&review.state||'unavailable')+'. It cannot be treated as a clean candidate approval.';

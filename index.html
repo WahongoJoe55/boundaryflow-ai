@@ -4282,7 +4282,15 @@ function bfLedgerKey(){const name=bfLedgerProjectName();return name?bfScopedKey(
 function bfLedgerRead(){const key=bfLedgerKey();if(!key||!window.__bfUserId)return[];try{const v=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(v)?v:[]}catch(e){return[]}}
 function bfLedgerReviewAmendments(records){
  const entries=Array.isArray(records)?records:[];
- const baselines=entries.filter(x=>x&&x.type==='baseline');
+ // Only an agreement-sourced baseline with an approved or explicitly
+ // unspecified status may establish the chronology reference. A proposed
+ // baseline, client assertion or internal note must never move that date.
+ const baselines=entries.filter(x=>{
+  if(!x||x.type!=='baseline')return false;
+  const source=String(x.sourceType||'other').toLowerCase();
+  const status=String(x.status||'not_specified').toLowerCase();
+  return source==='agreement'&&['approved','not_specified'].includes(status);
+ });
  const changes=entries.filter(x=>x&&['amendment','approval','change_request','client_decision'].includes(x.type));
  const parseDate=value=>{
   // Validated YYYYMMDD keys avoid timezone-dependent parsing and reject impossible dates.
@@ -4295,7 +4303,7 @@ function bfLedgerReviewAmendments(records){
   const days=[31,leap?29:28,31,30,31,30,31,31,30,31,30,31];
   if(day>days[month-1])return null;
   return year*10000+month*100+day;
- };;
+ };
  const baselineDates=baselines.map(x=>parseDate(x.sourceDate)).filter(x=>x!==null);
  const latestBaseline=baselineDates.length?Math.max(...baselineDates):null;
  return changes.map(x=>{

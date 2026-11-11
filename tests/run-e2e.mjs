@@ -167,6 +167,39 @@ try{
     JSON.stringify(hostileStorageContract.historyCounts)===JSON.stringify(['0','0','0','0','7']),
     JSON.stringify(hostileStorageContract.historyCounts));
 
+  const storedHtmlContract=await page.evaluate(()=>{
+    const user=window.__bfUserId,project=document.getElementById('projectName'),priorProject=project.value;
+    window.__bfUserId='stored-html-xss-test';
+    const historyKey=window.bfScopedKey('boundaryflow_history_v1');
+    const priorHistory=localStorage.getItem(historyKey);
+    const priorLedgerKey=window.bfLedgerKeyForName('XSS ledger project');
+    const priorLedger=localStorage.getItem(priorLedgerKey);
+    const payload='<img src=x onerror=alert(1)><svg onload=alert(2)>';
+    try{
+      localStorage.setItem(historyKey,JSON.stringify([{id:'xss-history',name:payload,date:payload,count:payload,
+        metrics:{included:payload,clarify:payload,additional:payload,claim:payload},taskStatus:'pending'}]));
+      window.renderHistory();
+      const history=document.getElementById('historyList');
+      const historySafe=history.querySelectorAll('img,svg,script').length===0&&history.textContent.includes(payload);
+      project.value='XSS ledger project';
+      localStorage.setItem(priorLedgerKey,JSON.stringify([{id:'xss-ledger',type:'baseline',title:payload,detail:payload,
+        sourceType:'agreement',status:'not_specified',projectName:'XSS ledger project',recordedAt:new Date().toISOString()}]));
+      window.bfLedgerRender();
+      const ledger=document.getElementById('bfLedgerList');
+      const ledgerSafe=ledger.querySelectorAll('img,svg,script').length===0&&ledger.textContent.includes(payload);
+      return {historySafe,ledgerSafe};
+    }finally{
+      if(priorHistory===null)localStorage.removeItem(historyKey);else localStorage.setItem(historyKey,priorHistory);
+      if(priorLedger===null)localStorage.removeItem(priorLedgerKey);else localStorage.setItem(priorLedgerKey,priorLedger);
+      project.value=priorProject;window.__bfUserId=user;
+      window.renderHistory();window.bfLedgerRender();
+    }
+  });
+  check('Stored HTML payloads in History remain inert text',
+    storedHtmlContract.historySafe===true,JSON.stringify(storedHtmlContract));
+  check('Stored HTML payloads in the project evidence ledger remain inert text',
+    storedHtmlContract.ledgerSafe===true,JSON.stringify(storedHtmlContract));
+
   const cloudIdempotencyContract=await page.evaluate(async()=>{
     const calls=[];
     const fakeClient={from(table){

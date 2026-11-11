@@ -13,7 +13,7 @@
     try{
       var bfOriginalSetItem=Storage.prototype.setItem;
       var bfOriginalRemoveItem=Storage.prototype.removeItem;
-      Storage.prototype.setItem=function(key,value){var k=String(key);if(k.indexOf('boundaryflow_project_ledger_v1_')===0||k.indexOf('boundaryflow_project_ledger_identity_v1__')===0)return bfOriginalSetItem.call(this,key,value);};
+      Storage.prototype.setItem=function(key,value){var k=String(key);if(k.indexOf('boundaryflow_project_ledger_v1_')===0||(k.indexOf('boundaryflow_project_ledger_identity_v1__')===0||k.indexOf('boundaryflow_project_ledger_alias_v1__')===0))return bfOriginalSetItem.call(this,key,value);};
       Storage.prototype.removeItem=function(key){var k=String(key);if(k.indexOf('boundaryflow_project_ledger_v1_')===0||k.indexOf('boundaryflow_project_ledger_identity_v1__')===0)return bfOriginalRemoveItem.call(this,key);};
       Storage.prototype.clear=function(){};
     }catch(e){}
@@ -4327,39 +4327,44 @@ document.addEventListener('change',e=>{if(e.target&&e.target.id==='responseStyle
 <script>
 
 function bfLedgerProjectName(){return String(document.getElementById('projectName')?.value||'').trim()}
-function bfLedgerProjectIdentityName(value){return String(value||'').normalize('NFKC').trim().replace(/\s+/g,' ').toLocaleLowerCase()}
+function bfLedgerProjectIdentityName(value){return String(value||'').normalize('NFKC').trim().replace(/\\s+/g,' ').toLocaleLowerCase()}
 function bfLedgerIdentityMap(){try{const v=JSON.parse(localStorage.getItem(bfScopedKey('boundaryflow_project_ledger_identity_v1'))||'{}');return v&&typeof v==='object'&&!Array.isArray(v)?v:{}}catch(e){return{}}}
+function bfLedgerAliasMap(){try{const v=JSON.parse(localStorage.getItem(bfScopedKey('boundaryflow_project_ledger_alias_v1'))||'{}');return v&&typeof v==='object'&&!Array.isArray(v)?v:{}}catch(e){return{}}}
 function bfLedgerProjectId(name){const identity=bfLedgerProjectIdentityName(name);if(!identity||!window.__bfUserId)return null;const map=bfLedgerIdentityMap();if(map[identity])return map[identity];const id='bfp-'+(window.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+'-'+Math.random().toString(36).slice(2));map[identity]=id;localStorage.setItem(bfScopedKey('boundaryflow_project_ledger_identity_v1'),JSON.stringify(map));return id}
+function bfLedgerDisplayName(){const name=bfLedgerProjectName();if(!name)return'';const alias=bfLedgerAliasMap()[bfLedgerProjectIdentityName(name)];return typeof alias==='string'&&alias.trim()?alias:name}
 function bfLedgerKeyForName(name){return name?bfScopedKey('boundaryflow_project_ledger_v1_'+bfHash(name.toLocaleLowerCase())):null}
-function bfLedgerKey(){return bfLedgerKeyForName(bfLedgerProjectName())}
+function bfLedgerKey(){return bfLedgerKeyForName(bfLedgerDisplayName())}
 function bfLedgerRead(){const key=bfLedgerKey();if(!key||!window.__bfUserId)return[];try{const v=JSON.parse(localStorage.getItem(key)||'[]');if(!Array.isArray(v))return[];const id=bfLedgerProjectId(bfLedgerProjectName());let changed=false;v.forEach(x=>{if(x&&x.projectIdentity!==id){x.projectIdentity=id;changed=true}});if(changed)localStorage.setItem(key,JSON.stringify(v));return v}catch(e){return[]}}
 function bfLedgerRename(){
- const input=document.getElementById('projectName'),oldName=bfLedgerProjectName(),status=document.getElementById('bfLedgerStatus');
- if(!window.__bfUserId||!oldName){if(status)status.textContent='Sign in and enter the current project name before renaming its local ledger.';return false}
- const proposed=window.prompt('New name for this local evidence ledger. This does not rename the cloud project.',oldName);
+ const oldName=bfLedgerProjectName(),oldLedgerName=bfLedgerDisplayName(),status=document.getElementById('bfLedgerStatus');
+ if(!window.__bfUserId||!oldName){if(status)status.textContent='Sign in and enter the current cloud project name before renaming its local ledger.';return false}
+ const proposed=window.prompt('New display name for this browser-local evidence ledger. The cloud project name and cloud records will remain unchanged.',oldLedgerName);
  if(proposed===null)return false;const newName=String(proposed).trim();
- if(!newName||newName.length>80){if(status)status.textContent='Enter a new ledger name between 1 and 80 characters.';return false}
- if(bfLedgerProjectIdentityName(newName)===bfLedgerProjectIdentityName(oldName)){if(status)status.textContent='The new name is equivalent to the current name. No change was made.';return false}
- const oldKey=bfLedgerKeyForName(oldName),newKey=bfLedgerKeyForName(newName),mapKey=bfScopedKey('boundaryflow_project_ledger_identity_v1');
- let oldRaw=null,newRaw=null,mapRaw=null;
- try{oldRaw=localStorage.getItem(oldKey);newRaw=localStorage.getItem(newKey);mapRaw=localStorage.getItem(mapKey);
+ if(!newName||newName.length>80){if(status)status.textContent='Enter a new ledger display name between 1 and 80 characters.';return false}
+ if(bfLedgerProjectIdentityName(newName)===bfLedgerProjectIdentityName(oldLedgerName)){if(status)status.textContent='The new ledger name is equivalent to its current display name. No change was made.';return false}
+ const oldKey=bfLedgerKeyForName(oldLedgerName),newKey=bfLedgerKeyForName(newName),mapKey=bfScopedKey('boundaryflow_project_ledger_identity_v1'),aliasKey=bfScopedKey('boundaryflow_project_ledger_alias_v1');
+ let oldRaw=null,newRaw=null,mapRaw=null,aliasRaw=null;
+ try{
+  oldRaw=localStorage.getItem(oldKey);newRaw=localStorage.getItem(newKey);mapRaw=localStorage.getItem(mapKey);aliasRaw=localStorage.getItem(aliasKey);
   const oldRecords=oldRaw?JSON.parse(oldRaw):[];const newRecords=newRaw?JSON.parse(newRaw):[];
   if(!Array.isArray(oldRecords)||!Array.isArray(newRecords))throw new Error('A ledger storage entry is malformed. No migration was performed.');
-  if(newRecords.length)throw new Error('A ledger already exists under the new name. Choose a different name; records were not combined.');
-  const map=bfLedgerIdentityMap(),oldIdentity=bfLedgerProjectIdentityName(oldName),newIdentity=bfLedgerProjectIdentityName(newName);
-  const stableId=map[oldIdentity]||bfLedgerProjectId(oldName);
-  if(map[newIdentity]&&map[newIdentity]!==stableId)throw new Error('The new name is already linked to a different project identity. No records were moved.');
+  if(newRecords.length)throw new Error('A ledger already exists under the new display name. Choose a different name; records were not combined.');
+  const identity=bfLedgerProjectIdentityName(oldName),newIdentity=bfLedgerProjectIdentityName(newName),map=bfLedgerIdentityMap(),aliases=bfLedgerAliasMap();
+  const stableId=map[identity]||bfLedgerProjectId(oldName);
+  if(map[newIdentity]&&newIdentity!==identity)throw new Error('The new display name is already used as another project identity. No records were moved.');
+  if(Object.keys(aliases).some(k=>k!==identity&&bfLedgerProjectIdentityName(aliases[k])===newIdentity))throw new Error('The new display name is already reserved by another project ledger. No records were moved.');
   if(oldRecords.some(x=>!x||typeof x!=='object'||Array.isArray(x)))throw new Error('The source ledger contains a malformed record. No migration was performed.');
-  const migrated=oldRecords.map(x=>Object.assign({},x,{projectName:newName,projectIdentity:stableId}));
+  const migrated=oldRecords.map(x=>Object.assign({},x,{projectName:oldName,ledgerName:newName,projectIdentity:stableId}));
   localStorage.setItem(newKey,JSON.stringify(migrated));
   const verified=JSON.parse(localStorage.getItem(newKey)||'null');
-  if(!Array.isArray(verified)||verified.length!==migrated.length||verified.some(x=>x.projectIdentity!==stableId))throw new Error('The new ledger could not be verified after writing.');
-  delete map[oldIdentity];map[newIdentity]=stableId;localStorage.setItem(mapKey,JSON.stringify(map));
+  if(!Array.isArray(verified)||verified.length!==migrated.length||verified.some(x=>x.projectIdentity!==stableId||x.ledgerName!==newName))throw new Error('The new ledger could not be verified after writing.');
+  aliases[identity]=newName;localStorage.setItem(aliasKey,JSON.stringify(aliases));
   if(oldKey!==newKey)localStorage.removeItem(oldKey);
-  input.value=newName;if(status)status.textContent='Local ledger renamed and verified. The cloud project name was not changed.';
+  if(status)status.textContent='Local ledger display name changed and verified. The cloud project name and cloud records were not changed.';
   bfLedgerRender();return true;
- }catch(e){try{if(newRaw===null)localStorage.removeItem(newKey);else localStorage.setItem(newKey,newRaw);if(mapRaw===null)localStorage.removeItem(mapKey);else localStorage.setItem(mapKey,mapRaw);if(oldRaw!==null)localStorage.setItem(oldKey,oldRaw)}catch(rollbackError){}
-  input.value=oldName;if(status)status.textContent='Ledger rename stopped safely: '+e.message;return false;
+ }catch(e){
+  try{if(newRaw===null)localStorage.removeItem(newKey);else localStorage.setItem(newKey,newRaw);if(mapRaw===null)localStorage.removeItem(mapKey);else localStorage.setItem(mapKey,mapRaw);if(aliasRaw===null)localStorage.removeItem(aliasKey);else localStorage.setItem(aliasKey,aliasRaw);if(oldRaw!==null)localStorage.setItem(oldKey,oldRaw)}catch(rollbackError){}
+  if(status)status.textContent='Ledger rename stopped safely: '+e.message;return false;
  }
 }
 function bfLedgerReviewAmendments(records){
@@ -4539,7 +4544,7 @@ function bfLedgerAdd(record){
 function bfLedgerEscape(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function bfLedgerRender(){
  const list=document.getElementById('bfLedgerList');if(!list)return;
- const project=bfLedgerProjectName(),items=bfLedgerRead();
+ const project=bfLedgerDisplayName(),items=bfLedgerRead();
  const count=document.getElementById('bfLedgerCount');if(count)count.textContent=items.length+' record'+(items.length===1?'':'s');
  if(!project){list.innerHTML='<div class="history-empty">Enter a project name above to view its ledger. Records are kept separately for each project name in this account.</div>';return}
  if(!items.length){list.innerHTML='<div class="history-empty">No records yet. Add the original agreed scope first, then append amendments, approvals, revisions and change events as they occur.</div>';return}
@@ -4577,7 +4582,7 @@ function bfLedgerSubmit(){
  }catch(e){if(status)status.textContent=e.message;return null}
 }
 function bfLedgerExport(){
- const project=bfLedgerProjectName(),items=bfLedgerRead(),status=document.getElementById('bfLedgerStatus');
+ const project=bfLedgerDisplayName(),items=bfLedgerRead(),status=document.getElementById('bfLedgerStatus');
  if(!project){if(status)status.textContent='Enter a project name before exporting.';return false}
  const payload={format:'BoundaryFlow project evidence ledger',version:1,projectName:project,exportedAt:new Date().toISOString(),storage:'local browser only; not cloud-synced',verification:'Entries are user-recorded and have not been independently authenticated.',records:items};
  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
@@ -4800,7 +4805,7 @@ async function bfCloudDeleteQueuedRow(client,userId,id){
   ['pointerdown','keydown','touchstart','scroll','input'].forEach(type=>document.addEventListener(type,event=>{if(bfIdleUserId){bfIdleTouch(false);if(bfIdleWarningShown&&!(event.target&&event.target.closest&&event.target.closest('#bfIdleDialog')))bfIdleHideWarning();}},{passive:true,capture:true}));
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')bfIdleCheck()});
   window.addEventListener('storage',e=>{if(bfIdleUserId&&e.key===bfIdleKey(bfIdleUserId))bfIdleCheck()});
-  function clearLocalDeviceData(){if(!cloud.user){message('Sign in before clearing account-specific local data.');return;}if(cloud.syncing||cloud.pending.size){message('Wait for the current cloud sync/save to finish before clearing local data.');return;}const ok=window.confirm('Clear this account’s local BoundaryFlow workspace from this browser?\n\nThis removes this account’s local History, autosaves, drafts, project/agreement links, project evidence ledgers and the current workspace fields. Cloud records are not deleted. Unsynced work will be lost. Your sign-in session, theme preference and pending cloud-deletion instructions are kept.');if(!ok)return;const uid=cloud.user.id;['boundaryflow_history_v1','boundaryflow_autosave_v1','boundaryflow_draft_v1'].forEach(k=>{try{localStorage.removeItem(k+'__'+uid)}catch(e){}});try{for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&((k.startsWith('boundaryflow_project_ledger_v1_'))||(k===('boundaryflow_project_ledger_identity_v1__'+uid)))&&k.endsWith('__'+uid))localStorage.removeItem(k)}}catch(e){}[PROJECT_MAP_KEY,AGREEMENT_MAP_KEY].forEach(k=>{const map=parseMap(k);Object.keys(map).forEach(key=>{if(key.startsWith(uid+'|'))delete map[key]});setMap(k,map)});['projectName','a','r'].forEach(id=>{const el=$(id);if(el)el.value=''});const out=$('out');if(out)out.innerHTML='';window.rows=[];const st=$('status');if(st)st.textContent='Local data cleared from this browser. Cloud-saved records remain in your account.';renderHistory();if(typeof bfLedgerRender==='function')bfLedgerRender();message('Local workspace data for this account was cleared from this browser. Cloud records, sign-in settings, theme preference and pending cloud-deletion instructions were not deleted.');}
+  function clearLocalDeviceData(){if(!cloud.user){message('Sign in before clearing account-specific local data.');return;}if(cloud.syncing||cloud.pending.size){message('Wait for the current cloud sync/save to finish before clearing local data.');return;}const ok=window.confirm('Clear this account’s local BoundaryFlow workspace from this browser?\n\nThis removes this account’s local History, autosaves, drafts, project/agreement links, project evidence ledgers and the current workspace fields. Cloud records are not deleted. Unsynced work will be lost. Your sign-in session, theme preference and pending cloud-deletion instructions are kept.');if(!ok)return;const uid=cloud.user.id;['boundaryflow_history_v1','boundaryflow_autosave_v1','boundaryflow_draft_v1'].forEach(k=>{try{localStorage.removeItem(k+'__'+uid)}catch(e){}});try{for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&((k.startsWith('boundaryflow_project_ledger_v1_'))||(k===('boundaryflow_project_ledger_identity_v1__'+uid))||(k===('boundaryflow_project_ledger_alias_v1__'+uid)))&&k.endsWith('__'+uid))localStorage.removeItem(k)}}catch(e){}[PROJECT_MAP_KEY,AGREEMENT_MAP_KEY].forEach(k=>{const map=parseMap(k);Object.keys(map).forEach(key=>{if(key.startsWith(uid+'|'))delete map[key]});setMap(k,map)});['projectName','a','r'].forEach(id=>{const el=$(id);if(el)el.value=''});const out=$('out');if(out)out.innerHTML='';window.rows=[];const st=$('status');if(st)st.textContent='Local data cleared from this browser. Cloud-saved records remain in your account.';renderHistory();if(typeof bfLedgerRender==='function')bfLedgerRender();message('Local workspace data for this account was cleared from this browser. Cloud records, sign-in settings, theme preference and pending cloud-deletion instructions were not deleted.');}
   function setCloudUser(user){
     const previousId=window.__bfUserId||null;cloud.user=user||null;const signed=!!cloud.user;const nextId=signed?cloud.user.id:null;
     window.__bfUserId=nextId;document.body.classList.toggle('bf-authenticated',signed);bfIdleStart(nextId);

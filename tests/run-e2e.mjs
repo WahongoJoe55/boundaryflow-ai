@@ -706,6 +706,45 @@ try{
   check('Analysis IDs remain stable for identical inputs and distinct for colliding legacy hashes',
     analysisIdentity.stable&&analysisIdentity.distinct,JSON.stringify(analysisIdentity));
 
+  const ledgerCollision=await page.evaluate(()=>{
+    if(typeof window.bfLedgerKeyForName!=='function'||typeof window.bfLedgerLegacyKeyForName!=='function')return {supported:false};
+    const a='collision-x2nvv0h3',b='collision-8m7my3ma';
+    return {supported:true,distinctKeys:window.bfLedgerKeyForName(a)!==window.bfLedgerKeyForName(b),
+      legacyCollision:window.bfLedgerLegacyKeyForName(a)===window.bfLedgerLegacyKeyForName(b)};
+  });
+  check('New ledger keys distinguish names that collided under the legacy 32-bit hash',
+    ledgerCollision.supported&&ledgerCollision.distinctKeys&&ledgerCollision.legacyCollision,JSON.stringify(ledgerCollision));
+
+  const legacyLedgerMigration=await page.evaluate(()=>{
+    const input=document.getElementById('projectName');
+    if(!input||typeof window.bfLedgerRead!=='function'||typeof window.bfLedgerLegacyKeyForName!=='function')return {supported:false};
+    const oldName=input.value,oldUser=window.__bfUserId,oldStatus=document.getElementById('bfLedgerStatus')?.textContent;
+    const testName='Legacy Migration Exact Project',testUser='bf-legacy-migration-test';
+    window.__bfUserId=testUser;input.value=testName;
+    const legacy=window.bfLedgerLegacyKeyForName(testName),current=window.bfLedgerKeyForName(testName);
+    const oldLegacy=localStorage.getItem(legacy),oldCurrent=localStorage.getItem(current);
+    const identityKey=window.bfScopedKey('boundaryflow_project_ledger_identity_v1'),oldIdentity=localStorage.getItem(identityKey);
+    const record={id:'legacy-exact-1',title:'Legacy baseline',detail:'Recorded under the exact project',projectName:testName,type:'baseline'};
+    localStorage.setItem(legacy,JSON.stringify([record]));localStorage.removeItem(current);
+    const read=window.bfLedgerRead();
+    const exactMigrated=read.length===1&&read[0].id==='legacy-exact-1'&&JSON.parse(localStorage.getItem(current)||'[]').length===1&&localStorage.getItem(legacy)===null;
+    const ambiguousName='Legacy Ambiguous Project';input.value=ambiguousName;
+    const ambiguousKey=window.bfLedgerLegacyKeyForName(ambiguousName),ambiguousCurrent=window.bfLedgerKeyForName(ambiguousName);
+    const oldAmbiguous=localStorage.getItem(ambiguousKey),oldAmbiguousCurrent=localStorage.getItem(ambiguousCurrent);
+    localStorage.setItem(ambiguousKey,JSON.stringify([{id:'ambiguous-1',title:'No project identity'}]));
+    const ambiguousRead=window.bfLedgerRead();
+    const ambiguousPreserved=ambiguousRead.length===0&&localStorage.getItem(ambiguousKey)!==null&&localStorage.getItem(ambiguousCurrent)===null;
+    const restore=(key,value)=>value===null?localStorage.removeItem(key):localStorage.setItem(key,value);
+    restore(legacy,oldLegacy);restore(current,oldCurrent);restore(ambiguousKey,oldAmbiguous);restore(ambiguousCurrent,oldAmbiguousCurrent);restore(identityKey,oldIdentity);
+    input.value=oldName;window.__bfUserId=oldUser;
+    const status=document.getElementById('bfLedgerStatus');if(status&&oldStatus!==undefined)status.textContent=oldStatus;
+    return {supported:true,exactMigrated,ambiguousPreserved};
+  });
+  check('Legacy ledger migration preserves records with matching project identity',
+    legacyLedgerMigration.supported&&legacyLedgerMigration.exactMigrated,JSON.stringify(legacyLedgerMigration));
+  check('Ambiguous legacy ledger records are preserved, not reassigned to a project',
+    legacyLedgerMigration.supported&&legacyLedgerMigration.ambiguousPreserved,JSON.stringify(legacyLedgerMigration));
+
   check('No uncaught browser JavaScript errors occurred',pageErrors.length===0,pageErrors.join('\n'));
   fs.mkdirSync(path.join(root,'test-results'),{recursive:true});
   const report={generatedAt:new Date().toISOString(),mode:'local browser end-to-end; deterministic simulated user IDs; Supabase network and cloud writes disabled',total:checks.length,passed:checks.filter(x=>x.result==='PASS').length,failed:checks.filter(x=>x.result==='FAIL').length,checks};

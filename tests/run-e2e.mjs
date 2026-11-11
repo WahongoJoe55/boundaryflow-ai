@@ -363,7 +363,7 @@ try{
     const renamed=window.bfLedgerRename();
     const migrated=JSON.parse(localStorage.getItem(newKey)||'null');
     const oldRemoved=localStorage.getItem(oldKey)===null;
-    const migrationOk=renamed&&oldRemoved&&Array.isArray(migrated)&&migrated.length===1&&migrated[0].id==='rename-preserve-1'&&migrated[0].projectName===newName&&!!migrated[0].projectIdentity;
+    const identityMap=JSON.parse(localStorage.getItem(identityKey)||'{}');const migrationOk=renamed&&oldRemoved&&Array.isArray(migrated)&&migrated.length===1&&migrated[0].id==='rename-preserve-1'&&migrated[0].projectName===newName&&!!migrated[0].projectIdentity&&identityMap[window.bfLedgerProjectIdentityName(newName)]===migrated[0].projectIdentity&&!identityMap[window.bfLedgerProjectIdentityName(oldName)];
     localStorage.setItem(oldKey,JSON.stringify(records));localStorage.setItem(newKey,JSON.stringify([{id:'collision-existing'}]));
     input.value=oldName;window.prompt=()=>newName;
     const collisionResult=window.bfLedgerRename();

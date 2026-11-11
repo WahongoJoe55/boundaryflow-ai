@@ -286,6 +286,24 @@ try{
     revisionSequenceChecks.missingEarly.historyUnknown===true&&
     JSON.stringify(revisionSequenceChecks.missingEarly.sequenceGaps)==='[1,2]',
     JSON.stringify(revisionSequenceChecks.missingEarly));
+  const reversedChronology=await page.evaluate(()=>window.bfLedgerRevisionUsage({revisionEvents:[
+    {status:'delivered',sourceType:'email',sourceDate:'2026-02-07',title:'First revision round completed for the Portfolio page',related:'Portfolio page'},
+    {status:'delivered',sourceType:'email',sourceDate:'2026-02-06',title:'Second revision round completed for the Portfolio page',related:'Portfolio page'}
+  ]},'Portfolio page','Up to 3 revision rounds per page.'));
+  const pageChronologyIsolation=await page.evaluate(()=>window.bfLedgerRevisionUsage({revisionEvents:[
+    {status:'delivered',sourceType:'email',sourceDate:'2026-02-01',title:'First revision round completed for the Portfolio page',related:'Portfolio page'},
+    {status:'delivered',sourceType:'email',sourceDate:'2026-02-02',title:'Second revision round completed for the Portfolio page',related:'Portfolio page'},
+    {status:'delivered',sourceType:'email',sourceDate:'2026-02-05',title:'First revision round completed for the Careers page',related:'Careers page'},
+    {status:'delivered',sourceType:'email',sourceDate:'2026-02-04',title:'Second revision round completed for the Careers page',related:'Careers page'}
+  ]},'Portfolio page','Up to 3 revision rounds per page.'));
+  check('Chronology conflicts on another page do not contaminate the requested page',
+    pageChronologyIsolation.historyUnknown===false&&pageChronologyIsolation.completed===2&&
+      pageChronologyIsolation.remaining===1&&pageChronologyIsolation.chronologyConflicts.length===0,
+    JSON.stringify(pageChronologyIsolation));
+  check('A later numbered revision round dated before an earlier round makes history unknown',
+    reversedChronology.historyUnknown===true&&reversedChronology.completed===null&&
+      reversedChronology.remaining===null&&reversedChronology.chronologyConflicts?.length===1,
+    JSON.stringify(reversedChronology));
   check('A contiguous recorded revision sequence can still be counted',
     revisionSequenceChecks.contiguous.completed===2&&revisionSequenceChecks.contiguous.remaining===1&&
     revisionSequenceChecks.contiguous.historyUnknown===false,
@@ -356,7 +374,7 @@ try{
   const conflictingDuplicateDates=await page.evaluate(()=>window.bfLedgerRevisionUsage({revisionEvents:[
     {status:'delivered',sourceType:'email',sourceDate:'2026-02-06',title:'First revision round completed for the Portfolio page',related:'Portfolio page'},
     {status:'delivered',sourceType:'email',sourceDate:'2026-02-07',title:'First revision round delivered for the Portfolio page',related:'Portfolio page'}
-  ]},'Portfolio page','Each page includes up to 3 revision rounds.'));
+  ]},'Portfolio page','Up to 3 revision rounds per page.'));
   check('Duplicate round records with conflicting dates make history unknown',
     conflictingDuplicateDates.historyUnknown===true&&conflictingDuplicateDates.completed===null&&
       conflictingDuplicateDates.remaining===null&&conflictingDuplicateDates.duplicateDateConflicts?.length===1,

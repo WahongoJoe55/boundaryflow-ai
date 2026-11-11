@@ -365,7 +365,7 @@ try{
     const migrated=JSON.parse(localStorage.getItem(newKey)||'null');
     const oldRemoved=localStorage.getItem(oldKey)===null;
     const identityMap=JSON.parse(localStorage.getItem(identityKey)||'{}'),aliasMap=JSON.parse(localStorage.getItem(aliasKey)||'{}');
-    const migrationOk=renamed&&oldRemoved&&input.value===oldName&&Array.isArray(migrated)&&migrated.length===1&&migrated[0].id==='rename-preserve-1'&&migrated[0].projectName===oldName&&migrated[0].ledgerName===newName&&!!migrated[0].projectIdentity&&identityMap[window.bfLedgerProjectIdentityName(oldName)]===migrated[0].projectIdentity&&aliasMap[window.bfLedgerProjectIdentityName(oldName)]===newName&&window.bfLedgerKey()===newKey;
+    const migrationOk=renamed&&oldRemoved&&input.value===oldName&&Array.isArray(migrated)&&migrated.length===1&&migrated[0].id==='rename-preserve-1'&&migrated[0].projectName===oldName&&migrated[0].ledgerName===newName&&!!migrated[0].projectIdentity&&identityMap[window.bfLedgerProjectIdentityName(oldName)]===migrated[0].projectIdentity&&aliasMap[window.bfLedgerProjectIdentityName(oldName)]===newName&&window.bfLedgerKey()===newKey&&window.bfLedgerDisplayName()===newName&&window.bfLedgerRead().some(x=>x.id==='rename-preserve-1');
     localStorage.setItem(oldKey,JSON.stringify(records));localStorage.setItem(collisionKey,JSON.stringify([{id:'collision-existing'}]));
     input.value=oldName;window.prompt=()=>collisionName;
     const collisionResult=window.bfLedgerRename();

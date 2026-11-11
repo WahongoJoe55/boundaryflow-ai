@@ -380,6 +380,32 @@ try{
   check('Ledger rename refuses collisions without overwriting either project history',
     ledgerRenameMigration.supported&&!ledgerRenameMigration.collisionResult&&ledgerRenameMigration.collisionPreserved,
     JSON.stringify(ledgerRenameMigration));
+  const ledgerRenameHardening=await page.evaluate(()=>{
+    const input=document.getElementById('projectName');
+    if(!input||typeof window.bfLedgerRename!=='function'||typeof window.bfLedgerProjectIdentityName!=='function')return {supported:false};
+    const priorName=input.value,priorUser=window.__bfUserId,priorPrompt=window.prompt;
+    const oldName='Malformed Source Ledger',newName='Malformed Destination Ledger';
+    window.__bfUserId='bf-rename-rollback-test';
+    const oldKey=window.bfLedgerKeyForName(oldName),newKey=window.bfLedgerKeyForName(newName);
+    const oldBefore=localStorage.getItem(oldKey),newBefore=localStorage.getItem(newKey);
+    const identityKey=window.bfScopedKey('boundaryflow_project_ledger_identity_v1'),identityBefore=localStorage.getItem(identityKey);
+    localStorage.setItem(oldKey,JSON.stringify([null]));localStorage.removeItem(newKey);
+    input.value=oldName;window.prompt=()=>newName;
+    const malformedResult=window.bfLedgerRename();
+    const malformedRollback=malformedResult===false&&localStorage.getItem(oldKey)==='[null]'&&localStorage.getItem(newKey)===null&&input.value===oldName;
+    const whitespaceNormalized=window.bfLedgerProjectIdentityName('  Alpha   Project  ')==='alpha project';
+    if(oldBefore===null)localStorage.removeItem(oldKey);else localStorage.setItem(oldKey,oldBefore);
+    if(newBefore===null)localStorage.removeItem(newKey);else localStorage.setItem(newKey,newBefore);
+    if(identityBefore===null)localStorage.removeItem(identityKey);else localStorage.setItem(identityKey,identityBefore);
+    input.value=priorName;window.__bfUserId=priorUser;window.prompt=priorPrompt;
+    return {supported:true,malformedResult,malformedRollback,whitespaceNormalized};
+  });
+  check('Project identity normalization collapses repeated whitespace',
+    ledgerRenameHardening.supported&&ledgerRenameHardening.whitespaceNormalized,
+    JSON.stringify(ledgerRenameHardening));
+  check('Malformed ledger records abort rename and restore the original project name and storage',
+    ledgerRenameHardening.supported&&ledgerRenameHardening.malformedRollback,
+    JSON.stringify(ledgerRenameHardening));
   const projectIdentityIsolation=await page.evaluate(()=>{
     const input=document.getElementById('projectName');
     if(!input||typeof window.bfLedgerKey!=='function'||typeof window.bfLedgerRead!=='function')return {supported:false};

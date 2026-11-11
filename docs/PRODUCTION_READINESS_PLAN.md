@@ -11,7 +11,7 @@ This document is a release gate, not a claim of certification. A green test suit
 
 | Area | Evidence currently available | Status |
 |---|---|---|
-| Deterministic reasoning and ledger | Candidate CI run `43015653406`: 133 engine + 83 browser E2E scenarios passed on the exact candidate SHA; stored-HTML payloads in generated analysis output, History and ledger were verified inert | Passed for those scenarios; not a proof of all application paths |
+| Deterministic reasoning and ledger | Candidate CI run `43016828233` on `74c520afa2bb4668f675f7eb56987fd11f57fb8c`: 133 engine + 84 browser E2E scenarios passed; stored-HTML payloads in generated analysis output, History and ledger were verified inert; legacy History records receive unique non-hash IDs | Passed for those scenarios; not a proof of all application paths |
 | Production deployment | GitHub Pages deployment workflow succeeded for merge commit `ddeed3b` | Passed for that deployment |
 | Live cloud persistence | One synthetic project: first sync, refresh restore and second sequential sync without duplicate | Partial pass |
 | Account isolation | Two dedicated test accounts reportedly could not see each other's project; cross-account delete tests returned zero affected rows | Reported pass; repeat and preserve evidence |

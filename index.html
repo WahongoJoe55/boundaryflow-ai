@@ -4372,6 +4372,7 @@ function bfLedgerRename(){
  if(proposed===null)return false;const newName=String(proposed).trim();
  if(!newName||newName.length>80){if(status)status.textContent='Enter a new ledger display name between 1 and 80 characters.';return false}
  if(bfLedgerProjectIdentityName(newName)===bfLedgerProjectIdentityName(oldLedgerName)){if(status)status.textContent='The new ledger name is equivalent to its current display name. No change was made.';return false}
+ bfLedgerRead(); // migrate an eligible legacy key before moving the ledger to its new display name
  const oldKey=bfLedgerKeyForName(oldLedgerName),newKey=bfLedgerKeyForName(newName),mapKey=bfScopedKey('boundaryflow_project_ledger_identity_v1'),aliasKey=bfScopedKey('boundaryflow_project_ledger_alias_v1');
  let oldRaw=null,newRaw=null,mapRaw=null,aliasRaw=null;
  try{

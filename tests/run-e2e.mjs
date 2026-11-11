@@ -250,6 +250,25 @@ try{
   check('An approval record without a stable ID cannot bypass chronology review or become conditional approval',
     missingIdentityCareers?.status==='Clarify'&&/chronology|review/i.test(String(missingIdentityCareers?.type||'')+' '+String(missingIdentityCareers?.boundary||'')),
     JSON.stringify(missingIdentityCareers||null));
+
+  await setProject('E2E Compound Deliverable Approval');
+  await addRecord({type:'baseline',title:'Original agreed scope',detail:scope,source:'agreement',status:'approved',related:'All agreed pages'});
+  await addRecord({type:'amendment',title:'Careers and Team pages approval',detail:'Careers and Team pages are approved and included in the project scope.',source:'amendment',status:'approved',related:'Careers and Team pages',sourceDate:'2026-02-01'});
+  const compoundApproval=await analyse(scope,'Create a new Careers page.');
+  const compoundCareers=compoundApproval.rows.find(x=>/careers/i.test(x.request||''));
+  check('A compound deliverable label cannot be treated as exact approval for one page',
+    compoundCareers?.status==='Clarify'&&/ambiguous|broader|compound|partial/i.test(String(compoundCareers?.type||'')+' '+String(compoundCareers?.boundary||'')),
+    JSON.stringify(compoundCareers||null));
+
+  await setProject('E2E Conflicting Page Approvals');
+  await addRecord({type:'baseline',title:'Original agreed scope',detail:scope,source:'agreement',status:'approved',related:'All agreed pages'});
+  await addRecord({type:'amendment',title:'Careers page approval v1',detail:'The Careers page is approved and included in the project scope.',source:'amendment',status:'approved',related:'Careers page',sourceDate:'2026-02-01'});
+  await addRecord({type:'amendment',title:'Careers page approval v2',detail:'The Careers page is approved and included in the project scope with revised requirements.',source:'amendment',status:'approved',related:'Careers page',sourceDate:'2026-02-03'});
+  const conflictingPageApprovals=await analyse(scope,'Create a new Careers page.');
+  const conflictingCareers=conflictingPageApprovals.rows.find(x=>/careers/i.test(x.request||''));
+  check('Multiple active approvals for the same page remain Clarify',
+    conflictingCareers?.status==='Clarify'&&/conflicting|multiple/i.test(String(conflictingCareers?.type||'')+' '+String(conflictingCareers?.boundary||'')),
+    JSON.stringify(conflictingCareers||null));
   check('Portfolio revision usage is matched to the correct page',portfolio?.allowance===2&&portfolio?.completed===1&&portfolio?.remaining===1,JSON.stringify(portfolio||null));
   const revisionSequenceChecks=await page.evaluate(()=>{
     const agreement='Each page includes up to 3 revision rounds.';

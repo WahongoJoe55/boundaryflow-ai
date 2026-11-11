@@ -348,6 +348,27 @@ try{
     normalizedRevisionStatus.historyUnknown===false,
     JSON.stringify(normalizedRevisionStatus));
 
+  const projectIdentityIsolation=await page.evaluate(()=>{
+    const input=document.getElementById('projectName');
+    if(!input||typeof window.bfLedgerRead!=='function'||typeof window.bfLedgerKey!=='function')return {supported:false};
+    const previousName=input.value,previousUser=window.__bfUserId;
+    input.value='Identity Isolation Project';window.__bfUserId='bf-identity-test-user';
+    const key=window.bfLedgerKey(),previousStorage=localStorage.getItem(key);
+    const base={type:'revision',title:'First revision round completed for the Portfolio page',detail:'Recorded delivery',status:'delivered',sourceType:'email',sourceDate:'2026-02-06',related:'Portfolio page'};
+    localStorage.setItem(key,JSON.stringify([
+      {...base,id:'matching-project',projectName:'  identity   isolation project  '},
+      {...base,id:'wrong-project',projectName:'A Different Project'},
+      {...base,id:'missing-project-identity'}
+    ]));
+    const visible=window.bfLedgerRead(),quarantined=window.bfLedgerQuarantinedCount();
+    if(previousStorage===null)localStorage.removeItem(key);else localStorage.setItem(key,previousStorage);
+    input.value=previousName;window.__bfUserId=previousUser;
+    return {supported:true,visible:visible.map(x=>x.id),quarantined};
+  });
+  check('Ledger records require a normalized matching project identity',
+    projectIdentityIsolation.supported&&projectIdentityIsolation.visible.length===1&&
+      projectIdentityIsolation.visible[0]==='matching-project'&&projectIdentityIsolation.quarantined===2,
+    JSON.stringify(projectIdentityIsolation));
   const revisionDateMatrix=await page.evaluate(()=>{
     const agreement='Each page includes up to 3 revision rounds.';
     const event=(round,date,sourceType='email')=>({status:'delivered',sourceType,sourceDate:date,title:(round===1?'First':'Second')+' revision round completed for the Portfolio page',related:'Portfolio page'});

@@ -290,6 +290,16 @@ try{
     {status:'delivered',sourceType:'email',sourceDate:'2026-02-07',title:'First revision round completed for the Portfolio page',related:'Portfolio page'},
     {status:'delivered',sourceType:'email',sourceDate:'2026-02-06',title:'Second revision round completed for the Portfolio page',related:'Portfolio page'}
   ]},'Portfolio page','Each page includes up to 3 revision rounds.'));
+  const pageChronologyIsolation=await page.evaluate(()=>window.bfLedgerRevisionUsage({revisionEvents:[
+    {status:'delivered',sourceType:'email',sourceDate:'2026-02-01',title:'First revision round completed for the Portfolio page',related:'Portfolio page'},
+    {status:'delivered',sourceType:'email',sourceDate:'2026-02-02',title:'Second revision round completed for the Portfolio page',related:'Portfolio page'},
+    {status:'delivered',sourceType:'email',sourceDate:'2026-02-05',title:'First revision round completed for the Careers page',related:'Careers page'},
+    {status:'delivered',sourceType:'email',sourceDate:'2026-02-04',title:'Second revision round completed for the Careers page',related:'Careers page'}
+  ]},'Portfolio page','Each page includes up to 3 revision rounds.'));
+  check('Chronology conflicts on another page do not contaminate the requested page',
+    pageChronologyIsolation.historyUnknown===false&&pageChronologyIsolation.completed===2&&
+      pageChronologyIsolation.remaining===1&&pageChronologyIsolation.chronologyConflicts.length===0,
+    JSON.stringify(pageChronologyIsolation));
   check('A later numbered revision round dated before an earlier round makes history unknown',
     reversedChronology.historyUnknown===true&&reversedChronology.completed===null&&
       reversedChronology.remaining===null&&reversedChronology.chronologyConflicts?.length===1,

@@ -152,3 +152,23 @@ The release record must include:
 ## 6. Current decision
 
 **NO-GO for general public production launch.** The application has a useful tested foundation and a successful recent deployment, but the evidence does not support a claim of fully proven production readiness. The blockers above require a combination of engineering work, live controlled verification, operational setup and owner/legal decisions. No automated workflow can legitimately complete the latter on behalf of the product owner.
+
+
+## 7. Additional code-review findings (11 Nov 2026)
+
+### Confirmed: short deterministic analysis identifiers
+The application previously generated analysis IDs with an eight-hex-character (32-bit) FNV-style hash over agreement text, request text and project name. A collision is possible and can cause unrelated analyses to be treated as the same local History item. New analyses now receive random UUID/cryptographic-random identifiers, while an exact previously saved analysis reuses its existing ID. A regression test uses a known pair of distinct inputs that collide under the old 32-bit hash.
+
+**Status:** implementation and regression committed to the candidate branch; fresh CI required.
+
+### Still open: ledger-key collision
+The browser-local ledger key also uses a 32-bit hash of the normalized ledger display name. A collision can address the same localStorage key for different names. A backward-compatible migration to collision-resistant, reversible keys is required before accepting this risk. Existing legacy entries must be matched to their recorded project identity before migration; ambiguous entries must not be silently reassigned.
+
+### Still open: cloud idempotency
+The saveItem flow performs a lookup by result_json localId and then inserts if none is found. The local in-memory queue only serializes writes within one tab. It does not protect concurrent tabs/devices. The database must enforce uniqueness on an appropriate per-user local ID, with a conflict-safe upsert/recovery path. Do not apply a production migration until the live schema and duplicate rows have been inspected and a rollback is prepared.
+
+### Still open: legal and operational ownership
+The deployed UI itself states that Terms and Privacy Notice are draft 0.1, and requires operator details, privacy contact, retention periods and deletion procedures. These cannot be completed by code changes alone; they require accurate owner input and qualified review.
+
+### Evidence boundary
+The candidate's Playwright workflow explicitly blocks Supabase network access and cloud writes. Passing that workflow does not establish live RLS, authentication, backup, restore, sync-race or hosting-header behaviour.

@@ -691,6 +691,21 @@ try{
   check('Untrusted project names render safely in local History',
     historyXss.injected===0&&historyXss.literalName&&!historyXss.executed,JSON.stringify(historyXss));
   await page.locator('#closeHistory').click();
+  const analysisIdentity=await page.evaluate(()=>{
+    const a=document.getElementById('a'),r=document.getElementById('r'),p=document.getElementById('projectName');
+    const before=[a.value,r.value,p.value],cacheSource=window.__bfAnalysisIdentitySource,cacheId=window.__bfAnalysisIdentityId;
+    p.value='Collision Test Project';
+    a.value='SOW';r.value='request-46u1pzoj';
+    const first=window.bfAnalysisId(),repeat=window.bfAnalysisId();
+    r.value='request-6mqdtqjf';
+    const second=window.bfAnalysisId();
+    a.value=before[0];r.value=before[1];p.value=before[2];
+    window.__bfAnalysisIdentitySource=cacheSource;window.__bfAnalysisIdentityId=cacheId;
+    return {first,repeat,second,stable:first===repeat,distinct:first!==second};
+  });
+  check('Analysis IDs remain stable for identical inputs and distinct for colliding legacy hashes',
+    analysisIdentity.stable&&analysisIdentity.distinct,JSON.stringify(analysisIdentity));
+
   check('No uncaught browser JavaScript errors occurred',pageErrors.length===0,pageErrors.join('\n'));
   fs.mkdirSync(path.join(root,'test-results'),{recursive:true});
   const report={generatedAt:new Date().toISOString(),mode:'local browser end-to-end; deterministic simulated user IDs; Supabase network and cloud writes disabled',total:checks.length,passed:checks.filter(x=>x.result==='PASS').length,failed:checks.filter(x=>x.result==='FAIL').length,checks};

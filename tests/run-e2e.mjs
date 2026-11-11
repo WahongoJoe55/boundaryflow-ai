@@ -332,6 +332,16 @@ try{
 
 
 
+  await setProject('E2E Ambiguous Active Baselines');
+  await addRecord({type:'baseline',title:'Original SOW v1',detail:scope,source:'agreement',status:'approved',related:'Project',sourceDate:'2026-01-01'});
+  await addRecord({type:'baseline',title:'Original SOW v2',detail:scope,source:'agreement',status:'approved',related:'Project',sourceDate:'2026-01-15'});
+  await addRecord({type:'amendment',title:'Careers page approval',detail:'The Careers page is approved and included in the project scope.',source:'amendment',status:'approved',related:'Careers page',sourceDate:'2026-01-10'});
+  const ambiguousBaselineAnalysis=await analyse(scope,'Create a new Careers page.');
+  const ambiguousBaselineCareers=ambiguousBaselineAnalysis.rows.find(x=>/careers/i.test(x.request||''));
+  check('Multiple active agreement baselines prevent an amendment from passing chronology review',
+    ambiguousBaselineCareers?.status==='Clarify'&&/chronology|review/i.test(String(ambiguousBaselineCareers?.type||'')+' '+String(ambiguousBaselineCareers?.boundary||'')),
+    JSON.stringify(ambiguousBaselineCareers||null));
+
   await setProject('E2E Evidence Deliverable Isolation');
   await page.locator('#a').fill(scope);
   await addRecord({type:'baseline',title:'Original agreed scope',detail:scope,source:'agreement',status:'approved',related:'All agreed pages'});

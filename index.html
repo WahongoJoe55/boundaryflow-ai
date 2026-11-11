@@ -4682,7 +4682,7 @@ function bfNormalizeHistory(h){const out=[];const seen=new Set();for(const x of 
 function bfWriteHistory(h){if(!window.__bfUserId)return;localStorage.setItem(bfScopedKey('boundaryflow_history_v1'),JSON.stringify(bfNormalizeHistory(h)))}
 function showToast(msg){const t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.classList.add('show');clearTimeout(window.__bfToast);window.__bfToast=setTimeout(()=>t.classList.remove('show'),2600)}
 function bfHistoryCount(value){
- const n=typeof value==='number'?value:(typeof value==='string'&&/^\\d{1,7}$/.test(value)?Number(value):NaN);
+ const n=typeof value==='number'?value:(typeof value==='string'&&/^\d{1,7}$/.test(value)?Number(value):NaN);
  return Number.isSafeInteger(n)&&n>=0?String(Math.min(n,1000000)):'0';
 }
 function renderHistory(){

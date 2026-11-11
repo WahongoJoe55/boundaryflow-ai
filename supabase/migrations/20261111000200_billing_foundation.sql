@@ -88,7 +88,8 @@ CREATE TABLE IF NOT EXISTS public.usage_events (
   idempotency_key text NOT NULL CHECK (length(idempotency_key) BETWEEN 16 AND 200),
   plan_key text NOT NULL,
   plan_version integer NOT NULL,
-  currency text NOT NULL CHECK (currency ~ '^[A-Z]{3}
+  currency text NOT NULL CHECK (currency ~ '^[A-Z]{3}$'),
+  period_start timestamptz NOT NULL,
   period_end timestamptz NOT NULL CHECK (period_end > period_start),
   units integer NOT NULL DEFAULT 1 CHECK (units > 0),
   created_at timestamptz NOT NULL DEFAULT now(),

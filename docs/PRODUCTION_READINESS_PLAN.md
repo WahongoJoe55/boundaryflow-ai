@@ -11,13 +11,13 @@ This document is a release gate, not a claim of certification. A green test suit
 
 | Area | Evidence currently available | Status |
 |---|---|---|
-| Deterministic reasoning and ledger | Candidate CI run `43015252253`: 133 engine + 82 browser E2E scenarios passed on the exact candidate SHA; stored-HTML payloads in History and ledger were verified inert | Passed for those scenarios; not a proof of all application paths |
+| Deterministic reasoning and ledger | Candidate CI run `43015653406`: 133 engine + 83 browser E2E scenarios passed on the exact candidate SHA; stored-HTML payloads in generated analysis output, History and ledger were verified inert | Passed for those scenarios; not a proof of all application paths |
 | Production deployment | GitHub Pages deployment workflow succeeded for merge commit `ddeed3b` | Passed for that deployment |
 | Live cloud persistence | One synthetic project: first sync, refresh restore and second sequential sync without duplicate | Partial pass |
 | Account isolation | Two dedicated test accounts reportedly could not see each other's project; cross-account delete tests returned zero affected rows | Reported pass; repeat and preserve evidence |
 | RLS configuration | Four application tables reported RLS enabled; policies reviewed from catalog | Partial; not independent security audit |
 | Candidate live integration | Candidate E2E deliberately stubs Supabase and blocks external cloud requests | Not tested live |
-| XSS/rendering hardening | Candidate CI run `43015252253`: 133/133 engine and 82/82 browser E2E passed, including stored-HTML tests for History and ledger | Partial pass; not full sink audit or independent penetration test |
+| XSS/rendering hardening | Candidate CI run `43015653406`: 133/133 engine and 83/83 browser E2E passed, including stored-HTML tests for generated analysis output, History and ledger | Partial pass; not full sink audit or independent penetration test |
 | Legal and privacy documents | UI explicitly labels Terms and Privacy Notice Draft 0.1; operator and privacy contact, retention and deletion details incomplete | Blocked |
 | Hosting security headers | No verifiable server-level CSP, HSTS, frame, MIME or referrer policy evidence in repository HTML | Unverified |
 | Backup and restore | No documented tested restore drill or retention schedule found in reviewed docs | Blocked |
@@ -167,7 +167,7 @@ The browser-local ledger key previously used a 32-bit hash of the normalized led
 **Status:** implementation and migration cases passed in the candidate's 133 engine regression tests and 82 browser E2E tests. This is local-browser evidence, not a cross-device or cloud ledger guarantee.
 
 ### Additional: hostile stored values and rendering
-Ledger identity and alias maps now use null-prototype objects, project IDs are validated before reuse, and History counters are constrained to bounded non-negative numeric text. Candidate browser tests seed stored HTML payloads into both History and the evidence ledger and verify that they remain inert text rather than creating `img`, `svg` or `script` elements.
+Ledger identity and alias maps now use null-prototype objects, project IDs are validated before reuse, and History counters are constrained to bounded non-negative numeric text. Candidate browser tests seed stored HTML payloads into generated analysis output, History and the evidence ledger and verify that they remain inert text rather than creating `img`, `svg` or `script` elements. History counters are constrained to bounded non-negative numeric text.
 
 **Status:** these focused adversarial tests passed in candidate CI `43015252253`. The complete application still needs a sink-by-sink XSS audit and independent security review.
 

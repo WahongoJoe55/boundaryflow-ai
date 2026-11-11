@@ -4365,7 +4365,9 @@ function bfLedgerReviewAmendments(records){
   const eligibleType=['amendment','approval','client_decision'].includes(String(x.type||'').trim().toLowerCase());
   const eligibleSource=['agreement','amendment','email'].includes(source);
   const dateConflict=sourceDate!==null&&latestBaseline!==null&&sourceDate<latestBaseline;
-  const metadataMissing=!String(x.related||'').trim()||sourceDate===null;
+  // Without a dated baseline there is no reliable reference point for
+  // determining whether this amendment belongs to the agreed version history.
+  const metadataMissing=!String(x.related||'').trim()||sourceDate===null||latestBaseline===null;
   let state='manual_review_required',reason='A ledger status is user-recorded metadata, not verified authority or proof that the original agreement was validly changed.';
   if(claim){state='claim_only';reason='A client assertion is not approval evidence, even if its ledger status was incorrectly labelled approved.';}
   else if(excluded){state='not_applicable';reason='The record is marked declined or superseded in the user-maintained ledger; it is not applied.';}
@@ -4373,7 +4375,7 @@ function bfLedgerReviewAmendments(records){
   else if(status!=='approved'){state='status_unconfirmed';reason='The record is not marked approved in the ledger; its effective status is unresolved.';}
   else if(!eligibleType||!eligibleSource){state='source_or_record_type_unverified';reason='The record type or source category is insufficient to treat this as a candidate approved scope change.';}
   else if(dateConflict){state='chronology_conflict';reason='The recorded source date predates the recorded baseline date. Check document versions and chronology; do not assume this amendment supersedes the baseline.';}
-  else if(metadataMissing){state='metadata_incomplete';reason='A source date and a related deliverable/workstream are required for a useful chronology and applicability review.';}
+  else if(metadataMissing){state='metadata_incomplete';reason='A dated baseline, amendment source date and related deliverable/workstream are required for a useful chronology and applicability review.';}
   else {state='candidate_for_manual_verification';reason='Candidate only: verify the original document, parties, authority, exact approval wording, effective date, conditions and supersession effect before changing any scope decision.';}
   return {id:x.id||null,title:String(x.title||''),type:String(x.type||'').trim().toLowerCase(),sourceType:source,status,sourceDate:x.sourceDate||null,related:String(x.related||''),state,reason,applied:false};
  });

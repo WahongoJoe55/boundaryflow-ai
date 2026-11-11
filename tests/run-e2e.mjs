@@ -412,6 +412,41 @@ try{
   check('Malformed ledger records abort rename and preserve cloud project name and storage',
     ledgerRenameHardening.supported&&ledgerRenameHardening.malformedRollback,
     JSON.stringify(ledgerRenameHardening));
+  const ledgerProjectSwitching=await page.evaluate(()=>{
+    const input=document.getElementById('projectName');
+    if(!input||typeof window.bfLedgerRename!=='function'||typeof window.bfLedgerRead!=='function'||typeof window.bfLedgerDisplayName!=='function')return {supported:false};
+    const priorName=input.value,priorUser=window.__bfUserId,priorPrompt=window.prompt;
+    const user='bf-ledger-switch-test-user',projectA='Cloud Project Alpha',projectB='Cloud Project Beta';
+    window.__bfUserId=user;
+    const keyA=window.bfLedgerKeyForName(projectA),keyB=window.bfLedgerKeyForName(projectB);
+    const alias1='Alpha Evidence Ledger',alias2='Alpha Archive Ledger';
+    const keyAlias1=window.bfLedgerKeyForName(alias1),keyAlias2=window.bfLedgerKeyForName(alias2);
+    const identityKey=window.bfScopedKey('boundaryflow_project_ledger_identity_v1'),aliasKey=window.bfScopedKey('boundaryflow_project_ledger_alias_v1');
+    const keys=[keyA,keyB,keyAlias1,keyAlias2,identityKey,aliasKey],before=keys.map(k=>localStorage.getItem(k));
+    const identityBefore=window.bfLedgerProjectId(projectA);
+    localStorage.setItem(keyA,JSON.stringify([{id:'alpha-record',title:'Alpha evidence',projectName:projectA}]));
+    localStorage.setItem(keyB,JSON.stringify([{id:'beta-record',title:'Beta evidence',projectName:projectB}]));
+    input.value=projectA;window.prompt=()=>alias1;
+    const firstRename=window.bfLedgerRename();
+    input.value=projectA;window.prompt=()=>alias2;
+    const secondRename=window.bfLedgerRename();
+    const afterSecond=window.bfLedgerRead();
+    const secondIdentity=window.bfLedgerProjectId(projectA);
+    const alphaStable=firstRename&&secondRename&&identityBefore===secondIdentity&&window.bfLedgerDisplayName()===alias2&&afterSecond.length===1&&afterSecond[0].id==='alpha-record'&&afterSecond[0].ledgerName===alias2&&localStorage.getItem(keyA)===null&&localStorage.getItem(keyAlias1)===null;
+    input.value=projectB;
+    const betaRead=window.bfLedgerRead(),betaIsolated=window.bfLedgerDisplayName()===projectB&&betaRead.length===1&&betaRead[0].id==='beta-record';
+    input.value=projectA;
+    const alphaAfterSwitch=window.bfLedgerRead(),alphaRestored=window.bfLedgerDisplayName()===alias2&&alphaAfterSwitch.length===1&&alphaAfterSwitch[0].id==='alpha-record'&&input.value===projectA;
+    keys.forEach((k,i)=>{if(before[i]===null)localStorage.removeItem(k);else localStorage.setItem(k,before[i])});
+    input.value=priorName;window.__bfUserId=priorUser;window.prompt=priorPrompt;
+    return {supported:true,firstRename,secondRename,alphaStable,betaIsolated,alphaRestored};
+  });
+  check('Repeated local ledger renames preserve stable identity and the latest alias',
+    ledgerProjectSwitching.supported&&ledgerProjectSwitching.alphaStable,
+    JSON.stringify(ledgerProjectSwitching));
+  check('Switching projects restores each project ledger without cross-project leakage',
+    ledgerProjectSwitching.supported&&ledgerProjectSwitching.betaIsolated&&ledgerProjectSwitching.alphaRestored,
+    JSON.stringify(ledgerProjectSwitching));
   const projectIdentityIsolation=await page.evaluate(()=>{
     const input=document.getElementById('projectName');
     if(!input||typeof window.bfLedgerKey!=='function'||typeof window.bfLedgerRead!=='function')return {supported:false};

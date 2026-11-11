@@ -4349,7 +4349,7 @@ function bfLedgerProjectId(name){
  const identity=bfLedgerProjectIdentityName(name);
  if(!identity||!window.__bfUserId)return null;
  const map=bfLedgerIdentityMap();
- if(Object.prototype.hasOwnProperty.call(map,identity)&&typeof map[identity]==='string'&&map[identity])return map[identity];
+ if(Object.prototype.hasOwnProperty.call(map,identity)&&typeof map[identity]==='string'&&/^bfp-[a-z0-9-]{10,80}$/i.test(map[identity]))return map[identity];
  const id='bfp-'+(window.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+'-'+Math.random().toString(36).slice(2));
  map[identity]=id;
  localStorage.setItem(bfScopedKey('boundaryflow_project_ledger_identity_v1'),JSON.stringify(map));

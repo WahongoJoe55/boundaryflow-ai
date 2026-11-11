@@ -4445,7 +4445,7 @@ function bfLedgerRevisionUsage(context,request,agreement){
   const relatedPage=pageName(x.related);
   const revisionSource=String(x.sourceType||'').trim().toLowerCase();
   const revisionDate=String(x.sourceDate||'').trim();
-  const dateParts=revisionDate.match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+  const dateParts=revisionDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   const validSourceDate=!!dateParts&&!Number.isNaN(Date.parse(revisionDate+'T00:00:00Z'))&&new Date(revisionDate+'T00:00:00Z').toISOString().slice(0,10)===revisionDate;
   // A delivered round needs a dated, traceable email reference. This is
   // recorded provenance, not independent authentication of the email.

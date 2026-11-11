@@ -286,6 +286,14 @@ try{
     revisionSequenceChecks.missingEarly.historyUnknown===true&&
     JSON.stringify(revisionSequenceChecks.missingEarly.sequenceGaps)==='[1,2]',
     JSON.stringify(revisionSequenceChecks.missingEarly));
+  const reversedChronology=await page.evaluate(()=>window.bfLedgerRevisionUsage({revisionEvents:[
+    {status:'delivered',sourceType:'email',sourceDate:'2026-02-07',title:'First revision round completed for the Portfolio page',related:'Portfolio page'},
+    {status:'delivered',sourceType:'email',sourceDate:'2026-02-06',title:'Second revision round completed for the Portfolio page',related:'Portfolio page'}
+  ]},'Portfolio page','Each page includes up to 3 revision rounds.'));
+  check('A later numbered revision round dated before an earlier round makes history unknown',
+    reversedChronology.historyUnknown===true&&reversedChronology.completed===null&&
+      reversedChronology.remaining===null&&reversedChronology.chronologyConflicts?.length===1,
+    JSON.stringify(reversedChronology));
   check('A contiguous recorded revision sequence can still be counted',
     revisionSequenceChecks.contiguous.completed===2&&revisionSequenceChecks.contiguous.remaining===1&&
     revisionSequenceChecks.contiguous.historyUnknown===false,

@@ -322,7 +322,7 @@ try{
     JSON.stringify(nullEntryRevisionCollection));
   const normalizedRevisionStatus=await page.evaluate(()=>{
     return window.bfLedgerRevisionUsage({revisionEvents:[
-      {status:'  DELIVERED  ',title:'First revision round completed for the Portfolio page',detail:'',related:'Portfolio page'}
+      {status:'  DELIVERED  ',sourceType:'email',sourceDate:'2026-02-05',title:'First revision round completed for the Portfolio page',detail:'',related:'Portfolio page'}
     ]},'Portfolio page','Each page includes up to 3 revision rounds.');
   });
   check('Whitespace and case variations in delivered status are normalized',

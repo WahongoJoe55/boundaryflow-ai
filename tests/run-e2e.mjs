@@ -92,6 +92,15 @@ try{
     const incomplete=window.bfLedgerReviewAmendments([
       {id:'approval-2',type:' APPROVAL ',sourceType:' EMAIL ',status:' APPROVED ',related:'Careers page'}
     ]);
+    const declined=window.bfLedgerReviewAmendments([
+      {id:'declined-1',type:' AMENDMENT ',sourceType:' EMAIL ',status:' DECLINED ',sourceDate:'2026-02-01',related:'Careers page'}
+    ]);
+    const pending=window.bfLedgerReviewAmendments([
+      {id:'pending-1',type:' AMENDMENT ',sourceType:' EMAIL ',status:' AWAITING_APPROVAL ',sourceDate:'2026-02-01',related:'Careers page'}
+    ]);
+    const unconfirmed=window.bfLedgerReviewAmendments([
+      {id:'unconfirmed-1',type:' AMENDMENT ',sourceType:' EMAIL ',status:' NOT_SPECIFIED ',sourceDate:'2026-02-01',related:'Careers page'}
+    ]);
     const priorUser=window.__bfUserId;
     const projectInput=document.getElementById('projectName');
     const priorProject=projectInput.value;
@@ -111,13 +120,16 @@ try{
       window.__bfUserId=priorUser;
       projectInput.value=priorProject;
     }
-    return {reviewed:reviewed[0]?.state,claim:claim[0]?.state,incomplete:incomplete[0]?.state,
+    return {reviewed:reviewed[0]?.state,claim:claim[0]?.state,incomplete:incomplete[0]?.state,declined:declined[0]?.state,pending:pending[0]?.state,unconfirmed:unconfirmed[0]?.state,
       used:context.used.map(x=>({type:x.type,sourceType:x.sourceType,status:x.status})),reviewType:context.amendmentReview[0]?.type};
   });
   check('Ledger review normalizes case and surrounding whitespace without promoting claims or incomplete records',
     ledgerNormalizationContract.reviewed==='candidate_for_manual_verification'&&
     ledgerNormalizationContract.claim==='claim_only'&&
     ledgerNormalizationContract.incomplete==='metadata_incomplete'&&
+    ledgerNormalizationContract.declined==='not_applicable'&&
+    ledgerNormalizationContract.pending==='pending_not_applied'&&
+    ledgerNormalizationContract.unconfirmed==='status_unconfirmed'&&
     ledgerNormalizationContract.used.some(x=>x.type==='amendment'&&x.sourceType==='email'&&x.status==='approved')&&
     ledgerNormalizationContract.reviewType==='amendment',
     JSON.stringify(ledgerNormalizationContract));
@@ -170,13 +182,14 @@ try{
   await page.locator('#closeGuide').click();
 
   async function select(id,value){await page.locator('#'+id).selectOption(value)}
-  async function addRecord({type,title,detail,source='email',status='not_specified',related=''}) {
+  async function addRecord({type,title,detail,source='email',status='not_specified',related='',sourceDate=''}) {
     await select('bfLedgerType',type);
     await page.locator('#bfLedgerTitle').fill(title);
     await page.locator('#bfLedgerDetail').fill(detail);
     await select('bfLedgerSource',source);
     await select('bfLedgerStatusValue',status);
     await page.locator('#bfLedgerRelated').fill(related);
+    await page.locator('#bfLedgerSourceDate').fill(sourceDate);
     await page.locator('#bfLedgerAdd').click();
     const message=await page.locator('#bfLedgerStatus').innerText();
     if(!message.includes('Record added'))throw new Error('Ledger entry was not added: '+message);
@@ -211,7 +224,7 @@ try{
   check('Prepare baseline drafts agreement text without saving automatically',await page.locator('#bfLedgerCount').innerText().then(x=>x==='0 records')&&await page.locator('#bfLedgerTitle').inputValue()==='Original agreed scope / baseline'&&await page.locator('#bfLedgerDetail').inputValue()===scope);
   await page.locator('#bfLedgerAdd').click();
   check('Prepared baseline is saved only after explicit Add ledger record action',await page.locator('#bfLedgerCount').innerText().then(x=>x==='1 record'));
-  await addRecord({type:'amendment',title:'Careers page approval',detail:'The Careers page is approved and included in the agreed project scope.',source:'amendment',status:'approved',related:'Careers page'});
+  await addRecord({type:'amendment',title:'Careers page approval',detail:'The Careers page is approved and included in the agreed project scope.',source:'amendment',status:'approved',related:'Careers page',sourceDate:'2026-02-01'});
   await addRecord({type:'evidence',title:'Client says Careers was already approved',detail:'The client says the Careers page was agreed during a call.',source:'client_claim'});
   await addRecord({type:'revision',title:'First revision round completed',detail:'First revision round completed for the Portfolio page.',source:'email',status:'delivered',related:'Portfolio page'});
   check('Baseline, approval, client claim and revision records can be added through the UI',await page.locator('#bfLedgerCount').innerText().then(x=>x==='4 records'));
@@ -222,6 +235,40 @@ try{
   check('Approved amendment is included as supplemental analysis context',alpha.meta?.used?.some(x=>x.title==='Careers page approval')===true);
   check('Client assertion remains excluded from approval evidence',alpha.meta?.unverifiedClaims?.some(x=>x.title==='Client says Careers was already approved')===true&&!alpha.meta?.used?.some(x=>x.title==='Client says Careers was already approved'));
   check('Specific Careers approval with incomplete chronology remains Clarify pending source verification',careers?.status==='Clarify'&&/chronology|review/i.test(String(careers?.type||'')+' '+String(careers?.boundary||'')),JSON.stringify(careers||null));
+
+  await setProject('E2E Missing Approval Identity');
+  await addRecord({type:'baseline',title:'Original agreed scope',detail:scope,source:'agreement',status:'approved',related:'All agreed pages'});
+  await addRecord({type:'amendment',title:'Careers page approval',detail:'The Careers page is approved and included in the agreed project scope.',source:'amendment',status:'approved',related:'Careers page'});
+  await page.evaluate(()=>{
+    const key=window.bfLedgerKey();
+    const records=JSON.parse(localStorage.getItem(key)||'[]');
+    records.forEach(record=>{if(record.type==='amendment')delete record.id;});
+    localStorage.setItem(key,JSON.stringify(records));
+  });
+  const missingApprovalIdentity=await analyse(scope,'Create a new Careers page.');
+  const missingIdentityCareers=missingApprovalIdentity.rows.find(x=>/careers/i.test(x.request||''));
+  check('An approval record without a stable ID cannot bypass chronology review or become conditional approval',
+    missingIdentityCareers?.status==='Clarify'&&/chronology|review/i.test(String(missingIdentityCareers?.type||'')+' '+String(missingIdentityCareers?.boundary||'')),
+    JSON.stringify(missingIdentityCareers||null));
+
+  await setProject('E2E Compound Deliverable Approval');
+  await addRecord({type:'baseline',title:'Original agreed scope',detail:scope,source:'agreement',status:'approved',related:'All agreed pages'});
+  await addRecord({type:'amendment',title:'Careers and Team pages approval',detail:'Careers and Team pages are approved and included in the project scope.',source:'amendment',status:'approved',related:'Careers and Team pages',sourceDate:'2026-02-01'});
+  const compoundApproval=await analyse(scope,'Create a new Careers page.');
+  const compoundCareers=compoundApproval.rows.find(x=>/careers/i.test(x.request||''));
+  check('A compound deliverable label cannot be treated as exact approval for one page',
+    compoundCareers?.status==='Clarify'&&/ambiguous|broader|compound|partial/i.test(String(compoundCareers?.type||'')+' '+String(compoundCareers?.boundary||'')),
+    JSON.stringify(compoundCareers||null));
+
+  await setProject('E2E Conflicting Page Approvals');
+  await addRecord({type:'baseline',title:'Original agreed scope',detail:scope,source:'agreement',status:'approved',related:'All agreed pages'});
+  await addRecord({type:'amendment',title:'Careers page approval v1',detail:'The Careers page is approved and included in the project scope.',source:'amendment',status:'approved',related:'Careers page',sourceDate:'2026-02-01'});
+  await addRecord({type:'amendment',title:'Careers page approval v2',detail:'The Careers page is approved and included in the project scope with revised requirements.',source:'amendment',status:'approved',related:'Careers page',sourceDate:'2026-02-03'});
+  const conflictingPageApprovals=await analyse(scope,'Create a new Careers page.');
+  const conflictingCareers=conflictingPageApprovals.rows.find(x=>/careers/i.test(x.request||''));
+  check('Multiple active approvals for the same page remain Clarify',
+    conflictingCareers?.status==='Clarify'&&/conflicting|multiple/i.test(String(conflictingCareers?.type||'')+' '+String(conflictingCareers?.boundary||'')),
+    JSON.stringify(conflictingCareers||null));
   check('Portfolio revision usage is matched to the correct page',portfolio?.allowance===2&&portfolio?.completed===1&&portfolio?.remaining===1,JSON.stringify(portfolio||null));
   const revisionSequenceChecks=await page.evaluate(()=>{
     const agreement='Each page includes up to 3 revision rounds.';
@@ -252,6 +299,27 @@ try{
     unnumberedRevision.completed===null&&unnumberedRevision.remaining===null&&
     unnumberedRevision.historyUnknown===true&&unnumberedRevision.unresolvedRoundEvents?.length===1,
     JSON.stringify(unnumberedRevision));
+  const malformedRevisionCollections=await page.evaluate(()=>{
+    const agreement='Each page includes up to 3 revision rounds.';
+    const cases=[
+      ['missing',{},'Portfolio page'],
+      ['null',{revisionEvents:null},'Portfolio page'],
+      ['object',{revisionEvents:{status:'delivered'}},'Portfolio page'],
+      ['null-entry',{revisionEvents:[null,{status:'delivered',title:'First revision round completed for the Portfolio page',related:'Portfolio page'}]},'Portfolio page']
+    ];
+    return cases.map(([name,context,request])=>({name,result:window.bfLedgerRevisionUsage(context,request,agreement)}));
+  });
+  const unknownRevisionCollections=malformedRevisionCollections.filter(x=>x.name!=='null-entry');
+  const nullEntryRevisionCollection=malformedRevisionCollections.find(x=>x.name==='null-entry');
+  check('Missing or malformed revision collections keep allowance unknown',
+    unknownRevisionCollections.every(x=>x.result.historyUnknown===true&&x.result.collectionUnknown===true&&x.result.completed===null&&x.result.remaining===null),
+    JSON.stringify(unknownRevisionCollections));
+  check('Null entries are ignored safely without discarding valid delivered evidence',
+    nullEntryRevisionCollection.result.collectionUnknown===false&&
+    nullEntryRevisionCollection.result.historyUnknown===false&&
+    nullEntryRevisionCollection.result.completed===1&&
+    nullEntryRevisionCollection.result.remaining===2,
+    JSON.stringify(nullEntryRevisionCollection));
   const normalizedRevisionStatus=await page.evaluate(()=>{
     return window.bfLedgerRevisionUsage({revisionEvents:[
       {status:'  DELIVERED  ',title:'First revision round completed for the Portfolio page',detail:'',related:'Portfolio page'}

@@ -68,6 +68,22 @@ try{
     policyMeta.csp.includes("https://challenges.cloudflare.com")&&policyMeta.referrer==='strict-origin-when-cross-origin',
     JSON.stringify(policyMeta));
 
+  const saveLockContract=await page.evaluate(async()=>{
+    let active=0,maximum=0,order=[];
+    const work=n=>window.bfWithAnalysisSaveLock('synthetic-account','same-analysis',async()=>{
+      active++;maximum=Math.max(maximum,active);order.push('start-'+n);
+      await new Promise(resolve=>setTimeout(resolve,25));
+      order.push('end-'+n);active--;
+    });
+    await Promise.all([work(1),work(2),work(3)]);
+    return {maximum,order};
+  });
+  check('Same-analysis cloud saves are serialized across browser tabs when Web Locks are available',
+    saveLockContract.maximum===1&&saveLockContract.order.length===6&&
+    saveLockContract.order.filter(x=>x.startsWith('start-')).length===3&&
+    saveLockContract.order.filter(x=>x.startsWith('end-')).length===3,
+    JSON.stringify(saveLockContract));
+
   const localLedgerClear=await page.evaluate(()=>{
     const uid='clear-local-ledger-test';
     const keys=[

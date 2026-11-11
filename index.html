@@ -4480,7 +4480,7 @@ function bfLedgerRevisionUsage(context,request,agreement){
  // A later numbered round cannot be dated before an earlier numbered round
  // for the same deliverable. Treat this as contradictory chronology.
  const chronologyByPage=new Map();
- relevant.forEach(x=>{const key=String(x.page||'*');const group=chronologyByPage.get(key)||new Map();const dates=group.get(x.round)||[];dates.push(String(x.sourceDate||''));group.set(x.round,dates);chronologyByPage.set(key,group);});
+ relevant.forEach(x=>{const key=perPage?String(x.page||'*'):'*';const group=chronologyByPage.get(key)||new Map();const dates=group.get(x.round)||[];dates.push(String(x.sourceDate||''));group.set(x.round,dates);chronologyByPage.set(key,group);});
  const chronologyConflicts=[];
  chronologyByPage.forEach((roundMap,page)=>{const ordered=[...roundMap.entries()].sort((a,b)=>a[0]-b[0]);for(let i=1;i<ordered.length;i++){const [previousRound,previousDates]=ordered[i-1];const [currentRound,currentDates]=ordered[i];const previousLatest=previousDates.slice().sort().at(-1)||'';const currentEarliest=currentDates.slice().sort()[0]||'';if(previousLatest&&currentEarliest&&currentEarliest<previousLatest)chronologyConflicts.push({page,previousRound,previousDate:previousLatest,currentRound,currentDate:currentEarliest});}});
  const historyConflict=conflicting.length>0||duplicateDateConflicts.length>0||chronologyConflicts.length>0;

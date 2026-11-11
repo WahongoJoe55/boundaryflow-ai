@@ -3699,20 +3699,24 @@ function analyze(){
     const pageSubject=pageSubjectMatch?String(pageSubjectMatch[1]).trim().toLowerCase():'';
     const ledgerRecordText=x=>[x&&x.title,x&&x.detail,x&&x.related].map(v=>String(v||'')).join(' ');
     const normalizeDeliverablePhrase=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ');
-    const phraseMatchesDeliverable=(value,needle)=>{
-      const haystack=normalizeDeliverablePhrase(value),target=normalizeDeliverablePhrase(needle);
-      return !!target&&(' '+haystack+' ').includes(' '+target+' ');
+    const deliverableMatchKind=(value,needle)=>{
+      const clean=value=>normalizeDeliverablePhrase(value).replace(/\\bpages?\\b/g,' ').replace(/\\s+/g,' ').trim();
+      const haystack=clean(value),target=clean(needle);
+      if(!haystack||!target)return 'none';
+      if(haystack===target)return 'exact';
+      return (' '+haystack+' ').includes(' '+target+' ')||(' '+target+' ').includes(' '+haystack+' ')?'partial':'none';
     };
     const ledgerPageRecords=pageSubject?ledgerContext.used.filter(x=>{
       if(x.status!=='approved'||x.type==='baseline')return false;
-      // A structured related-deliverable field is the primary scope key.
-      // If it names another deliverable, incidental mentions in title/detail
-      // must not transfer that record's approval to this request.
       const related=String(x.related||'').trim();
-      if(related)return phraseMatchesDeliverable(related,pageSubject);
-      // Legacy records without structured linkage may use complete-phrase
-      // matching across their text, but never arbitrary substring matching.
-      return phraseMatchesDeliverable(ledgerRecordText(x),pageSubject);
+      if(related)return deliverableMatchKind(related,pageSubject)==='exact';
+      return deliverableMatchKind(ledgerRecordText(x),pageSubject)==='exact';
+    }): [];
+    const partiallyMatchingLedgerRecords=pageSubject?ledgerContext.used.filter(x=>{
+      if(x.status!=='approved'||x.type==='baseline')return false;
+      const related=String(x.related||'').trim();
+      if(related)return deliverableMatchKind(related,pageSubject)==='partial';
+      return deliverableMatchKind(ledgerRecordText(x),pageSubject)==='partial';
     }): [];
     const negativeApprovalWording=x=>/\b(?:not approved|not authorised|not authorized|not agreed|not accepted|declined|rejected|excluded|not included|outside scope)\b/i.test(ledgerRecordText(x));
     const soleLedgerPageRecord=ledgerPageRecords.length===1?ledgerPageRecords[0]:null;
@@ -3722,7 +3726,16 @@ function analyze(){
       ?(ledgerContext.amendmentReview||[]).find(x=>x.id===soleLedgerPageRecord.id)
       :null;
     const approvedLedgerRecord=soleLedgerPageRecord&&soleLedgerPageReview?.state==='candidate_for_manual_verification'&&!negativeApprovalWording(soleLedgerPageRecord)&&/\b(?:included|in scope|approved|authorised|authorized|agreed)\b/i.test(ledgerRecordText(soleLedgerPageRecord))?soleLedgerPageRecord:null;
-    if(explicitPageCreationAtomic && agreementRequiresPageApproval && ledgerPageRecords.length===0){
+    if(explicitPageCreationAtomic && agreementRequiresPageApproval && partiallyMatchingLedgerRecords.length>0){
+      c.type='Ambiguous deliverable match in project ledger'; c.detected=c.type;
+      c.status='Clarify'; c.confidence='Low'; c.risk='High';
+      c.evidence='An approved ledger entry refers to a broader or compound deliverable label, not an exact match for this page: '+partiallyMatchingLedgerRecords.map(x=>String(x.related||ledgerRecordText(x))).join('; ')+'.';
+      c.actual=atomicRequestText; c.request=atomicRequestText;
+      c.boundary='The ledger entry may cover several deliverables or a broader workstream. It does not establish that this specific page was separately approved.';
+      c.action='Inspect the original approval and confirm explicitly whether it names this exact page and its requirements. Update the ledger linkage only after checking the source.';
+      c.response='I found a project record that refers to a broader set of pages, but it does not clearly identify this specific page. Could we confirm in the original approval whether this page was included?';
+      c.why='A partial or compound deliverable match is not sufficient evidence of approval for a specific new page.';
+    }else if(explicitPageCreationAtomic && agreementRequiresPageApproval && ledgerPageRecords.length===0){
       c.type='New page requiring separate written approval'; c.detected=c.type;
       c.status='Likely additional'; c.confidence='High'; c.risk='High';
       const pageScopeEvidence=scopeEvidence(a,['new pages','new website pages','new website page']);

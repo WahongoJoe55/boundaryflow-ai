@@ -4374,6 +4374,7 @@ function bfLedgerReviewAmendments(records){
   else if(pending){state='pending_not_applied';reason='The change is proposed or awaiting approval; it must not be treated as an effective scope change.';}
   else if(status!=='approved'){state='status_unconfirmed';reason='The record is not marked approved in the ledger; its effective status is unresolved.';}
   else if(!eligibleType||!eligibleSource){state='source_or_record_type_unverified';reason='The record type or source category is insufficient to treat this as a candidate approved scope change.';}
+  else if(baselines.length>1){state='baseline_ambiguous';reason='Multiple active agreement baseline records are eligible to establish chronology. Confirm which exact baseline is operative and mark superseded versions accurately before relying on amendment chronology.';}
   else if(dateConflict){state='chronology_conflict';reason='The recorded source date predates the recorded baseline date. Check document versions and chronology; do not assume this amendment supersedes the baseline.';}
   else if(metadataMissing){state='metadata_incomplete';reason='A dated baseline, amendment source date and related deliverable/workstream are required for a useful chronology and applicability review.';}
   else {state='candidate_for_manual_verification';reason='Candidate only: verify the original document, parties, authority, exact approval wording, effective date, conditions and supersession effect before changing any scope decision.';}

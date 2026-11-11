@@ -4678,7 +4678,7 @@ function bfAnalysisId(){
   return id;
 }
 function bfCounts(rows){const counts={included:0,clarify:0,additional:0,claim:0};(rows||[]).forEach(r=>{const st=(r.c&&r.c.status||'').toLowerCase();if(st.includes('included'))counts.included++;else if(st.includes('clarify')||st.includes('conflict'))counts.clarify++;else if(st.includes('additional'))counts.additional++;else if(st.includes('claim'))counts.claim++});return counts}
-function bfNormalizeHistory(h){const out=[];const seen=new Set();for(const x of (Array.isArray(h)?h:[])){if(!x)continue;if(!x.id)x.id=bfHash((x.scope||'')+'\n---\n'+(x.request||'')+'\n---\n'+(x.name||''));if(seen.has(x.id))continue;seen.add(x.id);out.push(x)}return out.slice(0,20)}
+function bfNormalizeHistory(h){const out=[];const seen=new Set();for(const x of (Array.isArray(h)?h:[])){if(!x||typeof x!=='object'||Array.isArray(x))continue;if(typeof x.id!=='string'||!x.id.trim())x.id=bfNewAnalysisId();if(seen.has(x.id))continue;seen.add(x.id);out.push(x)}return out.slice(0,20)}
 function bfWriteHistory(h){if(!window.__bfUserId)return;localStorage.setItem(bfScopedKey('boundaryflow_history_v1'),JSON.stringify(bfNormalizeHistory(h)))}
 function showToast(msg){const t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.classList.add('show');clearTimeout(window.__bfToast);window.__bfToast=setTimeout(()=>t.classList.remove('show'),2600)}
 function bfHistoryCount(value){

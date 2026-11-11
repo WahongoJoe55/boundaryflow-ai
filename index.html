@@ -4327,8 +4327,11 @@ document.addEventListener('change',e=>{if(e.target&&e.target.id==='responseStyle
 <script>
 
 function bfLedgerProjectName(){return String(document.getElementById('projectName')?.value||'').trim()}
+function bfLedgerProjectIdentity(value){return String(value||'').normalize('NFKC').trim().replace(/\\s+/g,' ').toLocaleLowerCase()}
 function bfLedgerKey(){const name=bfLedgerProjectName();return name?bfScopedKey('boundaryflow_project_ledger_v1_'+bfHash(name.toLocaleLowerCase())):null}
-function bfLedgerRead(){const key=bfLedgerKey();if(!key||!window.__bfUserId)return[];try{const v=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(v)?v:[]}catch(e){return[]}}
+function bfLedgerRawRead(){const key=bfLedgerKey();if(!key||!window.__bfUserId)return[];try{const v=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(v)?v:[]}catch(e){return[]}}
+function bfLedgerRead(){const identity=bfLedgerProjectIdentity(bfLedgerProjectName());if(!identity)return[];return bfLedgerRawRead().filter(x=>x&&bfLedgerProjectIdentity(x.projectName)===identity)}
+function bfLedgerQuarantinedCount(){const identity=bfLedgerProjectIdentity(bfLedgerProjectName());return identity?bfLedgerRawRead().filter(x=>!x||bfLedgerProjectIdentity(x.projectName)!==identity).length:0}
 function bfLedgerReviewAmendments(records){
  const entries=Array.isArray(records)?records:[];
  // Only an agreement-sourced baseline with an approved or explicitly
@@ -4506,14 +4509,15 @@ function bfLedgerAdd(record){
 function bfLedgerEscape(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function bfLedgerRender(){
  const list=document.getElementById('bfLedgerList');if(!list)return;
- const project=bfLedgerProjectName(),items=bfLedgerRead();
+ const project=bfLedgerProjectName(),items=bfLedgerRead(),quarantined=bfLedgerQuarantinedCount();
  const count=document.getElementById('bfLedgerCount');if(count)count.textContent=items.length+' record'+(items.length===1?'':'s');
+ const quarantineNotice=quarantined?'<div class="bf-ledger-warning">'+quarantined+' ledger record'+(quarantined===1?' was':'s were')+' excluded because its project identity is missing or does not match this project. Review the original record before re-entering it; it has not been reassigned.</div>':'';
  if(!project){list.innerHTML='<div class="history-empty">Enter a project name above to view its ledger. Records are kept separately for each project name in this account.</div>';return}
- if(!items.length){list.innerHTML='<div class="history-empty">No records yet. Add the original agreed scope first, then append amendments, approvals, revisions and change events as they occur.</div>';return}
+ if(!items.length){list.innerHTML=quarantineNotice+'<div class="history-empty">No verified project-matching records yet. Add the original agreed scope first, then append amendments, approvals, revisions and change events as they occur.</div>';return}
  const names={baseline:'Original scope / baseline',amendment:'Amendment / revised scope',approval:'Approval record',change_request:'Change request',revision:'Revision event',dependency:'Dependency / prerequisite',client_decision:'Client decision / clarification',evidence:'Other evidence'};
  const statuses={not_specified:'Status not specified',proposed:'Proposed',awaiting_approval:'Awaiting approval',approved:'Approved — user-recorded, not verified',declined:'Declined — user-recorded',in_progress:'In progress',delivered:'Delivered / completed — user-recorded',superseded:'Superseded — user-recorded'};
  const sources={agreement:'Agreement / SOW',amendment:'Amendment / change order',email:'Email / written message',meeting:'Meeting notes / call record',client_claim:'Client assertion — not approval proof',internal_note:'Freelancer internal note',other:'Other / not established'};
- list.innerHTML=items.slice().reverse().map(x=>'<article class="bf-ledger-entry"><div class="bf-ledger-entry-top"><div><div class="bf-ledger-kind">'+bfLedgerEscape(names[x.type]||'Record')+'</div><div class="bf-ledger-entry-title">'+bfLedgerEscape(x.title)+'</div></div><span class="bf-ledger-meta">'+bfLedgerEscape(new Date(x.recordedAt).toLocaleString())+'</span></div><p>'+bfLedgerEscape(x.detail)+'</p><div class="bf-ledger-meta">Status: '+bfLedgerEscape(statuses[x.status]||'Status not specified')+' · Source: '+bfLedgerEscape(sources[x.sourceType]||'Not established')+(x.sourceDate?' · Source date: '+bfLedgerEscape(x.sourceDate):'')+(x.related?' · Related item: '+bfLedgerEscape(x.related):'')+'</div>'+(x.sourceType==='client_claim'?'<div class="bf-ledger-warning">Assertion recorded only. This entry does not establish approval.</div>':'')+'</article>').join('');
+ list.innerHTML=quarantineNotice+items.slice().reverse().map(x=>'<article class="bf-ledger-entry"><div class="bf-ledger-entry-top"><div><div class="bf-ledger-kind">'+bfLedgerEscape(names[x.type]||'Record')+'</div><div class="bf-ledger-entry-title">'+bfLedgerEscape(x.title)+'</div></div><span class="bf-ledger-meta">'+bfLedgerEscape(new Date(x.recordedAt).toLocaleString())+'</span></div><p>'+bfLedgerEscape(x.detail)+'</p><div class="bf-ledger-meta">Status: '+bfLedgerEscape(statuses[x.status]||'Status not specified')+' · Source: '+bfLedgerEscape(sources[x.sourceType]||'Not established')+(x.sourceDate?' · Source date: '+bfLedgerEscape(x.sourceDate):'')+(x.related?' · Related item: '+bfLedgerEscape(x.related):'')+'</div>'+(x.sourceType==='client_claim'?'<div class="bf-ledger-warning">Assertion recorded only. This entry does not establish approval.</div>':'')+'</article>').join('');
 }
 function bfLedgerPrepareBaseline(){
  const status=document.getElementById('bfLedgerStatus');

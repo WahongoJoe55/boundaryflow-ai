@@ -13,8 +13,12 @@
     try{
       var bfOriginalSetItem=Storage.prototype.setItem;
       var bfOriginalRemoveItem=Storage.prototype.removeItem;
-      Storage.prototype.setItem=function(key,value){var k=String(key);if(k.indexOf('boundaryflow_project_ledger_v1_')===0||(k.indexOf('boundaryflow_project_ledger_identity_v1__')===0||k.indexOf('boundaryflow_project_ledger_alias_v1__')===0))return bfOriginalSetItem.call(this,key,value);};
-      Storage.prototype.removeItem=function(key){var k=String(key);if(k.indexOf('boundaryflow_project_ledger_v1_')===0||k.indexOf('boundaryflow_project_ledger_identity_v1__')===0)return bfOriginalRemoveItem.call(this,key);};
+      // The ledger now writes collision-safe v2 keys. Keep both v1 and v2
+      // namespaces available in the isolated test sandbox so migration and
+      // current-ledger tests exercise the real Storage API rather than a
+      // silently discarded write.
+      Storage.prototype.setItem=function(key,value){var k=String(key);if(k.indexOf('boundaryflow_project_ledger_v1_')===0||k.indexOf('boundaryflow_project_ledger_v2_')===0||k.indexOf('boundaryflow_project_ledger_identity_v1__')===0||k.indexOf('boundaryflow_project_ledger_alias_v1__')===0)return bfOriginalSetItem.call(this,key,value);};
+      Storage.prototype.removeItem=function(key){var k=String(key);if(k.indexOf('boundaryflow_project_ledger_v1_')===0||k.indexOf('boundaryflow_project_ledger_v2_')===0||k.indexOf('boundaryflow_project_ledger_identity_v1__')===0||k.indexOf('boundaryflow_project_ledger_alias_v1__')===0)return bfOriginalRemoveItem.call(this,key);};
       Storage.prototype.clear=function(){};
     }catch(e){}
   }

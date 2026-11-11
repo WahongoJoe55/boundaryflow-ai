@@ -1,4 +1,4 @@
--- BoundaryFlow billing foundation (schema only; no live provider integration).
+-- BoundaryFlow billing foundation. Schema draft only; no live provider integration.
 -- REVIEW / STAGING ONLY. Do not apply to production without schema review,
 -- backup/rollback evidence, provider eligibility confirmation and approval.
 BEGIN;
@@ -99,8 +99,8 @@ CREATE TABLE IF NOT EXISTS public.usage_events (
   UNIQUE (user_id, idempotency_key)
 );
 
--- RLS is enabled on every billing table. The client may read only safe,
--- user-owned summaries. No client role may create or mutate billing state.
+-- RLS is enabled on every billing table. Clients can read active plans and
+-- their own safe billing summaries; no client role can mutate billing state.
 ALTER TABLE public.plan_catalog ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.billing_customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.billing_subscriptions ENABLE ROW LEVEL SECURITY;
@@ -139,72 +139,12 @@ GRANT SELECT ON public.usage_events TO authenticated;
 COMMENT ON TABLE public.plan_catalog IS
   'Versioned server-owned plan and price catalogue; seed only after pricing approval.';
 COMMENT ON TABLE public.billing_subscriptions IS
-  'Server-owned subscription state. Never accept plan or status changes from browser clients.';
+  'Server-owned subscription state; browser clients cannot change plan or status.';
 COMMENT ON TABLE public.billing_payments IS
-  'Server-owned payment ledger. Payment state changes require verified provider evidence.';
+  'Server-owned payment ledger; state changes require verified provider evidence.';
 COMMENT ON TABLE public.billing_webhook_events IS
-  'Webhook inbox with provider event idempotency; raw secrets and payment credentials must not be stored.';
+  'Webhook inbox with provider event idempotency; never store raw secrets or payment credentials.';
 COMMENT ON TABLE public.usage_events IS
-  'Server-owned usage ledger; idempotency key prevents duplicate usage charges.';
-
-COMMIT;
-),
-  period_start timestamptz NOT NULL,
-  period_end timestamptz NOT NULL CHECK (period_end > period_start),
-  units integer NOT NULL DEFAULT 1 CHECK (units > 0),
-  created_at timestamptz NOT NULL DEFAULT now(),
-  FOREIGN KEY (plan_key, plan_version)
-    REFERENCES public.plan_catalog(plan_key, version)
-    DEFERRABLE INITIALLY DEFERRED,
-  UNIQUE (user_id, idempotency_key)
-);
-
--- RLS is enabled on every billing table. The client may read only safe,
--- user-owned summaries. No client role may create or mutate billing state.
-ALTER TABLE public.plan_catalog ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.billing_customers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.billing_subscriptions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.billing_payments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.billing_webhook_events ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.usage_events ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS plan_catalog_read_active ON public.plan_catalog;
-CREATE POLICY plan_catalog_read_active ON public.plan_catalog
-  FOR SELECT TO anon, authenticated USING (is_active = true);
-
-DROP POLICY IF EXISTS billing_subscriptions_read_own ON public.billing_subscriptions;
-CREATE POLICY billing_subscriptions_read_own ON public.billing_subscriptions
-  FOR SELECT TO authenticated USING (user_id = auth.uid());
-
-DROP POLICY IF EXISTS billing_payments_read_own ON public.billing_payments;
-CREATE POLICY billing_payments_read_own ON public.billing_payments
-  FOR SELECT TO authenticated USING (user_id = auth.uid());
-
-DROP POLICY IF EXISTS usage_events_read_own ON public.usage_events;
-CREATE POLICY usage_events_read_own ON public.usage_events
-  FOR SELECT TO authenticated USING (user_id = auth.uid());
-
-REVOKE ALL ON public.billing_customers FROM anon, authenticated;
-REVOKE ALL ON public.billing_webhook_events FROM anon, authenticated;
-REVOKE ALL ON public.billing_subscriptions FROM anon, authenticated;
-REVOKE ALL ON public.billing_payments FROM anon, authenticated;
-REVOKE ALL ON public.usage_events FROM anon, authenticated;
-REVOKE ALL ON public.plan_catalog FROM anon, authenticated;
-
-GRANT SELECT ON public.plan_catalog TO anon, authenticated;
-GRANT SELECT ON public.billing_subscriptions TO authenticated;
-GRANT SELECT ON public.billing_payments TO authenticated;
-GRANT SELECT ON public.usage_events TO authenticated;
-
-COMMENT ON TABLE public.plan_catalog IS
-  'Versioned server-owned plan and price catalogue; seed only after pricing approval.';
-COMMENT ON TABLE public.billing_subscriptions IS
-  'Server-owned subscription state. Never accept plan or status changes from browser clients.';
-COMMENT ON TABLE public.billing_payments IS
-  'Server-owned payment ledger. Payment state changes require verified provider evidence.';
-COMMENT ON TABLE public.billing_webhook_events IS
-  'Webhook inbox with provider event idempotency; raw secrets and payment credentials must not be stored.';
-COMMENT ON TABLE public.usage_events IS
-  'Server-owned usage ledger; idempotency key prevents duplicate usage charges.';
+  'Server-owned usage ledger; unique idempotency keys prevent duplicate usage charges.';
 
 COMMIT;

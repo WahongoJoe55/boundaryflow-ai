@@ -19,7 +19,7 @@ The candidate workflow runs:
 2. The browser end-to-end suite against the candidate `index.html`.
 3. Adversarial rendering checks for untrusted content in generated analysis output, History and the evidence ledger.
 
-The last recorded successful candidate workflow is [run 43016101174](https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/43016101174), which reported 133 engine and 83 browser E2E scenarios passing. Re-run CI after every subsequent code or test change; documentation-only changes do not replace verification of application code.
+The last recorded successful candidate workflow is [run 43016828233](https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/43016828233) on candidate commit `74c520afa2bb4668f675f7eb56987fd11f57fb8c`, which reported 133 engine and 84 browser E2E scenarios passing. Re-run CI after every subsequent code or test change; documentation-only changes do not replace verification of application code.
 
 ## Important test boundary
 

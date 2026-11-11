@@ -4391,12 +4391,16 @@ function bfLedgerAnalysisContext(baseScope){
  const approved=active.filter(x=>['amendment','approval','client_decision'].includes(String(x.type||'').trim().toLowerCase())&&String(x.status||'').trim().toLowerCase()==='approved'&&['agreement','amendment','email'].includes(String(x.sourceType||'').trim().toLowerCase()));
  const used=[...baseline,...approved];
  const revisions=active.filter(x=>String(x.type||'').trim().toLowerCase()==='revision');
- const completedRevisionRounds=revisions.filter(x=>String(x.status||'').trim().toLowerCase()==='delivered').map(x=>{
+ // A client assertion cannot establish that a revision was delivered. Keep
+ // such legacy/imported rows visible as claims, but never append them to the
+ // completed-history narrative or use them to consume the revision allowance.
+ const deliveredRevisionRecords=revisions.filter(x=>String(x.status||'').trim().toLowerCase()==='delivered'&&String(x.sourceType||'').trim().toLowerCase()!=='client_claim');
+ const completedRevisionRounds=deliveredRevisionRecords.map(x=>{
   const m=String(x.title||'')+' '+String(x.detail||'');
   const match=m.match(/\b(?:first|one|second|two|third|three|fourth|four|fifth|five|\d+)\s+(?:included\s+)?revision round\b/i);
   return match?bfR2Number(match[0]):null;
  }).filter(x=>Number.isFinite(x)&&x>0);
- const revisionNotes=revisions.filter(x=>String(x.status||'').trim().toLowerCase()==='delivered').map(x=>'User-recorded completed revision event: '+String(x.title||'')+'. '+String(x.detail||''));
+ const revisionNotes=deliveredRevisionRecords.map(x=>'User-recorded completed revision event: '+String(x.title||'')+'. '+String(x.detail||''));
  const analysisMessage=String(window.document.getElementById('r')?.value||'').trim()+(revisionNotes.length?'\n\n[PROJECT LEDGER REVISION HISTORY — user-recorded, not independently authenticated]\n'+revisionNotes.join('\n'):'');
  // The analysis field remains the sole source of agreement wording.
  // Ledger entries are user-entered metadata, not authenticated source documents.
@@ -4439,18 +4443,20 @@ function bfLedgerRevisionUsage(context,request,agreement){
   const textPages=[...source.matchAll(/\b(homepage|home\s+page|[a-z][a-z0-9&'-]{1,30}\s+page)\b/gi)].map(m=>pageName(m[0])).filter(Boolean);
   const uniqueTextPages=[...new Set(textPages)];
   const relatedPage=pageName(x.related);
+  const unverifiedSource=String(x.sourceType||'').trim().toLowerCase()==='client_claim';
   // Conflicting page references in either free text or structured metadata
   // cannot be resolved safely by selecting the first match.
   const pageConflict=uniqueTextPages.length>1||!!(uniqueTextPages.length===1&&relatedPage&&uniqueTextPages[0]!==relatedPage);
   const textPage=uniqueTextPages.length===1?uniqueTextPages[0]:(uniqueTextPages[0]||'');
   const page=pageConflict?'':(relatedPage||textPage);
-  return {round,page,textPage,textPages:uniqueTextPages,relatedPage,pageConflict,title:x.title||'',sourceDate:x.sourceDate||null,recordedStatus:x.status};
+  return {round,page,textPage,textPages:uniqueTextPages,relatedPage,pageConflict,unverifiedSource,title:x.title||'',sourceDate:x.sourceDate||null,recordedStatus:x.status,sourceType:x.sourceType||null};
  });
  const conflicting=perPage?parsed.filter(x=>x.pageConflict&&(x.textPages.includes(targetPage)||x.relatedPage===targetPage)):[];
- const relevant=perPage?parsed.filter(x=>Number.isFinite(x.round)&&x.round>0&&!x.pageConflict&&targetPage&&x.page===targetPage):parsed.filter(x=>Number.isFinite(x.round)&&x.round>0&&!x.pageConflict);
- // Delivered revision records without a recognisable round number cannot be
- // silently discarded: they may represent uncounted work in the same history.
- const unresolvedRoundEvents=parsed.filter(x=>!(Number.isFinite(x.round)&&x.round>0)).filter(x=>{
+ const relevant=perPage?parsed.filter(x=>Number.isFinite(x.round)&&x.round>0&&!x.pageConflict&&!x.unverifiedSource&&targetPage&&x.page===targetPage):parsed.filter(x=>Number.isFinite(x.round)&&x.round>0&&!x.pageConflict&&!x.unverifiedSource);
+ // Delivered revision records without a recognisable round number or with
+ // client-claim provenance cannot be silently discarded: they may represent
+ // unverified work in the same history, not proof of completed usage.
+ const unresolvedRoundEvents=parsed.filter(x=>x.unverifiedSource||!(Number.isFinite(x.round)&&x.round>0)).filter(x=>{
   if(!perPage)return true;
   if(!targetPage)return true;
   if(x.pageConflict)return x.textPages.includes(targetPage)||x.relatedPage===targetPage;
@@ -4464,7 +4470,7 @@ function bfLedgerRevisionUsage(context,request,agreement){
  const historyIncomplete=sequenceGaps.length>0||unresolvedRoundEvents.length>0;
  const collectionUnknown=!revisionEventsValid;
  const completed=collectionUnknown||historyConflict||historyIncomplete?null:(relevant.length?Math.max(...rounds):null);
- return {scope:perPage?'per_page':'project',page:targetPage||null,allowance,completed,remaining:allowance!==null&&completed!==null?Math.max(0,allowance-completed):null,matchedEvents:relevant.map(x=>({round:x.round,page:x.page,title:x.title,sourceDate:x.sourceDate,status:x.recordedStatus})),conflictingEvents:conflicting.map(x=>({round:x.round,textPage:x.textPage,textPages:x.textPages,relatedPage:x.relatedPage,title:x.title,sourceDate:x.sourceDate,status:x.recordedStatus})),unresolvedRoundEvents:unresolvedRoundEvents.map(x=>({title:x.title,page:x.page,textPages:x.textPages,relatedPage:x.relatedPage,sourceDate:x.sourceDate,status:x.recordedStatus})),sequenceGaps,historyUnknown:collectionUnknown||(perPage&&!targetPage)||historyConflict||historyIncomplete,collectionUnknown}
+ return {scope:perPage?'per_page':'project',page:targetPage||null,allowance,completed,remaining:allowance!==null&&completed!==null?Math.max(0,allowance-completed):null,matchedEvents:relevant.map(x=>({round:x.round,page:x.page,title:x.title,sourceDate:x.sourceDate,status:x.recordedStatus})),conflictingEvents:conflicting.map(x=>({round:x.round,textPage:x.textPage,textPages:x.textPages,relatedPage:x.relatedPage,title:x.title,sourceDate:x.sourceDate,status:x.recordedStatus})),unresolvedRoundEvents:unresolvedRoundEvents.map(x=>({title:x.title,page:x.page,textPages:x.textPages,relatedPage:x.relatedPage,sourceDate:x.sourceDate,status:x.recordedStatus,sourceType:x.sourceType,unverifiedSource:x.unverifiedSource})),sequenceGaps,historyUnknown:collectionUnknown||(perPage&&!targetPage)||historyConflict||historyIncomplete,collectionUnknown}
 }
 function bfLedgerAdd(record){
  if(!window.__bfUserId)throw new Error('Sign in before recording project evidence.');

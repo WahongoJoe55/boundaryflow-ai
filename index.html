@@ -5017,21 +5017,24 @@ async function bfCloudDeleteQueuedRow(client,userId,id){
     }catch(e){}
     return syncedItem;
   }
+  async function bfWithAnalysisSaveLock(userId,analysisId,callback){
+    const lockName='boundaryflow-analysis-save:'+userId+':'+analysisId;
+    if(typeof navigator!=='undefined'&&navigator.locks&&typeof navigator.locks.request==='function'){
+      return navigator.locks.request(lockName,{mode:'exclusive'},callback);
+    }
+    return callback();
+  }
+  window.bfWithAnalysisSaveLock=bfWithAnalysisSaveLock;
   async function saveItem(item){
     if(!item||!item.id)return saveItemUnlocked(item);
     const user=requireUser();
-    const lockName='boundaryflow-analysis-save:'+user.id+':'+item.id;
-    const run=async()=>{
+    return bfWithAnalysisSaveLock(user.id,item.id,async()=>{
       // Re-read the freshest same-origin History value after acquiring the lock.
       // This serializes writes for the same analysis across tabs in browsers that
       // implement Web Locks; database uniqueness is still required across devices.
       const latest=bfHistory().find(x=>x&&x.id===item.id);
       return saveItemUnlocked(latest||item);
-    };
-    if(typeof navigator!=='undefined'&&navigator.locks&&typeof navigator.locks.request==='function'){
-      return navigator.locks.request(lockName,{mode:'exclusive'},run);
-    }
-    return run();
+    });
   }
   function queueSave(item){if(!cloud.client||!cloud.user||!item)return Promise.resolve();const id=item.id||'current';const prior=cloud.pending.get(id)||Promise.resolve();const task=prior.catch(()=>{}).then(()=>{const latest=bfHistory().find(x=>x&&x.id===id);if(!latest)return null;return saveItem(latest)});cloud.pending.set(id,task);task.then(saved=>{if(!saved)return;status('Synced','completed');message('✓ Project, agreed scope and analysis saved to Supabase. Local autosave remains available.');}).catch(e=>cloudError(e,'Cloud save failed; your local copy is safe')).finally(()=>{if(cloud.pending.get(id)===task)cloud.pending.delete(id)});return task;}
   async function deleteQueuedRemote(){

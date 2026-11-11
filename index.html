@@ -4332,10 +4332,35 @@ document.addEventListener('change',e=>{if(e.target&&e.target.id==='responseStyle
 
 function bfLedgerProjectName(){return String(document.getElementById('projectName')?.value||'').trim()}
 function bfLedgerProjectIdentityName(value){return String(value||'').normalize('NFKC').trim().replace(/\s+/g,' ').toLocaleLowerCase()}
-function bfLedgerIdentityMap(){try{const v=JSON.parse(localStorage.getItem(bfScopedKey('boundaryflow_project_ledger_identity_v1'))||'{}');return v&&typeof v==='object'&&!Array.isArray(v)?v:{}}catch(e){return{}}}
-function bfLedgerAliasMap(){try{const v=JSON.parse(localStorage.getItem(bfScopedKey('boundaryflow_project_ledger_alias_v1'))||'{}');return v&&typeof v==='object'&&!Array.isArray(v)?v:{}}catch(e){return{}}}
-function bfLedgerProjectId(name){const identity=bfLedgerProjectIdentityName(name);if(!identity||!window.__bfUserId)return null;const map=bfLedgerIdentityMap();if(map[identity])return map[identity];const id='bfp-'+(window.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+'-'+Math.random().toString(36).slice(2));map[identity]=id;localStorage.setItem(bfScopedKey('boundaryflow_project_ledger_identity_v1'),JSON.stringify(map));return id}
-function bfLedgerDisplayName(){const name=bfLedgerProjectName();if(!name)return'';const alias=bfLedgerAliasMap()[bfLedgerProjectIdentityName(name)];return typeof alias==='string'&&alias.trim()?alias:name}
+function bfLedgerSafeMap(key){
+ try{
+  const value=JSON.parse(localStorage.getItem(bfScopedKey(key))||'{}');
+  if(!value||typeof value!=='object'||Array.isArray(value))return Object.create(null);
+  // Null-prototype maps prevent project names such as "__proto__", "constructor"
+  // and "toString" from resolving inherited object properties as stored IDs/aliases.
+  const safe=Object.create(null);
+  Object.keys(value).forEach(k=>{safe[k]=value[k]});
+  return safe;
+ }catch(e){return Object.create(null)}
+}
+function bfLedgerIdentityMap(){return bfLedgerSafeMap('boundaryflow_project_ledger_identity_v1')}
+function bfLedgerAliasMap(){return bfLedgerSafeMap('boundaryflow_project_ledger_alias_v1')}
+function bfLedgerProjectId(name){
+ const identity=bfLedgerProjectIdentityName(name);
+ if(!identity||!window.__bfUserId)return null;
+ const map=bfLedgerIdentityMap();
+ if(Object.prototype.hasOwnProperty.call(map,identity)&&typeof map[identity]==='string'&&map[identity])return map[identity];
+ const id='bfp-'+(window.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+'-'+Math.random().toString(36).slice(2));
+ map[identity]=id;
+ localStorage.setItem(bfScopedKey('boundaryflow_project_ledger_identity_v1'),JSON.stringify(map));
+ return id;
+}
+function bfLedgerDisplayName(){
+ const name=bfLedgerProjectName();if(!name)return'';
+ const aliases=bfLedgerAliasMap(),identity=bfLedgerProjectIdentityName(name);
+ const alias=Object.prototype.hasOwnProperty.call(aliases,identity)?aliases[identity]:null;
+ return typeof alias==='string'&&alias.trim()?alias:name;
+}
 function bfLedgerLegacyKeyForName(name){return name?bfScopedKey('boundaryflow_project_ledger_v1_'+bfHash(String(name).toLocaleLowerCase())):null}
 function bfLedgerKeyForName(name){const identity=bfLedgerProjectIdentityName(name);return identity?bfScopedKey('boundaryflow_project_ledger_v2_'+Array.from(identity,ch=>ch.codePointAt(0).toString(16)).join('-')):null}
 function bfLedgerKey(){return bfLedgerKeyForName(bfLedgerDisplayName())}
@@ -4656,7 +4681,24 @@ function bfCounts(rows){const counts={included:0,clarify:0,additional:0,claim:0}
 function bfNormalizeHistory(h){const out=[];const seen=new Set();for(const x of (Array.isArray(h)?h:[])){if(!x)continue;if(!x.id)x.id=bfHash((x.scope||'')+'\n---\n'+(x.request||'')+'\n---\n'+(x.name||''));if(seen.has(x.id))continue;seen.add(x.id);out.push(x)}return out.slice(0,20)}
 function bfWriteHistory(h){if(!window.__bfUserId)return;localStorage.setItem(bfScopedKey('boundaryflow_history_v1'),JSON.stringify(bfNormalizeHistory(h)))}
 function showToast(msg){const t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.classList.add('show');clearTimeout(window.__bfToast);window.__bfToast=setTimeout(()=>t.classList.remove('show'),2600)}
-function renderHistory(){const list=document.getElementById('historyList');const h=bfNormalizeHistory(bfHistory());try{bfWriteHistory(h)}catch(e){}if(!h.length){list.innerHTML='<div class="history-empty">No saved analyses yet. Analyses are auto-saved locally after you run them.</div>';return}list.innerHTML=h.map((x,i)=>{const m=x.metrics||{};const tone=x.tone==='warm'?'Warm & collaborative':x.tone==='firm'?'Clear & firm':'Professional';const ts=x.taskStatus==='completed'?'completed':x.taskStatus==='pending'?'pending':'progress';const tl=x.taskStatus==='completed'?'Completed / Closed':x.taskStatus==='pending'?'Pending':'In Progress';const auto=x.autoSaved?' · Auto-saved':'';return '<div class="history-item" data-history-item="'+i+'"><div class="history-open" data-history="'+i+'"><b>'+esc(x.name||'Untitled analysis')+'</b><div class="history-meta"><span class="status-badge '+ts+'">'+tl+'</span> · '+esc(x.date||x.updatedAt||'')+' · '+x.count+' requests · '+esc(tone)+esc(auto)+'</div><div class="history-meta">'+(m.included||0)+' included · '+(m.clarify||0)+' clarify · '+(m.additional||0)+' additional · '+(m.claim||0)+' claims</div></div><div class="history-actions"><button class="btn secondary history-open" data-history="'+i+'" type="button">Open analysis</button><button class="btn secondary history-delete is-hidden" data-delete-history="'+i+'" type="button">Delete</button></div></div>'}).join('')}
+function bfHistoryCount(value){
+ const n=typeof value==='number'?value:(typeof value==='string'&&/^\\d{1,7}$/.test(value)?Number(value):NaN);
+ return Number.isSafeInteger(n)&&n>=0?String(Math.min(n,1000000)):'0';
+}
+function renderHistory(){
+ const list=document.getElementById('historyList');
+ const h=bfNormalizeHistory(bfHistory());
+ try{bfWriteHistory(h)}catch(e){}
+ if(!h.length){list.innerHTML='<div class="history-empty">No saved analyses yet. Analyses are auto-saved locally after you run them.</div>';return}
+ list.innerHTML=h.map((x,i)=>{
+  const m=x.metrics&&typeof x.metrics==='object'&&!Array.isArray(x.metrics)?x.metrics:{};
+  const tone=x.tone==='warm'?'Warm & collaborative':x.tone==='firm'?'Clear & firm':'Professional';
+  const ts=x.taskStatus==='completed'?'completed':x.taskStatus==='pending'?'pending':'progress';
+  const tl=x.taskStatus==='completed'?'Completed / Closed':x.taskStatus==='pending'?'Pending':'In Progress';
+  const auto=x.autoSaved?' · Auto-saved':'';
+  return '<div class="history-item" data-history-item="'+i+'"><div class="history-open" data-history="'+i+'"><b>'+esc(x.name||'Untitled analysis')+'</b><div class="history-meta"><span class="status-badge '+ts+'">'+tl+'</span> · '+esc(x.date||x.updatedAt||'')+' · '+bfHistoryCount(x.count)+' requests · '+esc(tone)+esc(auto)+'</div><div class="history-meta">'+bfHistoryCount(m.included)+' included · '+bfHistoryCount(m.clarify)+' clarify · '+bfHistoryCount(m.additional)+' additional · '+bfHistoryCount(m.claim)+' claims</div></div><div class="history-actions"><button class="btn secondary history-open" data-history="'+i+'" type="button">Open analysis</button><button class="btn secondary history-delete is-hidden" data-delete-history="'+i+'" type="button">Delete</button></div></div>';
+ }).join('');
+}
 function openHistory(){renderHistory();const d=document.getElementById('historyDrawer');d.classList.add('open');d.setAttribute('aria-hidden','false')}
 function closeHistory(){const d=document.getElementById('historyDrawer');d.classList.remove('open');d.setAttribute('aria-hidden','true')}
 function bfCurrentItem(){if(!window.rows||!window.rows.length)return null;return {id:bfAnalysisId(),name:document.getElementById('projectName')?.value.trim()||'Untitled analysis',date:new Date().toLocaleString(),updatedAt:new Date().toLocaleString(),count:window.rows.filter(x=>String(x.c&&x.c.status||'').toLowerCase()!=='client claim').length,tone:document.getElementById('responseStyle')?.value||'professional',engineVersion:'1.2.81-v89-ledger-context',taskStatus:document.getElementById('taskStatus')?.value||'in_progress',metrics:bfCounts(window.rows),scope:document.getElementById('a').value,request:document.getElementById('r').value,rows:window.rows,autoSaved:true}}

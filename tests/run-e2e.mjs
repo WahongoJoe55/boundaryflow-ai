@@ -348,6 +348,38 @@ try{
     normalizedRevisionStatus.historyUnknown===false,
     JSON.stringify(normalizedRevisionStatus));
 
+  const revisionDateMatrix=await page.evaluate(()=>{
+    const agreement='Each page includes up to 3 revision rounds.';
+    const event=(round,date,sourceType='email')=>({status:'delivered',sourceType,sourceDate:date,title:(round===1?'First':'Second')+' revision round completed for the Portfolio page',related:'Portfolio page'});
+    const cases=[
+      {name:'valid leap day',date:'2024-02-29',expected:true},
+      {name:'invalid non-leap February 29',date:'2025-02-29',expected:false},
+      {name:'impossible February 30',date:'2026-02-30',expected:false},
+      {name:'impossible month 13',date:'2026-13-01',expected:false},
+      {name:'locale date',date:'02/06/2026',expected:false},
+      {name:'timestamp instead of date-only',date:'2026-02-06T10:00:00Z',expected:false}
+    ].map(test=>{
+      const result=window.bfLedgerRevisionUsage({revisionEvents:[event(1,test.date)]},'Portfolio page',agreement);
+      return {name:test.name,expected:test.expected,actual:result.historyUnknown===false&&result.completed===1&&result.remaining===2,result};
+    });
+    const normalizedSource=window.bfLedgerRevisionUsage({revisionEvents:[event(1,'2026-02-06','  EMAIL  ')]},'Portfolio page',agreement);
+    const sameDayRounds=window.bfLedgerRevisionUsage({revisionEvents:[
+      event(1,'2026-02-06'),event(2,'2026-02-06')
+    ]},'Portfolio page',agreement);
+    return {cases,normalizedSource,sameDayRounds};
+  });
+  check('Revision source dates accept valid leap days and reject impossible or non-ISO dates',
+    revisionDateMatrix.cases.every(x=>x.actual===x.expected),
+    JSON.stringify(revisionDateMatrix.cases));
+  check('Email source labels are trimmed and case-normalized without weakening provenance',
+    revisionDateMatrix.normalizedSource.completed===1&&revisionDateMatrix.normalizedSource.remaining===2&&
+      revisionDateMatrix.normalizedSource.historyUnknown===false,
+    JSON.stringify(revisionDateMatrix.normalizedSource));
+  check('Two sequential numbered rounds recorded on the same calendar day remain countable',
+    revisionDateMatrix.sameDayRounds.completed===2&&revisionDateMatrix.sameDayRounds.remaining===1&&
+      revisionDateMatrix.sameDayRounds.historyUnknown===false,
+    JSON.stringify(revisionDateMatrix.sameDayRounds));
+
   const revisionProvenanceChecks=await page.evaluate(()=>{
     const agreement='Each page includes up to 3 revision rounds.';
     const cases=[

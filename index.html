@@ -4367,7 +4367,7 @@ function bfLedgerReviewAmendments(records){
   const dateConflict=sourceDate!==null&&latestBaseline!==null&&sourceDate<latestBaseline;
   // Without a dated baseline there is no reliable reference point for
   // determining whether this amendment belongs to the agreed version history.
-  const metadataMissing=!String(x.related||'').trim()||sourceDate===null||latestBaseline===null;
+  const metadataMissing=!String(x.related||'').trim()||sourceDate===null||(baselines.length>0&&latestBaseline===null);
   let state='manual_review_required',reason='A ledger status is user-recorded metadata, not verified authority or proof that the original agreement was validly changed.';
   if(claim){state='claim_only';reason='A client assertion is not approval evidence, even if its ledger status was incorrectly labelled approved.';}
   else if(excluded){state='not_applicable';reason='The record is marked declined or superseded in the user-maintained ledger; it is not applied.';}

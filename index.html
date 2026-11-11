@@ -3700,7 +3700,7 @@ function analyze(){
     const ledgerRecordText=x=>[x&&x.title,x&&x.detail,x&&x.related].map(v=>String(v||'')).join(' ');
     const normalizeDeliverablePhrase=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ');
     const deliverableMatchKind=(value,needle)=>{
-      const clean=value=>normalizeDeliverablePhrase(value).replace(/\\bpages?\\b/g,' ').replace(/\\s+/g,' ').trim();
+      const clean=value=>normalizeDeliverablePhrase(value).replace(/\bpages?\b/g,' ').replace(/\s+/g,' ').trim();
       const haystack=clean(value),target=clean(needle);
       if(!haystack||!target)return 'none';
       if(haystack===target)return 'exact';

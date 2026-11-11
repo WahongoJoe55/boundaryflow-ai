@@ -662,6 +662,35 @@ try{
   await page.evaluate(()=>{window.__bfUserId='e2e-account-a';document.getElementById('projectName').dispatchEvent(new Event('input',{bubbles:true}))});
   check('Returning to the original account restores its ledger',await page.locator('#bfLedgerCount').innerText().then(x=>x==='4 records'));
 
+  const xssPayload='<img src=x onerror=window.__bfXssExecuted=true>';
+  await setProject('XSS '+xssPayload);
+  await addRecord({type:'evidence',title:xssPayload,detail:xssPayload,source:'internal_note'});
+  const ledgerXss=await page.evaluate(payload=>({
+    injected:document.querySelectorAll('#bfLedgerList img, #bfLedgerList svg, #bfLedgerList script').length,
+    literalTitle:document.querySelector('#bfLedgerList')?.innerText.includes(payload)||false,
+    executed:!!window.__bfXssExecuted
+  }),xssPayload);
+  check('Untrusted ledger title and detail render as text, never executable HTML',
+    ledgerXss.injected===0&&ledgerXss.literalTitle&&!ledgerXss.executed,JSON.stringify(ledgerXss));
+  await analyse(scope,'Please review this request '+xssPayload);
+  const analysisXss=await page.evaluate(payload=>({
+    injected:document.querySelectorAll('#out img, #out svg, #out script').length,
+    literalText:document.querySelector('#out')?.innerText.includes(payload)||false,
+    executed:!!window.__bfXssExecuted
+  }),xssPayload);
+  check('Untrusted client-message text is escaped in analysis output',
+    analysisXss.injected===0&&!analysisXss.executed,JSON.stringify(analysisXss));
+  const xssSave=page.locator('[data-save]').first();
+  if(await xssSave.count())await xssSave.click();
+  await page.locator('#historyBtn').click();
+  const historyXss=await page.evaluate(payload=>({
+    injected:document.querySelectorAll('#historyList img, #historyList svg, #historyList script').length,
+    literalName:document.querySelector('#historyList')?.innerText.includes(payload)||false,
+    executed:!!window.__bfXssExecuted
+  }),xssPayload);
+  check('Untrusted project names render safely in local History',
+    historyXss.injected===0&&!historyXss.executed,JSON.stringify(historyXss));
+  await page.locator('#closeHistory').click();
   check('No uncaught browser JavaScript errors occurred',pageErrors.length===0,pageErrors.join('\n'));
   fs.mkdirSync(path.join(root,'test-results'),{recursive:true});
   const report={generatedAt:new Date().toISOString(),mode:'local browser end-to-end; deterministic simulated user IDs; Supabase network and cloud writes disabled',total:checks.length,passed:checks.filter(x=>x.result==='PASS').length,failed:checks.filter(x=>x.result==='FAIL').length,checks};

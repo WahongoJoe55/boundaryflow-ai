@@ -167,6 +167,33 @@ try{
     JSON.stringify(hostileStorageContract.historyCounts)===JSON.stringify(['0','0','0','0','7']),
     JSON.stringify(hostileStorageContract.historyCounts));
 
+  const legacyHistoryIds=await page.evaluate(()=>{
+    const priorUser=window.__bfUserId;
+    window.__bfUserId='legacy-history-id-migration';
+    const key=window.bfScopedKey('boundaryflow_history_v1');
+    const prior=localStorage.getItem(key);
+    try{
+      localStorage.setItem(key,JSON.stringify([
+        {name:'Legacy A',scope:'Scope A',request:'Request A'},
+        {name:'Legacy B',scope:'Scope B',request:'Request B'},
+        null,
+        'malformed'
+      ]));
+      window.renderHistory();
+      const saved=JSON.parse(localStorage.getItem(key)||'[]');
+      const ids=saved.map(x=>x.id);
+      return {count:saved.length,unique:new Set(ids).size===2,
+        strongIds:ids.every(x=>typeof x==='string'&&x.length>16&&!/^[0-9a-f]{8}$/i.test(x))};
+    }finally{
+      if(prior===null)localStorage.removeItem(key);else localStorage.setItem(key,prior);
+      window.__bfUserId=priorUser;
+      window.renderHistory();
+    }
+  });
+  check('Legacy History records receive unique non-hash IDs and malformed entries are ignored',
+    legacyHistoryIds.count===2&&legacyHistoryIds.unique&&legacyHistoryIds.strongIds,
+    JSON.stringify(legacyHistoryIds));
+
   const storedHtmlContract=await page.evaluate(()=>{
     const user=window.__bfUserId,project=document.getElementById('projectName'),priorProject=project.value;
     window.__bfUserId='stored-html-xss-test';

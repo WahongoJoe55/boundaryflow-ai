@@ -16,6 +16,10 @@
 - Sets `cache-control: no-store`.
 - Does not mutate billing state, create checkout, reserve usage or execute analysis.
 
+## Gateway JWT configuration
+
+`supabase/config.toml` sets `verify_jwt = false` only for this function so unauthenticated browser CORS preflight can reach the handler. This does **not** make the endpoint public: the handler requires a Bearer token and validates it with Supabase Auth before reading any account data. Keep this manual validation in place. Do not disable JWT verification for other functions.
+
 ## Required function secrets
 
 Set these in the isolated Supabase staging project's Edge Function secrets:

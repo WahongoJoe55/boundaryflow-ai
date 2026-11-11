@@ -4327,7 +4327,7 @@ document.addEventListener('change',e=>{if(e.target&&e.target.id==='responseStyle
 <script>
 
 function bfLedgerProjectName(){return String(document.getElementById('projectName')?.value||'').trim()}
-function bfLedgerProjectIdentityName(value){return String(value||'').normalize('NFKC').trim().replace(/\\s+/g,' ').toLocaleLowerCase()}
+function bfLedgerProjectIdentityName(value){return String(value||'').normalize('NFKC').trim().replace(/\s+/g,' ').toLocaleLowerCase()}
 function bfLedgerIdentityMap(){try{const v=JSON.parse(localStorage.getItem(bfScopedKey('boundaryflow_project_ledger_identity_v1'))||'{}');return v&&typeof v==='object'&&!Array.isArray(v)?v:{}}catch(e){return{}}}
 function bfLedgerProjectId(name){const identity=bfLedgerProjectIdentityName(name);if(!identity||!window.__bfUserId)return null;const map=bfLedgerIdentityMap();if(map[identity])return map[identity];const id='bfp-'+(window.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+'-'+Math.random().toString(36).slice(2));map[identity]=id;localStorage.setItem(bfScopedKey('boundaryflow_project_ledger_identity_v1'),JSON.stringify(map));return id}
 function bfLedgerKeyForName(name){return name?bfScopedKey('boundaryflow_project_ledger_v1_'+bfHash(name.toLocaleLowerCase())):null}
@@ -4349,6 +4349,7 @@ function bfLedgerRename(){
   const map=bfLedgerIdentityMap(),oldIdentity=bfLedgerProjectIdentityName(oldName),newIdentity=bfLedgerProjectIdentityName(newName);
   const stableId=map[oldIdentity]||bfLedgerProjectId(oldName);
   if(map[newIdentity]&&map[newIdentity]!==stableId)throw new Error('The new name is already linked to a different project identity. No records were moved.');
+  if(oldRecords.some(x=>!x||typeof x!=='object'||Array.isArray(x)))throw new Error('The source ledger contains a malformed record. No migration was performed.');
   const migrated=oldRecords.map(x=>Object.assign({},x,{projectName:newName,projectIdentity:stableId}));
   localStorage.setItem(newKey,JSON.stringify(migrated));
   const verified=JSON.parse(localStorage.getItem(newKey)||'null');
@@ -4358,7 +4359,7 @@ function bfLedgerRename(){
   input.value=newName;if(status)status.textContent='Local ledger renamed and verified. The cloud project name was not changed.';
   bfLedgerRender();return true;
  }catch(e){try{if(newRaw===null)localStorage.removeItem(newKey);else localStorage.setItem(newKey,newRaw);if(mapRaw===null)localStorage.removeItem(mapKey);else localStorage.setItem(mapKey,mapRaw);if(oldRaw!==null)localStorage.setItem(oldKey,oldRaw)}catch(rollbackError){}
-  if(status)status.textContent='Ledger rename stopped safely: '+e.message;return false;
+  input.value=oldName;if(status)status.textContent='Ledger rename stopped safely: '+e.message;return false;
  }
 }
 function bfLedgerReviewAmendments(records){

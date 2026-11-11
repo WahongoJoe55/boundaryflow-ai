@@ -19,7 +19,7 @@ The candidate workflow runs:
 2. The browser end-to-end suite against the candidate `index.html`.
 3. Adversarial rendering checks for untrusted content in generated analysis output, History and the evidence ledger.
 
-The last recorded successful candidate workflow is [run 43030005306](https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/43030005306) on candidate commit `a8820af6c8b748e8aa2a9accc45c35bb9bbec5d6`, which reported 133/133 engine and 87/87 browser E2E scenarios passing. The browser suite includes legacy/v2 local-ledger cleanup, CSP metadata and same-analysis Web Locks serialization checks. Re-run CI after every subsequent code or test change.
+The latest recorded successful candidate workflow is [run 43030252171](https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/43030252171) on candidate commit `45a5f6b7c738887f45d3a3c918d65fec25bef316`, which reported 133/133 engine and 87/87 browser E2E scenarios passing. The browser suite includes legacy/v2 local-ledger cleanup, CSP metadata and same-analysis Web Locks serialization checks. Re-run CI after every subsequent code or test change.
 
 ## Important test boundary
 
@@ -35,4 +35,4 @@ The automated browser suite uses synthetic identities and blocks real Supabase n
 
 ## Release boundary
 
-Development changes remain on `work/production-readiness-hardening-v1`. PR #22 is not merged. Production `main`, the live GitHub Pages application and Supabase must not be changed unless release is explicitly approved. Public registration is paused in the candidate while legal/privacy approval is outstanding. The candidate includes a baseline meta CSP/referrer policy, but response security headers remain unverified and the policy still permits inline scripts/styles. A reviewed database idempotency migration is prepared but has not been applied. The candidate is not approved for general production launch until live Supabase, direct API/RLS, cross-device sync, response security headers, legal/privacy, backup/restore, monitoring and independent review gates are evidenced.
+Development changes remain on `work/production-readiness-hardening-v1`. PR #22 is open as a draft and is not merged. Production `main`, the live GitHub Pages application and Supabase must not be changed unless release is explicitly approved. Public registration is paused in the candidate while legal/privacy approval is outstanding. The candidate includes a baseline meta CSP/referrer policy, but response security headers remain unverified and the policy still permits inline scripts/styles. A reviewed database idempotency migration is prepared but has not been applied. The candidate is not approved for general production launch until live Supabase, direct API/RLS, cross-device sync, response security headers, legal/privacy, backup/restore, monitoring and independent review gates are evidenced.

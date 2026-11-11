@@ -2,7 +2,7 @@
 
 **Status: NOT APPROVED FOR GENERAL PRODUCTION LAUNCH**  
 **Audit baseline:** `main` commit `ddeed3b1a8a0e8a4b4a34dfbb38b8c8fb0153002`  
-**Candidate hardening PR:** #22 — analysis identity, ledger migration, rendering and release hardening  
+**Candidate hardening PR:** #22 (draft) — analysis identity, ledger migration, rendering and release hardening  
 **Scope:** single-page browser application, GitHub Pages hosting, Supabase Auth/Postgres, browser-local History and evidence ledger.
 
 This document is a release gate, not a claim of certification. A green test suite cannot prove the absence of every defect, security weakness or incorrect scope decision. Production readiness means the listed risks have been tested to a defined level, operational owners have accepted the residual risks, and all launch-critical evidence is current.
@@ -11,13 +11,13 @@ This document is a release gate, not a claim of certification. A green test suit
 
 | Area | Evidence currently available | Status |
 |---|---|---|
-| Deterministic reasoning and ledger | Candidate CI run `43030005306` on `a8820af6c8b748e8aa2a9accc45c35bb9bbec5d6`: 133 engine + 87 browser E2E scenarios passed; stored-HTML payloads in generated analysis output, History and ledger were verified inert; legacy History IDs, local-ledger cleanup, CSP metadata and same-analysis browser-lock serialization were tested | Passed for those scenarios; not a proof of all application paths |
+| Deterministic reasoning and ledger | Candidate CI run `43030252171` on `45a5f6b7c738887f45d3a3c918d65fec25bef316`: 133 engine + 87 browser E2E scenarios passed; stored-HTML payloads in generated analysis output, History and ledger were verified inert; legacy History IDs, local-ledger cleanup, CSP metadata and same-analysis browser-lock serialization were tested | Passed for those scenarios; not a proof of all application paths |
 | Production deployment | GitHub Pages deployment workflow succeeded for merge commit `ddeed3b` | Passed for that deployment |
 | Live cloud persistence | One synthetic project: first sync, refresh restore and second sequential sync without duplicate | Partial pass |
 | Account isolation | Two dedicated test accounts reportedly could not see each other's project; cross-account delete tests returned zero affected rows | Reported pass; repeat and preserve evidence |
 | RLS configuration | Four application tables reported RLS enabled; policies reviewed from catalog | Partial; not independent security audit |
 | Candidate live integration | Candidate E2E deliberately stubs Supabase and blocks external cloud requests | Not tested live |
-| XSS/rendering hardening | Candidate CI run `43030005306`: 133/133 engine and 87/87 browser E2E passed, including stored-HTML tests, legacy History ID migration, v1/v2 local-ledger cleanup, CSP metadata and same-analysis Web Locks serialization | Partial pass; not full sink audit or independent penetration test |
+| XSS/rendering hardening | Candidate CI run `43030252171`: 133/133 engine and 87/87 browser E2E passed, including stored-HTML tests, legacy History ID migration, v1/v2 local-ledger cleanup, CSP metadata and same-analysis Web Locks serialization | Partial pass; not full sink audit or independent penetration test |
 | Legal and privacy documents | UI still labels Terms and Privacy Notice Draft 0.1; operator/privacy contacts, retention and deletion details incomplete. Public registration is paused in the candidate. | Blocked; signup paused |
 | Hosting security headers | Candidate adds meta CSP and strict-origin-when-cross-origin referrer metadata. The meta CSP allows `unsafe-inline`; response headers (HSTS, X-Content-Type-Options, frame restrictions, Referrer-Policy and header CSP) remain unverified. | Partial; host-level blocker remains |
 | Backup and restore | No documented tested restore drill or retention schedule found in reviewed docs | Blocked |
@@ -183,7 +183,7 @@ The candidate's Playwright workflow explicitly blocks Supabase network access an
 
 ## 8. Additional engineering work completed — 11 November 2026
 
-The exact candidate commit `a8820af6c8b748e8aa2a9accc45c35bb9bbec5d6` passed CI run [43030005306](https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/43030005306): **133/133 engine tests and 87/87 browser E2E tests, zero failures**.
+The exact candidate commit `45a5f6b7c738887f45d3a3c918d65fec25bef316` passed CI run [43030252171](https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/43030252171): **133/133 engine tests and 87/87 browser E2E tests, zero failures**.
 
 - **Local-data clearing:** fixed the account-scoped cleanup routine so it removes both legacy v1 and collision-safe v2 project-ledger keys, plus identity/alias maps. A browser regression verifies that another account's keys and unrelated settings remain untouched.
 - **Same-browser save concurrency:** cloud saves for the same user/analysis now use the Web Locks API when available and re-read the latest same-origin History item after acquiring the lock. A browser concurrency test verifies serialization. This does not coordinate different devices or replace database uniqueness.
@@ -203,3 +203,7 @@ The exact candidate commit `a8820af6c8b748e8aa2a9accc45c35bb9bbec5d6` passed CI 
 7. Complete independent accessibility, browser compatibility, product benchmark and security review.
 
 The release remains **NO-GO**. These gates require live project access, product-owner decisions or qualified independent review and cannot be honestly closed by repository-only changes.
+
+
+### Hosting-header evidence note
+GitHub's public Pages publishing documentation describes branch-based or GitHub Actions-based publishing, while its response-header configuration instructions are specifically for GitHub Enterprise Server administrators. This repo uses public GitHub Pages hosting, so do not assume a repository `_headers` file or HTML meta tag supplies response headers. Verify actual deployed response headers; if required headers cannot be configured on the current host, obtain approval to move behind a response-header-capable host or reverse proxy. References: [GitHub Pages publishing sources](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site) and [GitHub Enterprise Server response-header configuration](https://docs.github.com/en/enterprise-server@3.18/admin/configuring-settings/configuring-user-applications-for-your-enterprise/configuring-github-pages-for-your-enterprise).

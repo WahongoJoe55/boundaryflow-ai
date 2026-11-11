@@ -11,13 +11,13 @@ This document is a release gate, not a claim of certification. A green test suit
 
 | Area | Evidence currently available | Status |
 |---|---|---|
-| Deterministic reasoning and ledger | Candidate CI run `43030252171` on `45a5f6b7c738887f45d3a3c918d65fec25bef316`: 133 engine + 87 browser E2E scenarios passed; stored-HTML payloads in generated analysis output, History and ledger were verified inert; legacy History IDs, local-ledger cleanup, CSP metadata and same-analysis browser-lock serialization were tested | Passed for those scenarios; not a proof of all application paths |
+| Deterministic reasoning and ledger | Candidate CI run `43030483322` on `a0b3498cccc1fab64e6e8282ebb58f7aadfda596`: 133 engine + 87 browser E2E scenarios passed; stored-HTML payloads in generated analysis output, History and ledger were verified inert; legacy History IDs, local-ledger cleanup, CSP metadata and same-analysis browser-lock serialization were tested | Passed for those scenarios; not a proof of all application paths |
 | Production deployment | GitHub Pages deployment workflow succeeded for merge commit `ddeed3b` | Passed for that deployment |
 | Live cloud persistence | One synthetic project: first sync, refresh restore and second sequential sync without duplicate | Partial pass |
 | Account isolation | Two dedicated test accounts reportedly could not see each other's project; cross-account delete tests returned zero affected rows | Reported pass; repeat and preserve evidence |
 | RLS configuration | Four application tables reported RLS enabled; policies reviewed from catalog | Partial; not independent security audit |
 | Candidate live integration | Candidate E2E deliberately stubs Supabase and blocks external cloud requests | Not tested live |
-| XSS/rendering hardening | Candidate CI run `43030252171`: 133/133 engine and 87/87 browser E2E passed, including stored-HTML tests, legacy History ID migration, v1/v2 local-ledger cleanup, CSP metadata and same-analysis Web Locks serialization | Partial pass; not full sink audit or independent penetration test |
+| XSS/rendering hardening | Candidate CI run `43030483322`: 133/133 engine and 87/87 browser E2E passed, including stored-HTML tests, legacy History ID migration, v1/v2 local-ledger cleanup, CSP metadata and same-analysis Web Locks serialization | Partial pass; not full sink audit or independent penetration test |
 | Legal and privacy documents | UI still labels Terms and Privacy Notice Draft 0.1; operator/privacy contacts, retention and deletion details incomplete. Public registration is paused in the candidate. | Blocked; signup paused |
 | Hosting security headers | Candidate adds meta CSP and strict-origin-when-cross-origin referrer metadata. The meta CSP allows `unsafe-inline`; response headers (HSTS, X-Content-Type-Options, frame restrictions, Referrer-Policy and header CSP) remain unverified. | Partial; host-level blocker remains |
 | Backup and restore | No documented tested restore drill or retention schedule found in reviewed docs | Blocked |
@@ -183,7 +183,7 @@ The candidate's Playwright workflow explicitly blocks Supabase network access an
 
 ## 8. Additional engineering work completed — 11 November 2026
 
-The exact candidate commit `45a5f6b7c738887f45d3a3c918d65fec25bef316` passed CI run [43030252171](https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/43030252171): **133/133 engine tests and 87/87 browser E2E tests, zero failures**.
+The exact candidate commit `a0b3498cccc1fab64e6e8282ebb58f7aadfda596` passed CI run [43030483322](https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/43030483322): **133/133 engine tests and 87/87 browser E2E tests, zero failures**.
 
 - **Local-data clearing:** fixed the account-scoped cleanup routine so it removes both legacy v1 and collision-safe v2 project-ledger keys, plus identity/alias maps. A browser regression verifies that another account's keys and unrelated settings remain untouched.
 - **Same-browser save concurrency:** cloud saves for the same user/analysis now use the Web Locks API when available and re-read the latest same-origin History item after acquiring the lock. A browser concurrency test verifies serialization. This does not coordinate different devices or replace database uniqueness.

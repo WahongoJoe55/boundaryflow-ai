@@ -31,7 +31,7 @@ The returned authenticated policies were reviewed. Project policies bind CRUD op
 
 ### Important separation of environments
 
-The live sync test was run on the **deployed production build**. The current development candidate is PR #22 (`work/production-readiness-hardening-v1`, candidate code/test revision `74c520afa2bb4668f675f7eb56987fd11f57fb8c`). Its automated browser harness stubs Supabase and blocks external cloud requests. The candidate has passed 133 engine and 84 browser E2E tests, but it has **not** passed candidate-specific live Supabase verification. Do not describe the candidate as live-cloud verified until it is tested separately.
+The live sync test was run on the **deployed production build**. The current development candidate is PR #22 (`work/production-readiness-hardening-v1`, candidate commit `a8820af6c8b748e8aa2a9accc45c35bb9bbec5d6`). Its automated browser harness stubs Supabase and blocks external cloud requests. The candidate has passed 133 engine and 87 browser E2E tests in CI run `43030005306`, but it has **not** passed candidate-specific live Supabase verification. Do not describe the candidate as live-cloud verified until it is tested separately.
 
 ## Scope and limitations
 
@@ -99,8 +99,17 @@ Review the returned definitions, not just policy names. For child tables (`agree
 
 ### Sync recovery and duplicate handling
 
-The production test covered a successful first sync, refresh persistence and a second sequential sync without duplication. A controlled offline/reconnect retry and concurrent-sync test have not been established by the evidence recorded here. PR #22 changes analysis identity generation, so verify that existing saved analysis IDs are reused when reopening exact saved analyses and that new IDs persist consistently through candidate cloud sync. The candidate's isolated tests do not exercise Supabase. Test offline/reconnect, ambiguous timeout-after-commit and concurrent sync against that candidate using only disposable synthetic data. Do not apply a uniqueness migration until the live schema, indexes and duplicate rows have been inspected and a rollback prepared.
+The production test covered a successful first sync, refresh persistence and a second sequential sync without duplication. A controlled offline/reconnect retry and concurrent-sync test have not been established by the evidence recorded here. PR #22 changes analysis identity generation and serializes same-analysis saves across same-browser tabs with Web Locks where supported. This does not protect cross-device races. A review-only migration adding `analyses.local_id` and a unique `(user_id, local_id)` index is prepared at `supabase/migrations/20261111000100_analysis_local_id_unique.sql`; it has not been applied. The current application still uses lookup-then-insert. Do not claim cloud idempotency until the migration is tested in staging, the app uses conflict-safe upsert, and candidate-specific live fault-injection verifies it. Test offline/reconnect, ambiguous timeout-after-commit and concurrent sync against that candidate using only disposable synthetic data. Do not apply a uniqueness migration until the live schema, indexes and duplicate rows have been inspected and a rollback prepared.
 
 ## Release decision
 
-**Not yet approved for production release.** The deployed production build passed the narrow live persistence test, and the previously reported account-isolation and RLS inspection results are positive but require repeatable evidence. PR #22 is open and mergeable; its exact latest candidate has passed 133 engine and 84 browser E2E scenarios, but those tests stub Supabase and do not verify live cloud behavior. Do not merge or deploy PR #22 until candidate-specific live sync, direct API/RLS and rollback checks are completed and reviewed. No production schema or policy changes are authorised by this plan.
+**Not yet approved for production release.** The deployed production build passed the narrow live persistence test, and the previously reported account-isolation and RLS inspection results are positive but require repeatable evidence. PR #22 is open and mergeable; its exact latest candidate has passed 133 engine and 87 browser E2E scenarios, but those tests stub Supabase and do not verify live cloud behavior. Do not merge or deploy PR #22 until candidate-specific live sync, direct API/RLS and rollback checks are completed and reviewed. No production schema or policy changes are authorised by this plan.
+
+
+## Candidate engineering additions — 11 November 2026
+
+Candidate commit `a8820af6c8b748e8aa2a9accc45c35bb9bbec5d6` passed 133 engine and 87 browser E2E tests in [CI run 43030005306](https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/43030005306). The new browser checks cover same-analysis Web Locks serialization, local v1/v2 ledger cleanup and CSP/referrer metadata. The test harness still blocks all real Supabase traffic.
+
+The candidate now pauses public registration pending legal/privacy approval. Existing account sign-in remains enabled. The baseline meta CSP is not equivalent to response headers and permits inline script/style for compatibility.
+
+No candidate-specific live Supabase test, direct REST/RLS matrix, staging migration, concurrent-device test, or backup/restore drill was performed by this code-only pass. The current app still performs lookup-then-insert for cloud analyses; the unique-ID migration is prepared but not executed. Keep the release blocked.

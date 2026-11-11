@@ -57,6 +57,17 @@ try{
   await page.waitForFunction(()=>typeof window.analyze==='function'&&typeof window.bfLedgerAdd==='function');
   check('Candidate application loads with analysis and ledger controls',true);
 
+  const policyMeta=await page.evaluate(()=>{
+    const csp=document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.content||'';
+    const referrer=document.querySelector('meta[name="referrer"]')?.content||'';
+    return {csp,referrer};
+  });
+  check('Candidate declares a restrictive baseline CSP and strict referrer policy',
+    policyMeta.csp.includes("default-src 'self'")&&policyMeta.csp.includes("object-src 'none'")&&
+    policyMeta.csp.includes("base-uri 'self'")&&policyMeta.csp.includes("https://*.supabase.co")&&
+    policyMeta.csp.includes("https://challenges.cloudflare.com")&&policyMeta.referrer==='strict-origin-when-cross-origin',
+    JSON.stringify(policyMeta));
+
   const localLedgerClear=await page.evaluate(()=>{
     const uid='clear-local-ledger-test';
     const keys=[

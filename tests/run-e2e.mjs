@@ -332,6 +332,21 @@ try{
 
 
 
+  await setProject('E2E Unverified Client Revision Claim');
+  const unverifiedClientRevision=await page.evaluate(()=>{
+    const key=window.bfLedgerKey();
+    localStorage.setItem(key,JSON.stringify([{id:'legacy-client-claim-revision',type:'revision',title:'First revision round completed for the Portfolio page',detail:'The client says the first revision round was delivered.',sourceType:'client_claim',status:'delivered',sourceDate:'2026-02-01',related:'Portfolio page',projectName:'E2E Unverified Client Revision Claim',recordedAt:'2026-02-02T10:00:00.000Z'}]));
+    const context=window.bfLedgerAnalysisContext('Two rounds of revisions per page are included.');
+    const usage=window.bfLedgerRevisionUsage(context,'Update the Portfolio page layout','Two rounds of revisions per page are included.');
+    return {context,usage};
+  });
+  check('A legacy client-claim revision is not narrated or counted as completed work',
+    unverifiedClientRevision.context.completedRevisionRounds.length===0&&
+    !unverifiedClientRevision.context.analysisMessage.includes('User-recorded completed revision event')&&
+    unverifiedClientRevision.usage.completed===null&&unverifiedClientRevision.usage.remaining===null&&
+    unverifiedClientRevision.usage.historyUnknown===true&&
+    unverifiedClientRevision.usage.unresolvedRoundEvents?.some(x=>x.sourceType==='client_claim'),
+    JSON.stringify(unverifiedClientRevision));
   await setProject('E2E Ambiguous Active Baselines');
   await addRecord({type:'baseline',title:'Original SOW v1',detail:scope,source:'agreement',status:'approved',related:'Project',sourceDate:'2026-01-01'});
   await addRecord({type:'baseline',title:'Original SOW v2',detail:scope,source:'agreement',status:'approved',related:'Project',sourceDate:'2026-01-15'});

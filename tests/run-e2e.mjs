@@ -141,8 +141,8 @@ try{
     const aliasKey=window.bfScopedKey('boundaryflow_project_ledger_alias_v1');
     const oldIdentity=localStorage.getItem(identityKey),oldAlias=localStorage.getItem(aliasKey);
     try{
-      localStorage.setItem(identityKey,JSON.stringify({'__proto__':'forged-prototype','constructor':'forged-constructor','toString':'forged-string'}));
-      localStorage.setItem(aliasKey,JSON.stringify({'__proto__':'forged-alias','constructor':'forged-constructor-alias','toString':'forged-string-alias'}));
+      localStorage.setItem(identityKey,'{"__proto__":"forged-prototype","constructor":"forged-constructor","toString":"forged-string"}');
+      localStorage.setItem(aliasKey,'{"__proto__":"forged-alias","constructor":"forged-constructor-alias","toString":"forged-string-alias"}');
       const identities=window.bfLedgerIdentityMap(),aliases=window.bfLedgerAliasMap();
       const names=['__proto__','constructor','toString'];
       const ids=names.map(name=>window.bfLedgerProjectId(name));

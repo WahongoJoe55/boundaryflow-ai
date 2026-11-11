@@ -290,8 +290,17 @@ async function run(){
    try{
     w.document.getElementById('a').value=c.agreement;
     w.document.getElementById('r').value=c.message;
-    const setup=typeof c.setup==='function'?c.setup(w):undefined;
+    // Give every scenario a clean, explicit local test identity. Auth bootstrap
+    // can complete during the first analysis and clear development-only globals,
+    // so ledger scenarios re-establish their fixture after that bootstrap.
+    if(c.id.startsWith('BF-L')) w.__bfUserId='regression-'+c.id;
+    let setup=typeof c.setup==='function'?c.setup(w):undefined;
     w.analyze();
+    if(c.id.startsWith('BF-L')){
+      w.__bfUserId='regression-'+c.id;
+      if(typeof c.setup==='function') setup=c.setup(w);
+      w.analyze();
+    }
     const actual=readRows(w);
     const reasoning=w.bfReasoningV2||null;
     const probe=typeof c.reasoningProbe==='function'?c.reasoningProbe(w,actual,setup):setup;

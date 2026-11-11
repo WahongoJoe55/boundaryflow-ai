@@ -4332,9 +4332,39 @@ function bfLedgerIdentityMap(){try{const v=JSON.parse(localStorage.getItem(bfSco
 function bfLedgerAliasMap(){try{const v=JSON.parse(localStorage.getItem(bfScopedKey('boundaryflow_project_ledger_alias_v1'))||'{}');return v&&typeof v==='object'&&!Array.isArray(v)?v:{}}catch(e){return{}}}
 function bfLedgerProjectId(name){const identity=bfLedgerProjectIdentityName(name);if(!identity||!window.__bfUserId)return null;const map=bfLedgerIdentityMap();if(map[identity])return map[identity];const id='bfp-'+(window.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+'-'+Math.random().toString(36).slice(2));map[identity]=id;localStorage.setItem(bfScopedKey('boundaryflow_project_ledger_identity_v1'),JSON.stringify(map));return id}
 function bfLedgerDisplayName(){const name=bfLedgerProjectName();if(!name)return'';const alias=bfLedgerAliasMap()[bfLedgerProjectIdentityName(name)];return typeof alias==='string'&&alias.trim()?alias:name}
-function bfLedgerKeyForName(name){return name?bfScopedKey('boundaryflow_project_ledger_v1_'+bfHash(name.toLocaleLowerCase())):null}
+function bfLedgerLegacyKeyForName(name){return name?bfScopedKey('boundaryflow_project_ledger_v1_'+bfHash(String(name).toLocaleLowerCase())):null}
+function bfLedgerKeyForName(name){const identity=bfLedgerProjectIdentityName(name);return identity?bfScopedKey('boundaryflow_project_ledger_v2_'+Array.from(identity,ch=>ch.codePointAt(0).toString(16)).join('-')):null}
 function bfLedgerKey(){return bfLedgerKeyForName(bfLedgerDisplayName())}
-function bfLedgerRead(){const key=bfLedgerKey();if(!key||!window.__bfUserId)return[];try{const v=JSON.parse(localStorage.getItem(key)||'[]');if(!Array.isArray(v))return[];const id=bfLedgerProjectId(bfLedgerProjectName());let changed=false;v.forEach(x=>{if(x&&x.projectIdentity!==id){x.projectIdentity=id;changed=true}});if(changed)localStorage.setItem(key,JSON.stringify(v));return v}catch(e){return[]}}
+function bfLedgerRead(){
+ const key=bfLedgerKey(),projectName=bfLedgerProjectName(),displayName=bfLedgerDisplayName();
+ if(!key||!window.__bfUserId)return[];
+ try{
+  let raw=localStorage.getItem(key),v;
+  if(raw===null){
+   const legacyKey=bfLedgerLegacyKeyForName(displayName),legacyRaw=legacyKey?localStorage.getItem(legacyKey):null;
+   if(legacyRaw===null)return[];
+   const legacy=JSON.parse(legacyRaw);
+   if(!Array.isArray(legacy))throw new Error('Legacy ledger is malformed; it was preserved without migration.');
+   const projectIdentity=bfLedgerProjectIdentityName(projectName),displayIdentity=bfLedgerProjectIdentityName(displayName);
+   const matches=legacy.filter(x=>x&&typeof x==='object'&&!Array.isArray(x)&&
+    (bfLedgerProjectIdentityName(x.projectName)===projectIdentity||bfLedgerProjectIdentityName(x.ledgerName)===displayIdentity));
+   const ambiguous=legacy.some(x=>!x||typeof x!=='object'||Array.isArray(x)||
+    (!x.projectName&&!x.ledgerName));
+   if(ambiguous){const status=document.getElementById('bfLedgerStatus');if(status)status.textContent='Some legacy ledger entries lack project identity. They have been preserved and were not automatically assigned.';}
+   if(!matches.length)return[];
+   localStorage.setItem(key,JSON.stringify(matches));
+   const verified=JSON.parse(localStorage.getItem(key)||'null');
+   if(!Array.isArray(verified)||verified.length!==matches.length)throw new Error('Legacy ledger migration could not be verified.');
+   if(!ambiguous&&matches.length===legacy.length)localStorage.removeItem(legacyKey);
+   v=verified;
+  }else v=JSON.parse(raw);
+  if(!Array.isArray(v))return[];
+  const id=bfLedgerProjectId(projectName);let changed=false;
+  v.forEach(x=>{if(x&&x.projectIdentity!==id){x.projectIdentity=id;changed=true}});
+  if(changed)localStorage.setItem(key,JSON.stringify(v));
+  return v;
+ }catch(e){const status=document.getElementById('bfLedgerStatus');if(status)status.textContent='Ledger read/migration stopped safely: '+(e.message||'storage error');return[]}
+}
 function bfLedgerRename(){
  const oldName=bfLedgerProjectName(),oldLedgerName=bfLedgerDisplayName(),status=document.getElementById('bfLedgerStatus');
  if(!window.__bfUserId||!oldName){if(status)status.textContent='Sign in and enter the current cloud project name before renaming its local ledger.';return false}

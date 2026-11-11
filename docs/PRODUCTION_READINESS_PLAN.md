@@ -17,7 +17,7 @@ This document is a release gate, not a claim of certification. A green test suit
 | Account isolation | Two dedicated test accounts reportedly could not see each other's project; cross-account delete tests returned zero affected rows | Reported pass; repeat and preserve evidence |
 | RLS configuration | Four application tables reported RLS enabled; policies reviewed from catalog | Partial; not independent security audit |
 | Candidate live integration | Candidate E2E deliberately stubs Supabase and blocks external cloud requests | Not tested live |
-| XSS/rendering hardening | Candidate CI run `43015653406`: 133/133 engine and 83/83 browser E2E passed, including stored-HTML tests for generated analysis output, History and ledger | Partial pass; not full sink audit or independent penetration test |
+| XSS/rendering hardening | Candidate CI run `43016828233`: 133/133 engine and 84/84 browser E2E passed, including stored-HTML tests for generated analysis output, History and ledger and legacy History ID migration | Partial pass; not full sink audit or independent penetration test |
 | Legal and privacy documents | UI explicitly labels Terms and Privacy Notice Draft 0.1; operator and privacy contact, retention and deletion details incomplete | Blocked |
 | Hosting security headers | No verifiable server-level CSP, HSTS, frame, MIME or referrer policy evidence in repository HTML | Unverified |
 | Backup and restore | No documented tested restore drill or retention schedule found in reviewed docs | Blocked |

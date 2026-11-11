@@ -3710,13 +3710,15 @@ function analyze(){
       if(x.status!=='approved'||x.type==='baseline')return false;
       const related=String(x.related||'').trim();
       if(related)return deliverableMatchKind(related,pageSubject)==='exact';
-      return deliverableMatchKind(ledgerRecordText(x),pageSubject)==='exact';
+      // Preserve legacy records whose title or detail contains the exact
+      // page phrase; compound ambiguity is only inferred from structured
+      // related-deliverable metadata, never from incidental prose.
+      return (' '+normalizeDeliverablePhrase(ledgerRecordText(x))+' ').includes(' '+normalizeDeliverablePhrase(pageSubject)+' ');
     }): [];
     const partiallyMatchingLedgerRecords=pageSubject?ledgerContext.used.filter(x=>{
       if(x.status!=='approved'||x.type==='baseline')return false;
       const related=String(x.related||'').trim();
-      if(related)return deliverableMatchKind(related,pageSubject)==='partial';
-      return deliverableMatchKind(ledgerRecordText(x),pageSubject)==='partial';
+      return !!related&&deliverableMatchKind(related,pageSubject)==='partial';
     }): [];
     const negativeApprovalWording=x=>/\b(?:not approved|not authorised|not authorized|not agreed|not accepted|declined|rejected|excluded|not included|outside scope)\b/i.test(ledgerRecordText(x));
     const soleLedgerPageRecord=ledgerPageRecords.length===1?ledgerPageRecords[0]:null;

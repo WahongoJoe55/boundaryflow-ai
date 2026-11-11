@@ -4443,13 +4443,18 @@ function bfLedgerRevisionUsage(context,request,agreement){
   const textPages=[...source.matchAll(/\b(homepage|home\s+page|[a-z][a-z0-9&'-]{1,30}\s+page)\b/gi)].map(m=>pageName(m[0])).filter(Boolean);
   const uniqueTextPages=[...new Set(textPages)];
   const relatedPage=pageName(x.related);
-  const unverifiedSource=String(x.sourceType||'').trim().toLowerCase()==='client_claim';
+  const revisionSource=String(x.sourceType||'').trim().toLowerCase();
+  // Only a specifically referenced email is eligible for a user-recorded
+  // delivered revision event. Internal notes, generic/unknown sources and
+  // client assertions remain unresolved and cannot consume the allowance.
+  const unverifiedSource=revisionSource!=='email';
+  const clientClaimSource=revisionSource==='client_claim';
   // Conflicting page references in either free text or structured metadata
   // cannot be resolved safely by selecting the first match.
   const pageConflict=uniqueTextPages.length>1||!!(uniqueTextPages.length===1&&relatedPage&&uniqueTextPages[0]!==relatedPage);
   const textPage=uniqueTextPages.length===1?uniqueTextPages[0]:(uniqueTextPages[0]||'');
   const page=pageConflict?'':(relatedPage||textPage);
-  return {round,page,textPage,textPages:uniqueTextPages,relatedPage,pageConflict,unverifiedSource,title:x.title||'',sourceDate:x.sourceDate||null,recordedStatus:x.status,sourceType:x.sourceType||null};
+  return {round,page,textPage,textPages:uniqueTextPages,relatedPage,pageConflict,unverifiedSource,clientClaimSource,title:x.title||'',sourceDate:x.sourceDate||null,recordedStatus:x.status,sourceType:x.sourceType||null};
  });
  const conflicting=perPage?parsed.filter(x=>x.pageConflict&&(x.textPages.includes(targetPage)||x.relatedPage===targetPage)):[];
  const relevant=perPage?parsed.filter(x=>Number.isFinite(x.round)&&x.round>0&&!x.pageConflict&&!x.unverifiedSource&&targetPage&&x.page===targetPage):parsed.filter(x=>Number.isFinite(x.round)&&x.round>0&&!x.pageConflict&&!x.unverifiedSource);
@@ -4470,7 +4475,7 @@ function bfLedgerRevisionUsage(context,request,agreement){
  const historyIncomplete=sequenceGaps.length>0||unresolvedRoundEvents.length>0;
  const collectionUnknown=!revisionEventsValid;
  const completed=collectionUnknown||historyConflict||historyIncomplete?null:(relevant.length?Math.max(...rounds):null);
- return {scope:perPage?'per_page':'project',page:targetPage||null,allowance,completed,remaining:allowance!==null&&completed!==null?Math.max(0,allowance-completed):null,matchedEvents:relevant.map(x=>({round:x.round,page:x.page,title:x.title,sourceDate:x.sourceDate,status:x.recordedStatus})),conflictingEvents:conflicting.map(x=>({round:x.round,textPage:x.textPage,textPages:x.textPages,relatedPage:x.relatedPage,title:x.title,sourceDate:x.sourceDate,status:x.recordedStatus})),unresolvedRoundEvents:unresolvedRoundEvents.map(x=>({title:x.title,page:x.page,textPages:x.textPages,relatedPage:x.relatedPage,sourceDate:x.sourceDate,status:x.recordedStatus,sourceType:x.sourceType,unverifiedSource:x.unverifiedSource})),sequenceGaps,historyUnknown:collectionUnknown||(perPage&&!targetPage)||historyConflict||historyIncomplete,collectionUnknown}
+ return {scope:perPage?'per_page':'project',page:targetPage||null,allowance,completed,remaining:allowance!==null&&completed!==null?Math.max(0,allowance-completed):null,matchedEvents:relevant.map(x=>({round:x.round,page:x.page,title:x.title,sourceDate:x.sourceDate,status:x.recordedStatus})),conflictingEvents:conflicting.map(x=>({round:x.round,textPage:x.textPage,textPages:x.textPages,relatedPage:x.relatedPage,title:x.title,sourceDate:x.sourceDate,status:x.recordedStatus})),unresolvedRoundEvents:unresolvedRoundEvents.map(x=>({title:x.title,page:x.page,textPages:x.textPages,relatedPage:x.relatedPage,sourceDate:x.sourceDate,status:x.recordedStatus,sourceType:x.sourceType,unverifiedSource:x.unverifiedSource,clientClaimSource:x.clientClaimSource})),sequenceGaps,historyUnknown:collectionUnknown||(perPage&&!targetPage)||historyConflict||historyIncomplete,collectionUnknown}
 }
 function bfLedgerAdd(record){
  if(!window.__bfUserId)throw new Error('Sign in before recording project evidence.');

@@ -348,6 +348,19 @@ try{
     normalizedRevisionStatus.historyUnknown===false,
     JSON.stringify(normalizedRevisionStatus));
 
+  const projectIdentityIsolation=await page.evaluate(()=>{
+    const input=document.getElementById('projectName');
+    if(!input||typeof window.bfLedgerKey!=='function'||typeof window.bfLedgerRead!=='function')return {supported:false};
+    const previousName=input.value,previousUser=window.__bfUserId;
+    window.__bfUserId='bf-identity-test-user';
+    input.value='Identity Isolation Project';const alphaKey=window.bfLedgerKey();
+    input.value='A Different Project';const betaKey=window.bfLedgerKey();
+    input.value=previousName;window.__bfUserId=previousUser;
+    return {supported:true,distinctProjectKeys:alphaKey!==betaKey,legacyRecordsRemainReadable:Array.isArray(window.bfLedgerRead())};
+  });
+  check('Project-scoped ledger keys isolate projects without rejecting legacy records',
+    projectIdentityIsolation.supported&&projectIdentityIsolation.distinctProjectKeys&&projectIdentityIsolation.legacyRecordsRemainReadable,
+    JSON.stringify(projectIdentityIsolation));
   const revisionDateMatrix=await page.evaluate(()=>{
     const agreement='Each page includes up to 3 revision rounds.';
     const event=(round,date,sourceType='email')=>({status:'delivered',sourceType,sourceDate:date,title:(round===1?'First':'Second')+' revision round completed for the Portfolio page',related:'Portfolio page'});

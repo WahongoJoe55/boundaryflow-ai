@@ -31,7 +31,7 @@ The returned authenticated policies were reviewed. Project policies bind CRUD op
 
 ### Important separation of environments
 
-The live sync test was run on the **deployed production build**. The development candidate in PR #1 was tested by a separate automated browser harness that stubs Supabase and blocks external cloud requests. Do not describe the candidate branch as having passed live Supabase sync unless that candidate itself is separately tested.
+The live sync test was run on the **deployed production build**. The current development candidate is PR #22 (`work/production-readiness-hardening-v1`, latest recorded candidate SHA `c0d5d4a8be2e7c81130a69fff21d3f49b9150cf1`). Its automated browser harness stubs Supabase and blocks external cloud requests. The candidate has passed 133 engine and 83 browser E2E tests, but it has **not** passed candidate-specific live Supabase verification. Do not describe the candidate as live-cloud verified until it is tested separately.
 
 ## Scope and limitations
 

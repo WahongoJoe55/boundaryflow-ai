@@ -350,31 +350,35 @@ try{
 
   const ledgerRenameMigration=await page.evaluate(()=>{
     const input=document.getElementById('projectName');
-    if(!input||typeof window.bfLedgerRename!=='function'||typeof window.bfLedgerKeyForName!=='function')return {supported:false};
+    if(!input||typeof window.bfLedgerRename!=='function'||typeof window.bfLedgerKeyForName!=='function'||typeof window.bfLedgerAliasMap!=='function')return {supported:false};
     const priorName=input.value,priorUser=window.__bfUserId,priorPrompt=window.prompt;
-    const oldName='Rename Migration Source',newName='Rename Migration Destination';
+    const oldName='Rename Migration Source',newName='Rename Migration Destination',collisionName='Collision Destination';
     window.__bfUserId='bf-rename-migration-test';
-    const oldKey=window.bfLedgerKeyForName(oldName),newKey=window.bfLedgerKeyForName(newName);
-    const oldBefore=localStorage.getItem(oldKey),newBefore=localStorage.getItem(newKey);
+    const oldKey=window.bfLedgerKeyForName(oldName),newKey=window.bfLedgerKeyForName(newName),collisionKey=window.bfLedgerKeyForName(collisionName);
+    const oldBefore=localStorage.getItem(oldKey),newBefore=localStorage.getItem(newKey),collisionBefore=localStorage.getItem(collisionKey);
     const identityKey=window.bfScopedKey('boundaryflow_project_ledger_identity_v1'),identityBefore=localStorage.getItem(identityKey);
+    const aliasKey=window.bfScopedKey('boundaryflow_project_ledger_alias_v1'),aliasBefore=localStorage.getItem(aliasKey);
     const records=[{id:'rename-preserve-1',type:'baseline',title:'Original agreement',detail:'Baseline scope text',sourceType:'agreement',status:'approved',projectName:oldName,recordedAt:'2026-02-01T00:00:00.000Z'}];
     localStorage.setItem(oldKey,JSON.stringify(records));localStorage.removeItem(newKey);
     input.value=oldName;window.prompt=()=>newName;
     const renamed=window.bfLedgerRename();
     const migrated=JSON.parse(localStorage.getItem(newKey)||'null');
     const oldRemoved=localStorage.getItem(oldKey)===null;
-    const identityMap=JSON.parse(localStorage.getItem(identityKey)||'{}');const migrationOk=renamed&&oldRemoved&&Array.isArray(migrated)&&migrated.length===1&&migrated[0].id==='rename-preserve-1'&&migrated[0].projectName===newName&&!!migrated[0].projectIdentity&&identityMap[window.bfLedgerProjectIdentityName(newName)]===migrated[0].projectIdentity&&!identityMap[window.bfLedgerProjectIdentityName(oldName)];
-    localStorage.setItem(oldKey,JSON.stringify(records));localStorage.setItem(newKey,JSON.stringify([{id:'collision-existing'}]));
-    input.value=oldName;window.prompt=()=>newName;
+    const identityMap=JSON.parse(localStorage.getItem(identityKey)||'{}'),aliasMap=JSON.parse(localStorage.getItem(aliasKey)||'{}');
+    const migrationOk=renamed&&oldRemoved&&input.value===oldName&&Array.isArray(migrated)&&migrated.length===1&&migrated[0].id==='rename-preserve-1'&&migrated[0].projectName===oldName&&migrated[0].ledgerName===newName&&!!migrated[0].projectIdentity&&identityMap[window.bfLedgerProjectIdentityName(oldName)]===migrated[0].projectIdentity&&aliasMap[window.bfLedgerProjectIdentityName(oldName)]===newName&&window.bfLedgerKey()===newKey&&window.bfLedgerDisplayName()===newName&&window.bfLedgerRead().some(x=>x.id==='rename-preserve-1');
+    localStorage.setItem(oldKey,JSON.stringify(records));localStorage.setItem(collisionKey,JSON.stringify([{id:'collision-existing'}]));
+    input.value=oldName;window.prompt=()=>collisionName;
     const collisionResult=window.bfLedgerRename();
-    const collisionPreserved=Array.isArray(JSON.parse(localStorage.getItem(oldKey)||'null'))&&JSON.parse(localStorage.getItem(oldKey))[0].id==='rename-preserve-1'&&JSON.parse(localStorage.getItem(newKey))[0].id==='collision-existing';
+    const collisionPreserved=Array.isArray(JSON.parse(localStorage.getItem(oldKey)||'null'))&&JSON.parse(localStorage.getItem(oldKey))[0].id==='rename-preserve-1'&&JSON.parse(localStorage.getItem(collisionKey))[0].id==='collision-existing'&&input.value===oldName;
     if(oldBefore===null)localStorage.removeItem(oldKey);else localStorage.setItem(oldKey,oldBefore);
     if(newBefore===null)localStorage.removeItem(newKey);else localStorage.setItem(newKey,newBefore);
+    if(collisionBefore===null)localStorage.removeItem(collisionKey);else localStorage.setItem(collisionKey,collisionBefore);
     if(identityBefore===null)localStorage.removeItem(identityKey);else localStorage.setItem(identityKey,identityBefore);
+    if(aliasBefore===null)localStorage.removeItem(aliasKey);else localStorage.setItem(aliasKey,aliasBefore);
     input.value=priorName;window.__bfUserId=priorUser;window.prompt=priorPrompt;
     return {supported:true,migrationOk,collisionResult,collisionPreserved};
   });
-  check('Explicit local ledger rename preserves records and assigns a stable project identity',
+  check('Local ledger rename preserves cloud project name and persists a separate ledger alias',
     ledgerRenameMigration.supported&&ledgerRenameMigration.migrationOk,
     JSON.stringify(ledgerRenameMigration));
   check('Ledger rename refuses collisions without overwriting either project history',
@@ -389,6 +393,7 @@ try{
     const oldKey=window.bfLedgerKeyForName(oldName),newKey=window.bfLedgerKeyForName(newName);
     const oldBefore=localStorage.getItem(oldKey),newBefore=localStorage.getItem(newKey);
     const identityKey=window.bfScopedKey('boundaryflow_project_ledger_identity_v1'),identityBefore=localStorage.getItem(identityKey);
+    const aliasKey=window.bfScopedKey('boundaryflow_project_ledger_alias_v1'),aliasBefore=localStorage.getItem(aliasKey);
     localStorage.setItem(oldKey,JSON.stringify([null]));localStorage.removeItem(newKey);
     input.value=oldName;window.prompt=()=>newName;
     const malformedResult=window.bfLedgerRename();
@@ -397,13 +402,14 @@ try{
     if(oldBefore===null)localStorage.removeItem(oldKey);else localStorage.setItem(oldKey,oldBefore);
     if(newBefore===null)localStorage.removeItem(newKey);else localStorage.setItem(newKey,newBefore);
     if(identityBefore===null)localStorage.removeItem(identityKey);else localStorage.setItem(identityKey,identityBefore);
+    if(aliasBefore===null)localStorage.removeItem(aliasKey);else localStorage.setItem(aliasKey,aliasBefore);
     input.value=priorName;window.__bfUserId=priorUser;window.prompt=priorPrompt;
     return {supported:true,malformedResult,malformedRollback,whitespaceNormalized};
   });
   check('Project identity normalization collapses repeated whitespace',
     ledgerRenameHardening.supported&&ledgerRenameHardening.whitespaceNormalized,
     JSON.stringify(ledgerRenameHardening));
-  check('Malformed ledger records abort rename and restore the original project name and storage',
+  check('Malformed ledger records abort rename and preserve cloud project name and storage',
     ledgerRenameHardening.supported&&ledgerRenameHardening.malformedRollback,
     JSON.stringify(ledgerRenameHardening));
   const projectIdentityIsolation=await page.evaluate(()=>{

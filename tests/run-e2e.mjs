@@ -679,7 +679,7 @@ try{
     executed:!!window.__bfXssExecuted
   }),xssPayload);
   check('Untrusted client-message text is escaped in analysis output',
-    analysisXss.injected===0&&!analysisXss.executed,JSON.stringify(analysisXss));
+    analysisXss.injected===0&&analysisXss.literalText&&!analysisXss.executed,JSON.stringify(analysisXss));
   const xssSave=page.locator('[data-save]').first();
   if(await xssSave.count())await xssSave.click();
   await page.locator('#historyBtn').click();
@@ -689,7 +689,7 @@ try{
     executed:!!window.__bfXssExecuted
   }),xssPayload);
   check('Untrusted project names render safely in local History',
-    historyXss.injected===0&&!historyXss.executed,JSON.stringify(historyXss));
+    historyXss.injected===0&&historyXss.literalName&&!historyXss.executed,JSON.stringify(historyXss));
   await page.locator('#closeHistory').click();
   check('No uncaught browser JavaScript errors occurred',pageErrors.length===0,pageErrors.join('\n'));
   fs.mkdirSync(path.join(root,'test-results'),{recursive:true});

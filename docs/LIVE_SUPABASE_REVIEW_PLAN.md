@@ -31,7 +31,7 @@ The returned authenticated policies were reviewed. Project policies bind CRUD op
 
 ### Important separation of environments
 
-The live sync test was run on the **deployed production build**. The current development candidate is PR #22 (`work/production-readiness-hardening-v1`, candidate code/test revision `098c08b0458eb072515db9e1be117f1177286769`). Its automated browser harness stubs Supabase and blocks external cloud requests. The candidate has passed 133 engine and 83 browser E2E tests, but it has **not** passed candidate-specific live Supabase verification. Do not describe the candidate as live-cloud verified until it is tested separately.
+The live sync test was run on the **deployed production build**. The current development candidate is PR #22 (`work/production-readiness-hardening-v1`, candidate code/test revision `74c520afa2bb4668f675f7eb56987fd11f57fb8c`). Its automated browser harness stubs Supabase and blocks external cloud requests. The candidate has passed 133 engine and 84 browser E2E tests, but it has **not** passed candidate-specific live Supabase verification. Do not describe the candidate as live-cloud verified until it is tested separately.
 
 ## Scope and limitations
 
@@ -103,4 +103,4 @@ The production test covered a successful first sync, refresh persistence and a s
 
 ## Release decision
 
-**Not yet approved for production release.** The deployed production build passed the narrow live persistence test, and the previously reported account-isolation and RLS inspection results are positive but require repeatable evidence. PR #22 is open and mergeable; its exact latest candidate has passed 133 engine and 83 browser E2E scenarios, but those tests stub Supabase and do not verify live cloud behavior. Do not merge or deploy PR #22 until candidate-specific live sync, direct API/RLS and rollback checks are completed and reviewed. No production schema or policy changes are authorised by this plan.
+**Not yet approved for production release.** The deployed production build passed the narrow live persistence test, and the previously reported account-isolation and RLS inspection results are positive but require repeatable evidence. PR #22 is open and mergeable; its exact latest candidate has passed 133 engine and 84 browser E2E scenarios, but those tests stub Supabase and do not verify live cloud behavior. Do not merge or deploy PR #22 until candidate-specific live sync, direct API/RLS and rollback checks are completed and reviewed. No production schema or policy changes are authorised by this plan.

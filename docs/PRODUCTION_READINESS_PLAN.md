@@ -167,7 +167,7 @@ The browser-local ledger key previously used a 32-bit hash of the normalized led
 **Status:** implementation and migration cases passed in the candidate's 133 engine regression tests and 82 browser E2E tests. This is local-browser evidence, not a cross-device or cloud ledger guarantee.
 
 ### Additional: hostile stored values and rendering
-Ledger identity and alias maps now use null-prototype objects, project IDs are validated before reuse, and History counters are constrained to bounded non-negative numeric text. Candidate browser tests seed stored HTML payloads into generated analysis output, History and the evidence ledger and verify that they remain inert text rather than creating `img`, `svg` or `script` elements. History counters are constrained to bounded non-negative numeric text.
+Ledger identity and alias maps now use null-prototype objects, project IDs are validated before reuse, and History counters are constrained to bounded non-negative numeric text. Candidate browser tests seed stored HTML payloads into generated analysis output, History and the evidence ledger and verify that they remain inert text rather than creating `img`, `svg` or `script` elements. History counters are constrained to bounded non-negative numeric text, and legacy records without valid IDs receive unique random IDs instead of collision-prone short hashes.
 
 **Status:** these focused adversarial tests passed in candidate CI `43015252253`. The complete application still needs a sink-by-sink XSS audit and independent security review.
 

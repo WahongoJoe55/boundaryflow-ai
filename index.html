@@ -13,8 +13,8 @@
     try{
       var bfOriginalSetItem=Storage.prototype.setItem;
       var bfOriginalRemoveItem=Storage.prototype.removeItem;
-      Storage.prototype.setItem=function(key,value){if(String(key).indexOf('boundaryflow_project_ledger_v1_')===0)return bfOriginalSetItem.call(this,key,value);};
-      Storage.prototype.removeItem=function(key){if(String(key).indexOf('boundaryflow_project_ledger_v1_')===0)return bfOriginalRemoveItem.call(this,key);};
+      Storage.prototype.setItem=function(key,value){var k=String(key);if(k.indexOf('boundaryflow_project_ledger_v1_')===0||k.indexOf('boundaryflow_project_ledger_identity_v1__')===0)return bfOriginalSetItem.call(this,key,value);};
+      Storage.prototype.removeItem=function(key){var k=String(key);if(k.indexOf('boundaryflow_project_ledger_v1_')===0||k.indexOf('boundaryflow_project_ledger_identity_v1__')===0)return bfOriginalRemoveItem.call(this,key);};
       Storage.prototype.clear=function(){};
     }catch(e){}
   }

@@ -4973,7 +4973,7 @@ async function bfCloudDeleteQueuedRow(client,userId,id){
     if(!id){const inserted=await client.from('agreements').insert({user_id:user.id,project_id:projectId,title:'Agreed scope',content:scope}).select('id').single();if(inserted.error)throw inserted.error;id=inserted.data.id}
     map[mapKey]=id;setMap(AGREEMENT_MAP_KEY,map);return id;
   }
-  async function saveItem(item){
+  async function saveItemUnlocked(item){
     const client=requireClient(),user=requireUser();
     if(!item||!item.scope||!item.request)return null;
     const stillInLocalHistory=()=>bfCloudHasLocalItem(bfHistory(),item.id);
@@ -5016,6 +5016,22 @@ async function bfCloudDeleteQueuedRow(client,userId,id){
       if(draft&&draft.id===item.id)localStorage.setItem(bfScopedKey('boundaryflow_autosave_v1'),JSON.stringify(Object.assign({},draft,{cloudAnalysisId:cloudId,cloudProjectId:projectId,cloudAgreementId:agreementId,cloudSyncedAt})));
     }catch(e){}
     return syncedItem;
+  }
+  async function saveItem(item){
+    if(!item||!item.id)return saveItemUnlocked(item);
+    const user=requireUser();
+    const lockName='boundaryflow-analysis-save:'+user.id+':'+item.id;
+    const run=async()=>{
+      // Re-read the freshest same-origin History value after acquiring the lock.
+      // This serializes writes for the same analysis across tabs in browsers that
+      // implement Web Locks; database uniqueness is still required across devices.
+      const latest=bfHistory().find(x=>x&&x.id===item.id);
+      return saveItemUnlocked(latest||item);
+    };
+    if(typeof navigator!=='undefined'&&navigator.locks&&typeof navigator.locks.request==='function'){
+      return navigator.locks.request(lockName,{mode:'exclusive'},run);
+    }
+    return run();
   }
   function queueSave(item){if(!cloud.client||!cloud.user||!item)return Promise.resolve();const id=item.id||'current';const prior=cloud.pending.get(id)||Promise.resolve();const task=prior.catch(()=>{}).then(()=>{const latest=bfHistory().find(x=>x&&x.id===id);if(!latest)return null;return saveItem(latest)});cloud.pending.set(id,task);task.then(saved=>{if(!saved)return;status('Synced','completed');message('✓ Project, agreed scope and analysis saved to Supabase. Local autosave remains available.');}).catch(e=>cloudError(e,'Cloud save failed; your local copy is safe')).finally(()=>{if(cloud.pending.get(id)===task)cloud.pending.delete(id)});return task;}
   async function deleteQueuedRemote(){

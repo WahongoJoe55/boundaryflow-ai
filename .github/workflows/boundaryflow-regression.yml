@@ -25,7 +25,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Check out exact pull-request candidate
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           # This suite validates the candidate branch itself, not GitHub's
           # synthetic merge commit (which can contain stale test harness files
@@ -39,7 +39,7 @@ jobs:
         run: node tests/run-e2e.mjs
       - name: Upload regression and end-to-end reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: boundaryflow-engine-regression-results
           path: |

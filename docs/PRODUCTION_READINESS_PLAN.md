@@ -11,13 +11,13 @@ This document is a release gate, not a claim of certification. A green test suit
 
 | Area | Evidence currently available | Status |
 |---|---|---|
-| Deterministic reasoning and ledger | 133 engine + 71 browser scenarios passed on the 11 Nov 2026 production merge | Passed for those scenarios |
+| Deterministic reasoning and ledger | Candidate CI run `43015252253`: 133 engine + 82 browser E2E scenarios passed on the exact candidate SHA; stored-HTML payloads in History and ledger were verified inert | Passed for those scenarios; not a proof of all application paths |
 | Production deployment | GitHub Pages deployment workflow succeeded for merge commit `ddeed3b` | Passed for that deployment |
 | Live cloud persistence | One synthetic project: first sync, refresh restore and second sequential sync without duplicate | Partial pass |
 | Account isolation | Two dedicated test accounts reportedly could not see each other's project; cross-account delete tests returned zero affected rows | Reported pass; repeat and preserve evidence |
 | RLS configuration | Four application tables reported RLS enabled; policies reviewed from catalog | Partial; not independent security audit |
 | Candidate live integration | Candidate E2E deliberately stubs Supabase and blocks external cloud requests | Not tested live |
-| XSS/rendering hardening | PR #22 adds adversarial rendering cases; CI result must be checked before acceptance | In progress |
+| XSS/rendering hardening | Candidate CI run `43015252253`: 133/133 engine and 82/82 browser E2E passed, including stored-HTML tests for History and ledger | Partial pass; not full sink audit or independent penetration test |
 | Legal and privacy documents | UI explicitly labels Terms and Privacy Notice Draft 0.1; operator and privacy contact, retention and deletion details incomplete | Blocked |
 | Hosting security headers | No verifiable server-level CSP, HSTS, frame, MIME or referrer policy evidence in repository HTML | Unverified |
 | Backup and restore | No documented tested restore drill or retention schedule found in reviewed docs | Blocked |
@@ -159,10 +159,17 @@ The release record must include:
 ### Confirmed: short deterministic analysis identifiers
 The application previously generated analysis IDs with an eight-hex-character (32-bit) FNV-style hash over agreement text, request text and project name. A collision is possible and can cause unrelated analyses to be treated as the same local History item. New analyses now receive random UUID/cryptographic-random identifiers, while an exact previously saved analysis reuses its existing ID. A regression test uses a known pair of distinct inputs that collide under the old 32-bit hash.
 
-**Status:** implementation and regression committed to the candidate branch; fresh CI required.
+**Status:** implementation is on the candidate branch; candidate CI `43015252253` passed all 133 engine and 82 browser E2E tests.
 
-### Still open: ledger-key collision
-The browser-local ledger key also uses a 32-bit hash of the normalized ledger display name. A collision can address the same localStorage key for different names. A backward-compatible migration to collision-resistant, reversible keys is required before accepting this risk. Existing legacy entries must be matched to their recorded project identity before migration; ambiguous entries must not be silently reassigned.
+### Confirmed: ledger-key collision and legacy migration
+The browser-local ledger key previously used a 32-bit hash of the normalized ledger display name. It now uses a normalized, reversible code-point key with a `v2` namespace. The old `v1` key remains available for migration; records are migrated only when their recorded project identity matches, and ambiguous legacy entries are preserved rather than silently reassigned.
+
+**Status:** implementation and migration cases passed in the candidate's 133 engine regression tests and 82 browser E2E tests. This is local-browser evidence, not a cross-device or cloud ledger guarantee.
+
+### Additional: hostile stored values and rendering
+Ledger identity and alias maps now use null-prototype objects, project IDs are validated before reuse, and History counters are constrained to bounded non-negative numeric text. Candidate browser tests seed stored HTML payloads into both History and the evidence ledger and verify that they remain inert text rather than creating `img`, `svg` or `script` elements.
+
+**Status:** these focused adversarial tests passed in candidate CI `43015252253`. The complete application still needs a sink-by-sink XSS audit and independent security review.
 
 ### Still open: cloud idempotency
 The saveItem flow performs a lookup by result_json localId and then inserts if none is found. The local in-memory queue only serializes writes within one tab. It does not protect concurrent tabs/devices. The database must enforce uniqueness on an appropriate per-user local ID, with a conflict-safe upsert/recovery path. Do not apply a production migration until the live schema and duplicate rows have been inspected and a rollback is prepared.

@@ -19,11 +19,11 @@ The candidate workflow runs:
 2. The browser end-to-end suite against the candidate `index.html`.
 3. Adversarial rendering checks for untrusted content in generated analysis output, History and the evidence ledger.
 
-The last recorded successful candidate workflow is [run 43016828233](https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/43016828233) on candidate commit `74c520afa2bb4668f675f7eb56987fd11f57fb8c`, which reported 133 engine and 84 browser E2E scenarios passing. Re-run CI after every subsequent code or test change; documentation-only changes do not replace verification of application code.
+The last recorded successful candidate workflow is [run 43030005306](https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/43030005306) on candidate commit `a8820af6c8b748e8aa2a9accc45c35bb9bbec5d6`, which reported 133/133 engine and 87/87 browser E2E scenarios passing. The browser suite includes legacy/v2 local-ledger cleanup, CSP metadata and same-analysis Web Locks serialization checks. Re-run CI after every subsequent code or test change.
 
 ## Important test boundary
 
-The automated browser suite uses synthetic identities and blocks real Supabase network access and cloud writes. It verifies local application behaviour, not live authentication, cloud persistence, retry/idempotency under real network failures, or production RLS. Those require a separately controlled integration environment and must not be inferred from a green isolated CI run.
+The automated browser suite uses synthetic identities and blocks real Supabase network access and cloud writes. It verifies local application behaviour, not live authentication, cloud persistence, cross-device retry/idempotency or production RLS. Web Locks reduce same-browser-tab races only; a database uniqueness constraint and conflict-safe write path are still required. Those require a separately controlled integration environment and must not be inferred from a green isolated CI run.
 
 ## Product safeguards
 
@@ -35,4 +35,4 @@ The automated browser suite uses synthetic identities and blocks real Supabase n
 
 ## Release boundary
 
-Development changes remain on `work/production-readiness-hardening-v1`. PR #22 is not merged. Production `main`, the live GitHub Pages application and Supabase must not be changed unless release is explicitly approved. The candidate is not approved for general production launch until the outstanding live Supabase, security-header, legal/privacy, backup/restore, monitoring and independent review gates are evidenced.
+Development changes remain on `work/production-readiness-hardening-v1`. PR #22 is not merged. Production `main`, the live GitHub Pages application and Supabase must not be changed unless release is explicitly approved. Public registration is paused in the candidate while legal/privacy approval is outstanding. The candidate includes a baseline meta CSP/referrer policy, but response security headers remain unverified and the policy still permits inline scripts/styles. A reviewed database idempotency migration is prepared but has not been applied. The candidate is not approved for general production launch until live Supabase, direct API/RLS, cross-device sync, response security headers, legal/privacy, backup/restore, monitoring and independent review gates are evidenced.

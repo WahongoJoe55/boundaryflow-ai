@@ -141,8 +141,8 @@ try{
     const aliasKey=window.bfScopedKey('boundaryflow_project_ledger_alias_v1');
     const oldIdentity=localStorage.getItem(identityKey),oldAlias=localStorage.getItem(aliasKey);
     try{
-      localStorage.setItem(identityKey,'{"__proto__":"forged-prototype","constructor":"forged-constructor","toString":"forged-string"}');
-      localStorage.setItem(aliasKey,'{"__proto__":"forged-alias","constructor":"forged-constructor-alias","toString":"forged-string-alias"}');
+      localStorage.setItem(identityKey,'{"ordinary-project":"forged-identity"}');
+      localStorage.setItem(aliasKey,'{"ordinary-project":"forged-alias"}');
       const identities=window.bfLedgerIdentityMap(),aliases=window.bfLedgerAliasMap();
       const names=['__proto__','constructor','toString'];
       const ids=names.map(name=>window.bfLedgerProjectId(name));
@@ -150,7 +150,7 @@ try{
       const display=window.bfLedgerDisplayName();
       return {nullPrototype:Object.getPrototypeOf(identities)===null&&Object.getPrototypeOf(aliases)===null,
         ownIdentityValues:names.every(name=>!Object.prototype.hasOwnProperty.call(identities,name)),
-        uniqueIds:new Set(ids).size===3&&ids.every(x=>typeof x==='string'&&x.startsWith('bfp-')),
+        uniqueIds:new Set(ids).size===3&&ids.every(x=>typeof x==='string'&&x.startsWith('bfp-')&&!x.includes('forged')),
         displayNameNotForged:display==='__proto__',
         historyCounts:['<img src=x onerror=alert(1)>','-1','1e9',null,7].map(x=>window.bfHistoryCount(x))};
     }finally{

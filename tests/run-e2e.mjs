@@ -57,6 +57,27 @@ try{
   await page.waitForFunction(()=>typeof window.analyze==='function'&&typeof window.bfLedgerAdd==='function');
   check('Candidate application loads with analysis and ledger controls',true);
 
+  const localLedgerClear=await page.evaluate(()=>{
+    const uid='clear-local-ledger-test';
+    const keys=[
+      'boundaryflow_project_ledger_v1_legacy__'+uid,
+      'boundaryflow_project_ledger_v2_current__'+uid,
+      'boundaryflow_project_ledger_identity_v1__'+uid,
+      'boundaryflow_project_ledger_alias_v1__'+uid
+    ];
+    const foreign='boundaryflow_project_ledger_v2_foreign__other-account';
+    const unrelated='unrelated-user-preference';
+    [...keys,foreign,unrelated].forEach(k=>localStorage.setItem(k,'test'));
+    const removed=window.bfClearLocalLedgerKeys(uid);
+    return {removed,remaining:keys.filter(k=>localStorage.getItem(k)!==null),
+      foreignPreserved:localStorage.getItem(foreign)==='test',
+      unrelatedPreserved:localStorage.getItem(unrelated)==='test'};
+  });
+  check('Clear local workspace removes both legacy and v2 ledger keys without touching other accounts or unrelated settings',
+    localLedgerClear.removed===4&&localLedgerClear.remaining.length===0&&
+    localLedgerClear.foreignPreserved&&localLedgerClear.unrelatedPreserved,
+    JSON.stringify(localLedgerClear));
+
   const cloudDeleteContract=await page.evaluate(async()=>{
     const fakeClient=(existing,deletedRows,error=null)=>({
       from(){

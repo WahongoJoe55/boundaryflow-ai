@@ -283,6 +283,20 @@ try{
     }));
   }
 
+  const analysisPayload='<img src=x onerror=alert(1)>';
+  await setProject('XSS analysis output');
+  const hostileAnalysis=await analyse(
+    'The website includes a Home page. Updating headings and text on existing pages is included. '+analysisPayload,
+    'Please update the Home page heading to say '+analysisPayload
+  );
+  const analysisOutputSafe=await page.locator('#out').evaluate(el=>({
+    activeElements:el.querySelectorAll('img,svg,script').length,
+    payloadVisible:el.textContent.includes('<img src=x onerror=alert(1)>')
+  }));
+  check('Untrusted agreement and client-message HTML remains inert in generated analysis output',
+    analysisOutputSafe.activeElements===0&&analysisOutputSafe.payloadVisible,
+    JSON.stringify(analysisOutputSafe));
+
   const scope='The website includes Home, About and Services. New pages require separate approval. Two rounds of revisions per page are included.';
   await setProject('E2E Project Alpha');
   await page.locator('#a').fill(scope);

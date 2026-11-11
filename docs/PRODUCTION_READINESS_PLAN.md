@@ -2,7 +2,7 @@
 
 **Status: NOT APPROVED FOR GENERAL PRODUCTION LAUNCH**  
 **Audit baseline:** `main` commit `ddeed3b1a8a0e8a4b4a34dfbb38b8c8fb0153002`  
-**Candidate hardening PR:** #22 — adversarial rendering regression tests  
+**Candidate hardening PR:** #22 — analysis identity, ledger migration, rendering and release hardening  
 **Scope:** single-page browser application, GitHub Pages hosting, Supabase Auth/Postgres, browser-local History and evidence ledger.
 
 This document is a release gate, not a claim of certification. A green test suite cannot prove the absence of every defect, security weakness or incorrect scope decision. Production readiness means the listed risks have been tested to a defined level, operational owners have accepted the residual risks, and all launch-critical evidence is current.
@@ -11,15 +11,15 @@ This document is a release gate, not a claim of certification. A green test suit
 
 | Area | Evidence currently available | Status |
 |---|---|---|
-| Deterministic reasoning and ledger | Candidate CI run `43016828233` on `74c520afa2bb4668f675f7eb56987fd11f57fb8c`: 133 engine + 84 browser E2E scenarios passed; stored-HTML payloads in generated analysis output, History and ledger were verified inert; legacy History records receive unique non-hash IDs | Passed for those scenarios; not a proof of all application paths |
+| Deterministic reasoning and ledger | Candidate CI run `43030005306` on `a8820af6c8b748e8aa2a9accc45c35bb9bbec5d6`: 133 engine + 87 browser E2E scenarios passed; stored-HTML payloads in generated analysis output, History and ledger were verified inert; legacy History IDs, local-ledger cleanup, CSP metadata and same-analysis browser-lock serialization were tested | Passed for those scenarios; not a proof of all application paths |
 | Production deployment | GitHub Pages deployment workflow succeeded for merge commit `ddeed3b` | Passed for that deployment |
 | Live cloud persistence | One synthetic project: first sync, refresh restore and second sequential sync without duplicate | Partial pass |
 | Account isolation | Two dedicated test accounts reportedly could not see each other's project; cross-account delete tests returned zero affected rows | Reported pass; repeat and preserve evidence |
 | RLS configuration | Four application tables reported RLS enabled; policies reviewed from catalog | Partial; not independent security audit |
 | Candidate live integration | Candidate E2E deliberately stubs Supabase and blocks external cloud requests | Not tested live |
-| XSS/rendering hardening | Candidate CI run `43016828233`: 133/133 engine and 84/84 browser E2E passed, including stored-HTML tests for generated analysis output, History and ledger and legacy History ID migration | Partial pass; not full sink audit or independent penetration test |
-| Legal and privacy documents | UI explicitly labels Terms and Privacy Notice Draft 0.1; operator and privacy contact, retention and deletion details incomplete | Blocked |
-| Hosting security headers | No verifiable server-level CSP, HSTS, frame, MIME or referrer policy evidence in repository HTML | Unverified |
+| XSS/rendering hardening | Candidate CI run `43030005306`: 133/133 engine and 87/87 browser E2E passed, including stored-HTML tests, legacy History ID migration, v1/v2 local-ledger cleanup, CSP metadata and same-analysis Web Locks serialization | Partial pass; not full sink audit or independent penetration test |
+| Legal and privacy documents | UI still labels Terms and Privacy Notice Draft 0.1; operator/privacy contacts, retention and deletion details incomplete. Public registration is paused in the candidate. | Blocked; signup paused |
+| Hosting security headers | Candidate adds meta CSP and strict-origin-when-cross-origin referrer metadata. The meta CSP allows `unsafe-inline`; response headers (HSTS, X-Content-Type-Options, frame restrictions, Referrer-Policy and header CSP) remain unverified. | Partial; host-level blocker remains |
 | Backup and restore | No documented tested restore drill or retention schedule found in reviewed docs | Blocked |
 | Monitoring and incident response | No verified operational monitoring, support route, incident owner or response runbook found | Blocked |
 | Accessibility and browser compatibility | Existing Playwright desktop/mobile screenshots; no full accessibility or supported-browser audit evidenced | Incomplete |
@@ -178,4 +178,28 @@ The saveItem flow performs a lookup by result_json localId and then inserts if n
 The deployed UI itself states that Terms and Privacy Notice are draft 0.1, and requires operator details, privacy contact, retention periods and deletion procedures. These cannot be completed by code changes alone; they require accurate owner input and qualified review.
 
 ### Evidence boundary
-The candidate's Playwright workflow explicitly blocks Supabase network access and cloud writes. Passing that workflow does not establish live RLS, authentication, backup, restore, sync-race or hosting-header behaviour.
+The candidate's Playwright workflow explicitly blocks Supabase network access and cloud writes. Passing that workflow does not establish live RLS, authentication, backup, restore, cross-device sync-race or hosting-header behaviour.
+
+
+## 8. Additional engineering work completed — 11 November 2026
+
+The exact candidate commit `a8820af6c8b748e8aa2a9accc45c35bb9bbec5d6` passed CI run [43030005306](https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/43030005306): **133/133 engine tests and 87/87 browser E2E tests, zero failures**.
+
+- **Local-data clearing:** fixed the account-scoped cleanup routine so it removes both legacy v1 and collision-safe v2 project-ledger keys, plus identity/alias maps. A browser regression verifies that another account's keys and unrelated settings remain untouched.
+- **Same-browser save concurrency:** cloud saves for the same user/analysis now use the Web Locks API when available and re-read the latest same-origin History item after acquiring the lock. A browser concurrency test verifies serialization. This does not coordinate different devices or replace database uniqueness.
+- **Database migration prepared:** `supabase/migrations/20261111000100_analysis_local_id_unique.sql` adds a nullable stable `local_id`, backfills existing JSON IDs, aborts if duplicates exist and adds a unique per-user index. It is a review-only migration and has not been run. The current app still uses the legacy lookup-then-insert cloud write; conflict-safe upsert is deliberately not enabled until staging migration and schema verification.
+- **CSP baseline:** the candidate now declares a restrictive meta CSP and strict-origin referrer policy. Existing inline scripts/styles require `unsafe-inline`, which limits CSP strength. Meta CSP cannot replace response headers such as HSTS, X-Content-Type-Options, frame-ancestors and a nonce/hash-based policy. GitHub Pages response-header capability remains unverified; hosting configuration or a reviewed host migration is required.
+- **Registration safety:** public account creation is disabled in this candidate until the draft Terms and Privacy Notice are replaced with accurate, reviewed documents. Existing sign-in remains available.
+- **Operations runbook:** `docs/OPERATIONS_RUNBOOK.md` now specifies monitoring, incident response, backup/restore, rollback and data-request procedures. It is a procedure, not proof that monitoring, backup, staffing or a restore drill exists.
+
+### Remaining release blockers after this engineering pass
+
+1. Candidate-specific live Supabase authentication, RLS/API isolation and sync verification.
+2. Apply and verify the idempotency migration in staging, update to conflict-safe upsert, then test ambiguous timeout and concurrent devices before any production migration.
+3. Configure and verify response-level security headers; remove inline script/style allowances where feasible.
+4. Complete legal/privacy review and enter the real operator, privacy and support contacts, retention, deletion and processor/transfer details.
+5. Verify Supabase backup entitlement and complete an isolated restore drill with recorded RPO/RTO.
+6. Configure production uptime/error monitoring and named incident/support owners.
+7. Complete independent accessibility, browser compatibility, product benchmark and security review.
+
+The release remains **NO-GO**. These gates require live project access, product-owner decisions or qualified independent review and cannot be honestly closed by repository-only changes.

@@ -273,11 +273,11 @@ try{
   const revisionSequenceChecks=await page.evaluate(()=>{
     const agreement='Each page includes up to 3 revision rounds.';
     const missingEarly=window.bfLedgerRevisionUsage({revisionEvents:[
-      {status:'delivered',sourceType:'email',title:'Third revision round completed for the Portfolio page',detail:'',related:'Portfolio page'}
+      {status:'delivered',sourceType:'email',sourceDate:'2026-02-06',title:'Third revision round completed for the Portfolio page',detail:'',related:'Portfolio page'}
     ]},'Portfolio page',agreement);
     const contiguous=window.bfLedgerRevisionUsage({revisionEvents:[
-      {status:'delivered',sourceType:'email',title:'First revision round completed for the Portfolio page',detail:'',related:'Portfolio page'},
-      {status:'delivered',sourceType:'email',title:'Second revision round completed for the Portfolio page',detail:'',related:'Portfolio page'}
+      {status:'delivered',sourceType:'email',sourceDate:'2026-02-06',title:'First revision round completed for the Portfolio page',detail:'',related:'Portfolio page'},
+      {status:'delivered',sourceType:'email',sourceDate:'2026-02-06',title:'Second revision round completed for the Portfolio page',detail:'',related:'Portfolio page'}
     ]},'Portfolio page',agreement);
     return {missingEarly,contiguous};
   });
@@ -292,7 +292,7 @@ try{
     JSON.stringify(revisionSequenceChecks.contiguous));
   const unnumberedRevision=await page.evaluate(()=>{
     return window.bfLedgerRevisionUsage({revisionEvents:[
-      {status:'delivered',sourceType:'email',title:'Revision work completed for the Portfolio page',detail:'Client-requested revisions delivered.',related:'Portfolio page'}
+      {status:'delivered',sourceType:'email',sourceDate:'2026-02-06',title:'Revision work completed for the Portfolio page',detail:'Client-requested revisions delivered.',related:'Portfolio page'}
     ]},'Portfolio page','Each page includes up to 3 revision rounds.');
   });
   check('Unnumbered delivered revision record keeps the remaining allowance unknown',
@@ -305,7 +305,7 @@ try{
       ['missing',{},'Portfolio page'],
       ['null',{revisionEvents:null},'Portfolio page'],
       ['object',{revisionEvents:{status:'delivered'}},'Portfolio page'],
-      ['null-entry',{revisionEvents:[null,{status:'delivered',sourceType:'email',title:'First revision round completed for the Portfolio page',related:'Portfolio page'}]},'Portfolio page']
+      ['null-entry',{revisionEvents:[null,{status:'delivered',sourceType:'email',sourceDate:'2026-02-06',title:'First revision round completed for the Portfolio page',related:'Portfolio page'}]},'Portfolio page']
     ];
     return cases.map(([name,context,request])=>({name,result:window.bfLedgerRevisionUsage(context,request,agreement)}));
   });
@@ -334,6 +334,8 @@ try{
     const agreement='Each page includes up to 3 revision rounds.';
     const cases=[
       ['missing-source',{status:'delivered',title:'First revision round completed for the Portfolio page',related:'Portfolio page'}],
+      ['missing-date',{status:'delivered',sourceType:'email',title:'First revision round completed for the Portfolio page',related:'Portfolio page'}],
+      ['invalid-date',{status:'delivered',sourceType:'email',sourceDate:'2026-02-31',title:'First revision round completed for the Portfolio page',related:'Portfolio page'}],
       ['internal-note',{status:'delivered',sourceType:'internal_note',title:'First revision round completed for the Portfolio page',related:'Portfolio page'}],
       ['generic-other',{status:'delivered',sourceType:'other',title:'First revision round completed for the Portfolio page',related:'Portfolio page'}],
       ['meeting-note',{status:'delivered',sourceType:'meeting',title:'First revision round completed for the Portfolio page',related:'Portfolio page'}],
@@ -341,8 +343,8 @@ try{
     ];
     const unresolved=cases.map(([name,event])=>({name,result:window.bfLedgerRevisionUsage({revisionEvents:[event]},'Portfolio page',agreement)}));
     const duplicate=window.bfLedgerRevisionUsage({revisionEvents:[
-      {status:'delivered',sourceType:'email',title:'First revision round completed for the Portfolio page',related:'Portfolio page'},
-      {status:'delivered',sourceType:'email',title:'First revision round delivered for the Portfolio page',related:'Portfolio page'}
+      {status:'delivered',sourceType:'email',sourceDate:'2026-02-06',title:'First revision round completed for the Portfolio page',related:'Portfolio page'},
+      {status:'delivered',sourceType:'email',sourceDate:'2026-02-06',title:'First revision round delivered for the Portfolio page',related:'Portfolio page'}
     ]},'Portfolio page',agreement);
     return {unresolved,duplicate};
   });
@@ -351,6 +353,14 @@ try{
       x.result.historyUnknown===true&&x.result.unresolvedRoundEvents?.length===1&&
       x.result.unresolvedRoundEvents[0].unverifiedSource===true),
     JSON.stringify(revisionProvenanceChecks.unresolved));
+  const conflictingDuplicateDates=await page.evaluate(()=>window.bfLedgerRevisionUsage({revisionEvents:[
+    {status:'delivered',sourceType:'email',sourceDate:'2026-02-06',title:'First revision round completed for the Portfolio page',related:'Portfolio page'},
+    {status:'delivered',sourceType:'email',sourceDate:'2026-02-07',title:'First revision round delivered for the Portfolio page',related:'Portfolio page'}
+  ]},'Portfolio page','Each page includes up to 3 revision rounds.'));
+  check('Duplicate round records with conflicting dates make history unknown',
+    conflictingDuplicateDates.historyUnknown===true&&conflictingDuplicateDates.completed===null&&
+      conflictingDuplicateDates.remaining===null&&conflictingDuplicateDates.duplicateDateConflicts?.length===1,
+    JSON.stringify(conflictingDuplicateDates));
   check('Duplicate records for the same numbered page revision do not inflate usage',
     revisionProvenanceChecks.duplicate.completed===1&&revisionProvenanceChecks.duplicate.remaining===2&&
       revisionProvenanceChecks.duplicate.historyUnknown===false&&

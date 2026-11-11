@@ -694,7 +694,7 @@ try{
   const analysisIdentity=await page.evaluate(()=>{
     const a=document.getElementById('a'),r=document.getElementById('r'),p=document.getElementById('projectName');
     const before=[a.value,r.value,p.value],cacheSource=window.__bfAnalysisIdentitySource,cacheId=window.__bfAnalysisIdentityId;
-    p.value='Collision Test Project';
+    p.value='Project';
     a.value='SOW';r.value='request-46u1pzoj';
     const first=window.bfAnalysisId(),repeat=window.bfAnalysisId();
     r.value='request-6mqdtqjf';

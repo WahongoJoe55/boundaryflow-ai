@@ -134,6 +134,39 @@ try{
     ledgerNormalizationContract.reviewType==='amendment',
     JSON.stringify(ledgerNormalizationContract));
 
+  const hostileStorageContract=await page.evaluate(()=>{
+    const user=window.__bfUserId,project=document.getElementById('projectName'),priorProject=project.value;
+    window.__bfUserId='hostile-storage-test';
+    const identityKey=window.bfScopedKey('boundaryflow_project_ledger_identity_v1');
+    const aliasKey=window.bfScopedKey('boundaryflow_project_ledger_alias_v1');
+    const oldIdentity=localStorage.getItem(identityKey),oldAlias=localStorage.getItem(aliasKey);
+    try{
+      localStorage.setItem(identityKey,JSON.stringify({'__proto__':'forged-prototype','constructor':'forged-constructor','toString':'forged-string'}));
+      localStorage.setItem(aliasKey,JSON.stringify({'__proto__':'forged-alias','constructor':'forged-constructor-alias','toString':'forged-string-alias'}));
+      const identities=window.bfLedgerIdentityMap(),aliases=window.bfLedgerAliasMap();
+      const names=['__proto__','constructor','toString'];
+      const ids=names.map(name=>window.bfLedgerProjectId(name));
+      project.value='__proto__';
+      const display=window.bfLedgerDisplayName();
+      return {nullPrototype:Object.getPrototypeOf(identities)===null&&Object.getPrototypeOf(aliases)===null,
+        ownIdentityValues:names.every(name=>!Object.prototype.hasOwnProperty.call(identities,name)),
+        uniqueIds:new Set(ids).size===3&&ids.every(x=>typeof x==='string'&&x.startsWith('bfp-')),
+        displayNameNotForged:display==='__proto__',
+        historyCounts:['<img src=x onerror=alert(1)>','-1','1e9',null,7].map(x=>window.bfHistoryCount(x))};
+    }finally{
+      if(oldIdentity===null)localStorage.removeItem(identityKey);else localStorage.setItem(identityKey,oldIdentity);
+      if(oldAlias===null)localStorage.removeItem(aliasKey);else localStorage.setItem(aliasKey,oldAlias);
+      project.value=priorProject;window.__bfUserId=user;
+    }
+  });
+  check('Prototype-shaped project names cannot inherit forged ledger identities or aliases',
+    hostileStorageContract.nullPrototype&&hostileStorageContract.ownIdentityValues&&
+    hostileStorageContract.uniqueIds&&hostileStorageContract.displayNameNotForged,
+    JSON.stringify(hostileStorageContract));
+  check('Untrusted history counters are rendered as bounded plain numeric text',
+    JSON.stringify(hostileStorageContract.historyCounts)===JSON.stringify(['0','0','0','0','7']),
+    JSON.stringify(hostileStorageContract.historyCounts));
+
   const cloudIdempotencyContract=await page.evaluate(async()=>{
     const calls=[];
     const fakeClient={from(table){

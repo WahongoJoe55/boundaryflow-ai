@@ -3980,7 +3980,7 @@ function analyze(){
     // per-request conflict, not merely a hidden reasoning-panel flag.
     const requestTopics=bfR2Topics(item.resolved||item.original||'');
     const relevantConflicts=bfR2Contradictions(a).filter(hit=>requestTopics.includes(hit.topic));
-    if(relevantConflicts.length && c.status!=='Client claim'){
+    if(relevantConflicts.length && c.status!=='Client claim' && c.type!=='Conflicting spelling-correction scope wording'){
       const hit=relevantConflicts[0];
       c.type='Conflicting agreement references';
       c.status='Scope conflict'; c.confidence='Low'; c.risk='High';

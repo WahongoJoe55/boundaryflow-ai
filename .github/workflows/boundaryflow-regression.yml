@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - work/engine-regression-suite-v1
+      - work/production-readiness-hardening-v1
       - main
   pull_request:
     branches:

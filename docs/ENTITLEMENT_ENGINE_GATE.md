@@ -1,70 +1,59 @@
-# Monetisation engineering gate — entitlement boundary
+# BoundaryFlow monetisation engineering gate — entitlement boundary
 
-**Status: design and schema draft only. No production billing has been enabled.**
+**Status: partial server-side foundation committed for review; not deployed or connected to the application. No billing migration has been applied to staging or production.**
 
-## Critical finding from the current application
+## Current repository state
 
-The current `index.html` runs the reasoning engine in the browser: the Analyze button invokes the local `analyze()` function. Supabase is currently used for authentication and cloud persistence, not as the execution boundary for the reasoning engine.
+- The canonical application remains a single-page `index.html`.
+- The reasoning engine still runs locally in the browser through `analyze()`.
+- Supabase Auth and Postgres support identity and cloud persistence; browser-side plan checks cannot enforce paid analysis limits.
+- `supabase/functions/get-entitlement/index.ts` now provides a read-only entitlement endpoint. It validates the caller's Supabase JWT, derives the account ID from that identity, enforces an exact Origin allow-list, reads subscription and plan data server-side, and fails closed on ambiguous or missing state.
+- The entitlement endpoint is a candidate source file only. It is not deployed, not connected to the UI, and has not been tested against a real staging Supabase project.
+- Billing schema, atomic usage reservation, and reservation lease migrations are committed for review only. They have not been applied or executed against PostgreSQL.
+- CI currently runs static billing-contract checks plus isolated browser tests. Static checks are not database execution, concurrency, RLS, webhook, or payment-provider tests.
 
-This means a browser-side plan check, hidden button, localStorage counter, or subscription badge is bypassable. It cannot securely enforce paid analysis limits or protect Pro-only reasoning. The browser contains the engine code and can be modified by the user.
+## Non-negotiable enforcement boundary
 
-**Therefore:** do not represent a client-side entitlement check as payment protection. Before paid analysis limits are enforced, move the metered analysis execution behind a trusted server-side endpoint, or explicitly accept that the current local engine is a free/offline feature and charge only for server-backed services. The first option is preferred if analysis is the paid core value.
+The current browser-side `analyze()` function is bypassable. A hidden button, localStorage counter, subscription badge, or client-side entitlement response cannot protect paid analysis or Pro-only reasoning.
 
-## Repository findings
+**Do not charge for enforceable metered analysis until the analysis execution itself is moved behind a trusted server-side endpoint.** Alternatively, the current browser engine must remain explicitly free/offline and paid value must be delivered only by independently enforceable server-backed services.
 
-- The canonical app is a single-page `index.html`.
-- Supabase Auth and Postgres are accessed directly by the browser using a public publishable key.
-- The application calls `analyze()` locally from the Analyze button.
-- The repository currently has a Supabase migrations folder but no `supabase/functions` directory or deployed billing endpoint evidenced here.
-- Existing database tables reported in the live environment are `projects`, `agreements`, `analyses` and `profiles`.
-- Existing analysis idempotency migration is review-only and must not be applied as part of this billing work.
+## Implemented candidate foundation
 
-## Schema draft
+1. `get-entitlement`: read-only server-side subscription/plan lookup; no payment mutation.
+2. Billing schema migration: provider-neutral customers, subscriptions, payments, webhook inbox and usage records.
+3. Atomic usage reservation/finalization RPCs: service-role-only, per-account locking, idempotency binding and quota checks.
+4. Reservation lease: 15-minute expiry and release of stale reservations on the next reservation attempt.
 
-The adjacent migration `20261111000200_billing_foundation.sql` creates:
-- `plan_catalog`: versioned prices and entitlement JSON.
-- `billing_customers`: user mapping, no payment credentials.
-- `billing_subscriptions`: provider, plan version, status and billing period.
-- `billing_payments`: expected amount/currency, checkout reference and provider transaction ID.
-- `billing_webhook_events`: deduplicated provider event inbox.
-- `usage_events`: unique per-user idempotency key and metered analysis record.
+These components are design/code foundations, not a live monetisation system.
 
-RLS allows users to read only active public plans and their own subscription/payment/usage summaries. Client roles have no write access to billing state. Provider event inbox and customer mapping are not client-readable.
+## Required implementation before paid analysis
 
-The migration deliberately does not seed prices, insert subscriptions, activate accounts, or create provider credentials. It is a review/staging migration only.
+1. **Staging database validation:** apply migrations only to an isolated Supabase staging project after schema, grants, indexes, constraints and rollback review.
+2. **Entitlement endpoint tests:** exact CORS origin checks; missing/invalid/revoked JWT; account isolation; no subscription; one valid subscription; duplicate active subscriptions; expired periods; inactive plan; database outage; no sensitive fields in responses.
+3. **Reservation runtime tests:** role grants, invalid quota, idempotent retry, mismatched idempotency key, concurrent quota boundary, completion/release, lease expiry, abandoned reservations and annual-period behaviour.
+4. **Trusted analysis endpoint:** validate JWT, derive user ID from validated identity, check entitlement, reserve usage, run the reasoning engine server-side, then finalize or release usage. Never accept user ID, plan, quota or subscription state from the browser.
+5. **Engine parity:** run the existing 133-case reasoning suite against the server execution path and compare deterministic outputs with the browser baseline before switching any user traffic.
+6. **Failure handling:** timeouts, retries, cancellation, duplicate requests, server crash after reservation, bounded cleanup/reaper, rate limits and safe error responses.
+7. **Free-tier policy:** define a server-owned free entitlement path if free users can use server analysis. Do not create an unmetered bypass accidentally.
+8. **Privacy and operations:** data minimisation, retention, logging without client agreement text or tokens, monitoring, backup/restore and incident response.
 
-## Required server-side functions (not yet implemented)
+## Payment integration boundary
 
-1. `create-checkout`: authenticate user; load active server-owned plan; create checkout reference; call provider from server secret; persist pending payment; return only safe checkout instructions.
-2. `mpesa-callback`: validate callback shape and merchant configuration; reconcile checkout reference, expected amount/currency, account reference and provider result; persist idempotently.
-3. `paypal-webhook`: verify signature using PayPal's verification API; deduplicate event ID; reconcile resource/subscription/amount/currency; process out-of-order events safely.
-4. `get-entitlement`: derive plan and usage from trusted rows; never accept plan/status from client.
-5. `reserve-analysis-usage`: atomic reservation keyed by user + idempotency key; enforce active subscription and plan quota; avoid double counting on retry.
-6. `complete-analysis` / `release-analysis-reservation`: commit or release reserved units after the server-side engine completes or fails.
-7. `analysis`: execute the reasoning engine behind authentication and entitlement checks. This is required for enforceable paid analysis limits; a client-side engine cannot be secured by a browser check.
+Merchant credentials and provider onboarding are intentionally user-controlled and must be entered directly into the relevant provider dashboard or secret manager during the private setup walkthrough. Do not request credentials in chat, commit them to GitHub, put them in `index.html`, or expose them to browser storage.
 
-All provider secrets must be stored in Supabase Edge Function secrets or an equivalent secret manager. Never commit secrets or expose service-role keys in the browser.
+Still required before accepting money:
+- authenticated server-side checkout creation;
+- M-Pesa callback authenticity and transaction reconciliation;
+- PayPal webhook signature verification;
+- event and transaction idempotency;
+- reconciliation of account, plan, expected amount, currency and provider result;
+- pending, paid, failed, expired, refunded, reversed and out-of-order event handling;
+- cancellation, renewal, grace period, downgrade and refund behaviour;
+- test-mode end-to-end checks using merchant-owned test credentials.
 
-## Migration review checklist
+A browser redirect, receipt screenshot, STK prompt, or client-supplied payment status must never activate a subscription.
 
-Before applying the migration to an isolated staging project:
-- Export current schema and inspect extensions, grants, RLS defaults and naming conflicts.
-- Confirm `auth.users` FK and UUID conventions.
-- Verify supported PostgreSQL version and Supabase role grants.
-- Check migration transaction behavior and rollback strategy.
-- Confirm plan-catalog composite foreign keys and indexes.
-- Test RLS as anon, Account A, Account B and service role.
-- Test duplicate provider event IDs, duplicate transaction IDs and duplicate usage idempotency keys.
-- Verify client cannot INSERT/UPDATE/DELETE subscription, payment, webhook or usage rows through PostgREST.
-- Do not apply to production until independent review and explicit approval.
+## Acceptance decision
 
-## Monetization acceptance gate
-
-- Analysis execution is server-authoritative if analysis quotas/features are paywalled.
-- Subscription activation occurs only after verified provider evidence.
-- M-Pesa and PayPal events are signature/authenticity checked and idempotent.
-- Amount, currency, user, plan and checkout reference are reconciled server-side.
-- Failed, refunded, reversed, expired and out-of-order events cannot leave paid access incorrectly active.
-- Usage reservation is atomic and retry-safe.
-- Cancellation, downgrade, grace period, account deletion and refunds have tested behaviour.
-- Free and paid customer journeys pass in staging.
+The candidate is **not production-ready for paid analysis or payment collection**. The next engineering gate is isolated staging validation and a trusted server-side analysis path. Keep public registration and billing disabled until the relevant privacy, legal, security and operational gates are approved.

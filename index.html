@@ -1,4 +1,6 @@
- <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><script>
+ <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; upgrade-insecure-requests"><script>
 (function(){
   // Read the saved workspace theme before first paint so the session-restoration
   // screen matches the user's current workspace theme. Signed-out auth screens
@@ -13,8 +15,12 @@
     try{
       var bfOriginalSetItem=Storage.prototype.setItem;
       var bfOriginalRemoveItem=Storage.prototype.removeItem;
-      Storage.prototype.setItem=function(key,value){var k=String(key);if(k.indexOf('boundaryflow_project_ledger_v1_')===0||(k.indexOf('boundaryflow_project_ledger_identity_v1__')===0||k.indexOf('boundaryflow_project_ledger_alias_v1__')===0))return bfOriginalSetItem.call(this,key,value);};
-      Storage.prototype.removeItem=function(key){var k=String(key);if(k.indexOf('boundaryflow_project_ledger_v1_')===0||k.indexOf('boundaryflow_project_ledger_identity_v1__')===0)return bfOriginalRemoveItem.call(this,key);};
+      // The ledger now writes collision-safe v2 keys. Keep both v1 and v2
+      // namespaces available in the isolated test sandbox so migration and
+      // current-ledger tests exercise the real Storage API rather than a
+      // silently discarded write.
+      Storage.prototype.setItem=function(key,value){var k=String(key);if(k.indexOf('boundaryflow_project_ledger_v1_')===0||k.indexOf('boundaryflow_project_ledger_v2_')===0||k.indexOf('boundaryflow_project_ledger_identity_v1__')===0||k.indexOf('boundaryflow_project_ledger_alias_v1__')===0)return bfOriginalSetItem.call(this,key,value);};
+      Storage.prototype.removeItem=function(key){var k=String(key);if(k.indexOf('boundaryflow_project_ledger_v1_')===0||k.indexOf('boundaryflow_project_ledger_v2_')===0||k.indexOf('boundaryflow_project_ledger_identity_v1__')===0||k.indexOf('boundaryflow_project_ledger_alias_v1__')===0)return bfOriginalRemoveItem.call(this,key);};
       Storage.prototype.clear=function(){};
     }catch(e){}
   }
@@ -227,7 +233,7 @@ body.dark.bf-authenticated #bfCloudCard #bfCloudStatus.pending{background:#48272
       <div id="bfSignedOutControls"><div class="grid" style="grid-template-columns:1fr 1fr;gap:10px">
         <label style="font-size:12px;font-weight:700">Email address<input id="bfAuthEmail" type="email" autocomplete="email" placeholder="you@example.com" style="display:block;width:100%;margin-top:5px;padding:10px;border:1px solid #ccd5e1;border-radius:8px"></label>
         <label style="font-size:12px;font-weight:700">Password<input id="bfAuthPassword" type="password" autocomplete="current-password" minlength="6" placeholder="Enter your password" style="display:block;width:100%;margin-top:5px;padding:10px;border:1px solid #ccd5e1;border-radius:8px"></label>
-      </div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn accent" id="bfSignInBtn" type="button">Sign in</button><button class="btn secondary" id="bfSignUpBtn" type="button">Create account</button><button class="btn secondary" id="bfShowForgotBtn" type="button">Forgot password?</button></div><label id="bfTermsConsentWrap" style="display:flex;align-items:flex-start;gap:9px;margin-top:13px;padding:11px 12px;border:1px solid #dce4ef;border-radius:10px;font-size:12px;line-height:1.55;color:#52637a"><input id="bfTermsConsent" type="checkbox" style="margin-top:3px;flex:0 0 auto"><span>I have read and agree to the <a href="#bfTermsPanel" data-bf-policy="terms">Terms of Service</a> and acknowledge the <a href="#bfPrivacyPanel" data-bf-policy="privacy">Privacy Notice</a>. Required to create an account.</span></label></div>
+      </div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn accent" id="bfSignInBtn" type="button">Sign in</button><button class="btn secondary" id="bfSignUpBtn" type="button" disabled aria-disabled="true" title="New registrations are paused pending final legal and privacy approval">Sign-up paused</button><button class="btn secondary" id="bfShowForgotBtn" type="button">Forgot password?</button></div><label id="bfTermsConsentWrap" style="display:flex;align-items:flex-start;gap:9px;margin-top:13px;padding:11px 12px;border:1px solid #dce4ef;border-radius:10px;font-size:12px;line-height:1.55;color:#52637a"><input id="bfTermsConsent" type="checkbox" style="margin-top:3px;flex:0 0 auto"><span>I have read and agree to the <a href="#bfTermsPanel" data-bf-policy="terms">Terms of Service</a> and acknowledge the <a href="#bfPrivacyPanel" data-bf-policy="privacy">Privacy Notice</a>. Required to create an account.</span></label></div>
       <div id="bfForgotEmailPanel" style="display:none;margin-top:8px;padding:14px;border:1px solid #dce7f5;border-radius:12px;background:#f8fbff">
         <h3 style="margin:0 0 7px;font-size:16px;color:#152747">Forgot your password?</h3>
         <p style="margin:0 0 12px;font-size:12px;line-height:1.6;color:#65758b">Enter the email address you used to create your BoundaryFlow account. We’ll send a secure password-reset link to that inbox.</p>
@@ -3304,7 +3310,7 @@ function bfR2TopicMap(){
   ['source files',/\bsource files?\b|\beditable working files?\b/],
   ['content sections',/\bcontent sections?\b|\btestimonial sections?\b/],
   ['minor edits',/\bminor\s+(?:(?:content|visual)\s+)?edits?\b|\bminor changes? to existing pages\b/],
-  ['spelling corrections',/\bspelling corrections?\b/],
+  ['spelling corrections',/\bspelling\s+(?:corrections?|mistakes?|errors?)\b|\bcorrect(?:ing)?\s+spelling\b/],
   ['workshops',/\bworkshops?\b|\bstrategy sessions?\b/],
   ['customer portal',/\bcustomer portals?\b|\bclient portals?\b|\border history\b|\binvoice downloads?\b/],
   ['analytics and reporting',/\banalytics?\b|\breporting dashboards?\b|\bperformance reports?\b/],
@@ -3974,7 +3980,7 @@ function analyze(){
     // per-request conflict, not merely a hidden reasoning-panel flag.
     const requestTopics=bfR2Topics(item.resolved||item.original||'');
     const relevantConflicts=bfR2Contradictions(a).filter(hit=>requestTopics.includes(hit.topic));
-    if(relevantConflicts.length && c.status!=='Client claim'){
+    if(relevantConflicts.length && c.status!=='Client claim' && c.type!=='Conflicting spelling-correction scope wording'){
       const hit=relevantConflicts[0];
       c.type='Conflicting agreement references';
       c.status='Scope conflict'; c.confidence='Low'; c.risk='High';
@@ -4328,13 +4334,68 @@ document.addEventListener('change',e=>{if(e.target&&e.target.id==='responseStyle
 
 function bfLedgerProjectName(){return String(document.getElementById('projectName')?.value||'').trim()}
 function bfLedgerProjectIdentityName(value){return String(value||'').normalize('NFKC').trim().replace(/\s+/g,' ').toLocaleLowerCase()}
-function bfLedgerIdentityMap(){try{const v=JSON.parse(localStorage.getItem(bfScopedKey('boundaryflow_project_ledger_identity_v1'))||'{}');return v&&typeof v==='object'&&!Array.isArray(v)?v:{}}catch(e){return{}}}
-function bfLedgerAliasMap(){try{const v=JSON.parse(localStorage.getItem(bfScopedKey('boundaryflow_project_ledger_alias_v1'))||'{}');return v&&typeof v==='object'&&!Array.isArray(v)?v:{}}catch(e){return{}}}
-function bfLedgerProjectId(name){const identity=bfLedgerProjectIdentityName(name);if(!identity||!window.__bfUserId)return null;const map=bfLedgerIdentityMap();if(map[identity])return map[identity];const id='bfp-'+(window.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+'-'+Math.random().toString(36).slice(2));map[identity]=id;localStorage.setItem(bfScopedKey('boundaryflow_project_ledger_identity_v1'),JSON.stringify(map));return id}
-function bfLedgerDisplayName(){const name=bfLedgerProjectName();if(!name)return'';const alias=bfLedgerAliasMap()[bfLedgerProjectIdentityName(name)];return typeof alias==='string'&&alias.trim()?alias:name}
-function bfLedgerKeyForName(name){return name?bfScopedKey('boundaryflow_project_ledger_v1_'+bfHash(name.toLocaleLowerCase())):null}
+function bfLedgerSafeMap(key){
+ try{
+  const value=JSON.parse(localStorage.getItem(bfScopedKey(key))||'{}');
+  if(!value||typeof value!=='object'||Array.isArray(value))return Object.create(null);
+  // Null-prototype maps prevent project names such as "__proto__", "constructor"
+  // and "toString" from resolving inherited object properties as stored IDs/aliases.
+  const safe=Object.create(null);
+  Object.keys(value).forEach(k=>{safe[k]=value[k]});
+  return safe;
+ }catch(e){return Object.create(null)}
+}
+function bfLedgerIdentityMap(){return bfLedgerSafeMap('boundaryflow_project_ledger_identity_v1')}
+function bfLedgerAliasMap(){return bfLedgerSafeMap('boundaryflow_project_ledger_alias_v1')}
+function bfLedgerProjectId(name){
+ const identity=bfLedgerProjectIdentityName(name);
+ if(!identity||!window.__bfUserId)return null;
+ const map=bfLedgerIdentityMap();
+ if(Object.prototype.hasOwnProperty.call(map,identity)&&typeof map[identity]==='string'&&/^bfp-[a-z0-9-]{10,80}$/i.test(map[identity]))return map[identity];
+ const id='bfp-'+(window.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+'-'+Math.random().toString(36).slice(2));
+ map[identity]=id;
+ localStorage.setItem(bfScopedKey('boundaryflow_project_ledger_identity_v1'),JSON.stringify(map));
+ return id;
+}
+function bfLedgerDisplayName(){
+ const name=bfLedgerProjectName();if(!name)return'';
+ const aliases=bfLedgerAliasMap(),identity=bfLedgerProjectIdentityName(name);
+ const alias=Object.prototype.hasOwnProperty.call(aliases,identity)?aliases[identity]:null;
+ return typeof alias==='string'&&alias.trim()?alias:name;
+}
+function bfLedgerLegacyKeyForName(name){return name?bfScopedKey('boundaryflow_project_ledger_v1_'+bfHash(String(name).toLocaleLowerCase())):null}
+function bfLedgerKeyForName(name){const identity=bfLedgerProjectIdentityName(name);return identity?bfScopedKey('boundaryflow_project_ledger_v2_'+Array.from(identity,ch=>ch.codePointAt(0).toString(16)).join('-')):null}
 function bfLedgerKey(){return bfLedgerKeyForName(bfLedgerDisplayName())}
-function bfLedgerRead(){const key=bfLedgerKey();if(!key||!window.__bfUserId)return[];try{const v=JSON.parse(localStorage.getItem(key)||'[]');if(!Array.isArray(v))return[];const id=bfLedgerProjectId(bfLedgerProjectName());let changed=false;v.forEach(x=>{if(x&&x.projectIdentity!==id){x.projectIdentity=id;changed=true}});if(changed)localStorage.setItem(key,JSON.stringify(v));return v}catch(e){return[]}}
+function bfLedgerRead(){
+ const key=bfLedgerKey(),projectName=bfLedgerProjectName(),displayName=bfLedgerDisplayName();
+ if(!key||!window.__bfUserId)return[];
+ try{
+  let raw=localStorage.getItem(key),v;
+  if(raw===null){
+   const legacyKey=bfLedgerLegacyKeyForName(displayName),legacyRaw=legacyKey?localStorage.getItem(legacyKey):null;
+   if(legacyRaw===null)return[];
+   const legacy=JSON.parse(legacyRaw);
+   if(!Array.isArray(legacy))throw new Error('Legacy ledger is malformed; it was preserved without migration.');
+   const projectIdentity=bfLedgerProjectIdentityName(projectName),displayIdentity=bfLedgerProjectIdentityName(displayName);
+   const matches=legacy.filter(x=>x&&typeof x==='object'&&!Array.isArray(x)&&
+    (bfLedgerProjectIdentityName(x.projectName)===projectIdentity||bfLedgerProjectIdentityName(x.ledgerName)===displayIdentity));
+   const ambiguous=legacy.some(x=>!x||typeof x!=='object'||Array.isArray(x)||
+    (!x.projectName&&!x.ledgerName));
+   if(ambiguous){const status=document.getElementById('bfLedgerStatus');if(status)status.textContent='Some legacy ledger entries lack project identity. They have been preserved and were not automatically assigned.';}
+   if(!matches.length)return[];
+   localStorage.setItem(key,JSON.stringify(matches));
+   const verified=JSON.parse(localStorage.getItem(key)||'null');
+   if(!Array.isArray(verified)||verified.length!==matches.length)throw new Error('Legacy ledger migration could not be verified.');
+   if(!ambiguous&&matches.length===legacy.length)localStorage.removeItem(legacyKey);
+   v=verified;
+  }else v=JSON.parse(raw);
+  if(!Array.isArray(v))return[];
+  const id=bfLedgerProjectId(projectName);let changed=false;
+  v.forEach(x=>{if(x&&x.projectIdentity!==id){x.projectIdentity=id;changed=true}});
+  if(changed)localStorage.setItem(key,JSON.stringify(v));
+  return v;
+ }catch(e){const status=document.getElementById('bfLedgerStatus');if(status)status.textContent='Ledger read/migration stopped safely: '+(e.message||'storage error');return[]}
+}
 function bfLedgerRename(){
  const oldName=bfLedgerProjectName(),oldLedgerName=bfLedgerDisplayName(),status=document.getElementById('bfLedgerStatus');
  if(!window.__bfUserId||!oldName){if(status)status.textContent='Sign in and enter the current cloud project name before renaming its local ledger.';return false}
@@ -4342,6 +4403,7 @@ function bfLedgerRename(){
  if(proposed===null)return false;const newName=String(proposed).trim();
  if(!newName||newName.length>80){if(status)status.textContent='Enter a new ledger display name between 1 and 80 characters.';return false}
  if(bfLedgerProjectIdentityName(newName)===bfLedgerProjectIdentityName(oldLedgerName)){if(status)status.textContent='The new ledger name is equivalent to its current display name. No change was made.';return false}
+ bfLedgerRead(); // migrate an eligible legacy key before moving the ledger to its new display name
  const oldKey=bfLedgerKeyForName(oldLedgerName),newKey=bfLedgerKeyForName(newName),mapKey=bfScopedKey('boundaryflow_project_ledger_identity_v1'),aliasKey=bfScopedKey('boundaryflow_project_ledger_alias_v1');
  let oldRaw=null,newRaw=null,mapRaw=null,aliasRaw=null;
  try{
@@ -4594,12 +4656,51 @@ function bfLedgerExport(){
 function bfScopedKey(k){return k+'__'+(window.__bfUserId||'signed_out');}
 function bfHistory(){if(!window.__bfUserId)return[];try{return JSON.parse(localStorage.getItem(bfScopedKey('boundaryflow_history_v1'))||'[]')}catch(e){return[]}}
 function bfHash(v){let h=2166136261;for(let i=0;i<v.length;i++){h^=v.charCodeAt(i);h=Math.imul(h,16777619)}return ('00000000'+(h>>>0).toString(16)).slice(-8)}
-function bfAnalysisId(){const a=document.getElementById('a')?.value||'',r=document.getElementById('r')?.value||'',n=document.getElementById('projectName')?.value.trim()||'';return 'bf-'+bfHash(a+'\n---\n'+r+'\n---\n'+n)}
+function bfNewAnalysisId(){
+  if(window.crypto&&typeof window.crypto.randomUUID==='function')return 'bf-'+window.crypto.randomUUID();
+  if(window.crypto&&typeof window.crypto.getRandomValues==='function'){
+    const bytes=new Uint8Array(16);window.crypto.getRandomValues(bytes);
+    return 'bf-'+Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
+  }
+  return 'bf-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)+'-'+Math.random().toString(36).slice(2);
+}
+function bfAnalysisId(){
+  const a=document.getElementById('a')?.value||'';
+  const r=document.getElementById('r')?.value||'';
+  const n=document.getElementById('projectName')?.value.trim()||'Untitled analysis';
+  const source=JSON.stringify([a,r,n]);
+  if(window.__bfAnalysisIdentitySource===source&&window.__bfAnalysisIdentityId)return window.__bfAnalysisIdentityId;
+  // Preserve the existing ID when reopening the exact same saved analysis.
+  // New/different analyses receive an independent random identifier rather
+  // than a short content hash that can collide with unrelated work.
+  const existing=bfHistory().find(x=>x&&x.scope===a&&x.request===r&&x.name===n&&typeof x.id==='string'&&x.id);
+  const id=existing?existing.id:bfNewAnalysisId();
+  window.__bfAnalysisIdentitySource=source;
+  window.__bfAnalysisIdentityId=id;
+  return id;
+}
 function bfCounts(rows){const counts={included:0,clarify:0,additional:0,claim:0};(rows||[]).forEach(r=>{const st=(r.c&&r.c.status||'').toLowerCase();if(st.includes('included'))counts.included++;else if(st.includes('clarify')||st.includes('conflict'))counts.clarify++;else if(st.includes('additional'))counts.additional++;else if(st.includes('claim'))counts.claim++});return counts}
-function bfNormalizeHistory(h){const out=[];const seen=new Set();for(const x of (Array.isArray(h)?h:[])){if(!x)continue;if(!x.id)x.id=bfHash((x.scope||'')+'\n---\n'+(x.request||'')+'\n---\n'+(x.name||''));if(seen.has(x.id))continue;seen.add(x.id);out.push(x)}return out.slice(0,20)}
+function bfNormalizeHistory(h){const out=[];const seen=new Set();for(const x of (Array.isArray(h)?h:[])){if(!x||typeof x!=='object'||Array.isArray(x))continue;if(typeof x.id!=='string'||!x.id.trim())x.id=bfNewAnalysisId();if(seen.has(x.id))continue;seen.add(x.id);out.push(x)}return out.slice(0,20)}
 function bfWriteHistory(h){if(!window.__bfUserId)return;localStorage.setItem(bfScopedKey('boundaryflow_history_v1'),JSON.stringify(bfNormalizeHistory(h)))}
 function showToast(msg){const t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.classList.add('show');clearTimeout(window.__bfToast);window.__bfToast=setTimeout(()=>t.classList.remove('show'),2600)}
-function renderHistory(){const list=document.getElementById('historyList');const h=bfNormalizeHistory(bfHistory());try{bfWriteHistory(h)}catch(e){}if(!h.length){list.innerHTML='<div class="history-empty">No saved analyses yet. Analyses are auto-saved locally after you run them.</div>';return}list.innerHTML=h.map((x,i)=>{const m=x.metrics||{};const tone=x.tone==='warm'?'Warm & collaborative':x.tone==='firm'?'Clear & firm':'Professional';const ts=x.taskStatus==='completed'?'completed':x.taskStatus==='pending'?'pending':'progress';const tl=x.taskStatus==='completed'?'Completed / Closed':x.taskStatus==='pending'?'Pending':'In Progress';const auto=x.autoSaved?' · Auto-saved':'';return '<div class="history-item" data-history-item="'+i+'"><div class="history-open" data-history="'+i+'"><b>'+esc(x.name||'Untitled analysis')+'</b><div class="history-meta"><span class="status-badge '+ts+'">'+tl+'</span> · '+esc(x.date||x.updatedAt||'')+' · '+x.count+' requests · '+esc(tone)+esc(auto)+'</div><div class="history-meta">'+(m.included||0)+' included · '+(m.clarify||0)+' clarify · '+(m.additional||0)+' additional · '+(m.claim||0)+' claims</div></div><div class="history-actions"><button class="btn secondary history-open" data-history="'+i+'" type="button">Open analysis</button><button class="btn secondary history-delete is-hidden" data-delete-history="'+i+'" type="button">Delete</button></div></div>'}).join('')}
+function bfHistoryCount(value){
+ const n=typeof value==='number'?value:(typeof value==='string'&&/^\d{1,7}$/.test(value)?Number(value):NaN);
+ return Number.isSafeInteger(n)&&n>=0?String(Math.min(n,1000000)):'0';
+}
+function renderHistory(){
+ const list=document.getElementById('historyList');
+ const h=bfNormalizeHistory(bfHistory());
+ try{bfWriteHistory(h)}catch(e){}
+ if(!h.length){list.innerHTML='<div class="history-empty">No saved analyses yet. Analyses are auto-saved locally after you run them.</div>';return}
+ list.innerHTML=h.map((x,i)=>{
+  const m=x.metrics&&typeof x.metrics==='object'&&!Array.isArray(x.metrics)?x.metrics:{};
+  const tone=x.tone==='warm'?'Warm & collaborative':x.tone==='firm'?'Clear & firm':'Professional';
+  const ts=x.taskStatus==='completed'?'completed':x.taskStatus==='pending'?'pending':'progress';
+  const tl=x.taskStatus==='completed'?'Completed / Closed':x.taskStatus==='pending'?'Pending':'In Progress';
+  const auto=x.autoSaved?' · Auto-saved':'';
+  return '<div class="history-item" data-history-item="'+i+'"><div class="history-open" data-history="'+i+'"><b>'+esc(x.name||'Untitled analysis')+'</b><div class="history-meta"><span class="status-badge '+ts+'">'+tl+'</span> · '+esc(x.date||x.updatedAt||'')+' · '+bfHistoryCount(x.count)+' requests · '+esc(tone)+esc(auto)+'</div><div class="history-meta">'+bfHistoryCount(m.included)+' included · '+bfHistoryCount(m.clarify)+' clarify · '+bfHistoryCount(m.additional)+' additional · '+bfHistoryCount(m.claim)+' claims</div></div><div class="history-actions"><button class="btn secondary history-open" data-history="'+i+'" type="button">Open analysis</button><button class="btn secondary history-delete is-hidden" data-delete-history="'+i+'" type="button">Delete</button></div></div>';
+ }).join('');
+}
 function openHistory(){renderHistory();const d=document.getElementById('historyDrawer');d.classList.add('open');d.setAttribute('aria-hidden','false')}
 function closeHistory(){const d=document.getElementById('historyDrawer');d.classList.remove('open');d.setAttribute('aria-hidden','true')}
 function bfCurrentItem(){if(!window.rows||!window.rows.length)return null;return {id:bfAnalysisId(),name:document.getElementById('projectName')?.value.trim()||'Untitled analysis',date:new Date().toLocaleString(),updatedAt:new Date().toLocaleString(),count:window.rows.filter(x=>String(x.c&&x.c.status||'').toLowerCase()!=='client claim').length,tone:document.getElementById('responseStyle')?.value||'professional',engineVersion:'1.2.81-v89-ledger-context',taskStatus:document.getElementById('taskStatus')?.value||'in_progress',metrics:bfCounts(window.rows),scope:document.getElementById('a').value,request:document.getElementById('r').value,rows:window.rows,autoSaved:true}}
@@ -4805,7 +4906,14 @@ async function bfCloudDeleteQueuedRow(client,userId,id){
   ['pointerdown','keydown','touchstart','scroll','input'].forEach(type=>document.addEventListener(type,event=>{if(bfIdleUserId){bfIdleTouch(false);if(bfIdleWarningShown&&!(event.target&&event.target.closest&&event.target.closest('#bfIdleDialog')))bfIdleHideWarning();}},{passive:true,capture:true}));
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')bfIdleCheck()});
   window.addEventListener('storage',e=>{if(bfIdleUserId&&e.key===bfIdleKey(bfIdleUserId))bfIdleCheck()});
-  function clearLocalDeviceData(){if(!cloud.user){message('Sign in before clearing account-specific local data.');return;}if(cloud.syncing||cloud.pending.size){message('Wait for the current cloud sync/save to finish before clearing local data.');return;}const ok=window.confirm('Clear this account’s local BoundaryFlow workspace from this browser?\n\nThis removes this account’s local History, autosaves, drafts, project/agreement links, project evidence ledgers and the current workspace fields. Cloud records are not deleted. Unsynced work will be lost. Your sign-in session, theme preference and pending cloud-deletion instructions are kept.');if(!ok)return;const uid=cloud.user.id;['boundaryflow_history_v1','boundaryflow_autosave_v1','boundaryflow_draft_v1'].forEach(k=>{try{localStorage.removeItem(k+'__'+uid)}catch(e){}});try{for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&((k.startsWith('boundaryflow_project_ledger_v1_'))||(k===('boundaryflow_project_ledger_identity_v1__'+uid))||(k===('boundaryflow_project_ledger_alias_v1__'+uid)))&&k.endsWith('__'+uid))localStorage.removeItem(k)}}catch(e){}[PROJECT_MAP_KEY,AGREEMENT_MAP_KEY].forEach(k=>{const map=parseMap(k);Object.keys(map).forEach(key=>{if(key.startsWith(uid+'|'))delete map[key]});setMap(k,map)});['projectName','a','r'].forEach(id=>{const el=$(id);if(el)el.value=''});const out=$('out');if(out)out.innerHTML='';window.rows=[];const st=$('status');if(st)st.textContent='Local data cleared from this browser. Cloud-saved records remain in your account.';renderHistory();if(typeof bfLedgerRender==='function')bfLedgerRender();message('Local workspace data for this account was cleared from this browser. Cloud records, sign-in settings, theme preference and pending cloud-deletion instructions were not deleted.');}
+  function bfClearLocalLedgerKeys(uid){
+    if(!uid)return 0;
+    let removed=0;
+    try{for(let i=localStorage.length-1;i>=0;i--){const key=localStorage.key(i);const owned=key&&key.endsWith('__'+uid);const ledger=key&&(key.startsWith('boundaryflow_project_ledger_v1_')||key.startsWith('boundaryflow_project_ledger_v2_'));const maps=key===('boundaryflow_project_ledger_identity_v1__'+uid)||key===('boundaryflow_project_ledger_alias_v1__'+uid);if(owned&&(ledger||maps)){localStorage.removeItem(key);removed++}}}catch(e){}
+    return removed;
+  }
+  window.bfClearLocalLedgerKeys=bfClearLocalLedgerKeys;
+  function clearLocalDeviceData(){if(!cloud.user){message('Sign in before clearing account-specific local data.');return;}if(cloud.syncing||cloud.pending.size){message('Wait for the current cloud sync/save to finish before clearing local data.');return;}const ok=window.confirm('Clear this account’s local BoundaryFlow workspace from this browser?\n\nThis removes this account’s local History, autosaves, drafts, project/agreement links, project evidence ledgers and the current workspace fields. Cloud records are not deleted. Unsynced work will be lost. Your sign-in session, theme preference and pending cloud-deletion instructions are kept.');if(!ok)return;const uid=cloud.user.id;['boundaryflow_history_v1','boundaryflow_autosave_v1','boundaryflow_draft_v1'].forEach(k=>{try{localStorage.removeItem(k+'__'+uid)}catch(e){}});bfClearLocalLedgerKeys(uid);[PROJECT_MAP_KEY,AGREEMENT_MAP_KEY].forEach(k=>{const map=parseMap(k);Object.keys(map).forEach(key=>{if(key.startsWith(uid+'|'))delete map[key]});setMap(k,map)});['projectName','a','r'].forEach(id=>{const el=$(id);if(el)el.value=''});const out=$('out');if(out)out.innerHTML='';window.rows=[];const st=$('status');if(st)st.textContent='Local data cleared from this browser. Cloud-saved records remain in your account.';renderHistory();if(typeof bfLedgerRender==='function')bfLedgerRender();message('Local workspace data for this account was cleared from this browser. Cloud records, sign-in settings, theme preference and pending cloud-deletion instructions were not deleted.');}
   function setCloudUser(user){
     const previousId=window.__bfUserId||null;cloud.user=user||null;const signed=!!cloud.user;const nextId=signed?cloud.user.id:null;
     window.__bfUserId=nextId;document.body.classList.toggle('bf-authenticated',signed);bfIdleStart(nextId);
@@ -4865,7 +4973,7 @@ async function bfCloudDeleteQueuedRow(client,userId,id){
     if(!id){const inserted=await client.from('agreements').insert({user_id:user.id,project_id:projectId,title:'Agreed scope',content:scope}).select('id').single();if(inserted.error)throw inserted.error;id=inserted.data.id}
     map[mapKey]=id;setMap(AGREEMENT_MAP_KEY,map);return id;
   }
-  async function saveItem(item){
+  async function saveItemUnlocked(item){
     const client=requireClient(),user=requireUser();
     if(!item||!item.scope||!item.request)return null;
     const stillInLocalHistory=()=>bfCloudHasLocalItem(bfHistory(),item.id);
@@ -4908,6 +5016,25 @@ async function bfCloudDeleteQueuedRow(client,userId,id){
       if(draft&&draft.id===item.id)localStorage.setItem(bfScopedKey('boundaryflow_autosave_v1'),JSON.stringify(Object.assign({},draft,{cloudAnalysisId:cloudId,cloudProjectId:projectId,cloudAgreementId:agreementId,cloudSyncedAt})));
     }catch(e){}
     return syncedItem;
+  }
+  async function bfWithAnalysisSaveLock(userId,analysisId,callback){
+    const lockName='boundaryflow-analysis-save:'+userId+':'+analysisId;
+    if(typeof navigator!=='undefined'&&navigator.locks&&typeof navigator.locks.request==='function'){
+      return navigator.locks.request(lockName,{mode:'exclusive'},callback);
+    }
+    return callback();
+  }
+  window.bfWithAnalysisSaveLock=bfWithAnalysisSaveLock;
+  async function saveItem(item){
+    if(!item||!item.id)return saveItemUnlocked(item);
+    const user=requireUser();
+    return bfWithAnalysisSaveLock(user.id,item.id,async()=>{
+      // Re-read the freshest same-origin History value after acquiring the lock.
+      // This serializes writes for the same analysis across tabs in browsers that
+      // implement Web Locks; database uniqueness is still required across devices.
+      const latest=bfHistory().find(x=>x&&x.id===item.id);
+      return saveItemUnlocked(latest||item);
+    });
   }
   function queueSave(item){if(!cloud.client||!cloud.user||!item)return Promise.resolve();const id=item.id||'current';const prior=cloud.pending.get(id)||Promise.resolve();const task=prior.catch(()=>{}).then(()=>{const latest=bfHistory().find(x=>x&&x.id===id);if(!latest)return null;return saveItem(latest)});cloud.pending.set(id,task);task.then(saved=>{if(!saved)return;status('Synced','completed');message('✓ Project, agreed scope and analysis saved to Supabase. Local autosave remains available.');}).catch(e=>cloudError(e,'Cloud save failed; your local copy is safe')).finally(()=>{if(cloud.pending.get(id)===task)cloud.pending.delete(id)});return task;}
   async function deleteQueuedRemote(){
@@ -4980,7 +5107,8 @@ async function bfCloudDeleteQueuedRow(client,userId,id){
     try{if(window.turnstile&&bfTurnstileWidgetId!==null)window.turnstile.reset(bfTurnstileWidgetId);}catch(e){}
   }
   async function signIn(){if(!cloud.client){status('Unavailable','pending');message('Sign-in is temporarily unavailable. Please try again later.');return;}let captchaToken='';try{const c=requireClient(),email=$('bfAuthEmail').value.trim(),password=$('bfAuthPassword').value;if(!email||!password)throw new Error('Enter your email and password.');captchaToken=await getTurnstileToken();message('Signing in…');const {data,error}=await c.auth.signInWithPassword({email,password,options:{captchaToken}});if(error){if(/invalid login credentials|user not found|email not confirmed/i.test(error.message||''))throw new Error('Incorrect email or password, or the email has not been confirmed. Check your password and email. If you have not created an account yet, choose Create account.');throw error;}setCloudUser(data.user);$('bfAuthPassword').value='';message('Sign-in successful. Your private workspace is opening…');await bfCloudSyncAll()}catch(e){if(/Incorrect email and password|Enter your email and password|Cloudflare security verification|Cloudflare verification|security verification area/.test(e.message||'')){message(e.message);return;}cloudError(e,'Sign-in failed')}finally{if(captchaToken)resetTurnstile()}}
-  async function signUp(){if(!cloud.client){status('Unavailable','pending');message('Account creation is temporarily unavailable. Please try again later.');return;}let captchaToken='';try{const c=requireClient(),email=$('bfAuthEmail').value.trim(),password=$('bfAuthPassword').value,consent=$('bfTermsConsent');if(!email||!password)throw new Error('Enter your email and choose a password.');if(password.length<12)throw new Error('Choose a password with at least 12 characters.');if(!consent||!consent.checked)throw new Error('Please read and agree to the Terms of Service and acknowledge the Privacy Notice before creating an account.');captchaToken=await getTurnstileToken();message('Creating your account…');const acceptedAt=new Date().toISOString();const {data,error}=await c.auth.signUp({email,password,options:{captchaToken,data:{boundaryflow_terms_version:'draft-0.1-2026-11-02',boundaryflow_terms_accepted_at:acceptedAt,boundaryflow_privacy_notice_version:'draft-0.1-2026-11-02',boundaryflow_privacy_notice_acknowledged_at:acceptedAt}}});if(error)throw error;$('bfAuthPassword').value='';if(data.session&&data.user){setCloudUser(data.user);message('Your account has been created successfully. You’re signed in and your private workspace is opening.');await bfCloudSyncAll()}else message('Account request received. Check your email and confirm your account, then return here and sign in. If this email already has an account, try Sign in or Reset password.')}catch(e){if(/Please read and agree|Enter your email|Choose a password|Cloudflare security verification|Cloudflare verification|security verification area/.test(e.message||'')){message(e.message);return;}cloudError(e,'Account creation failed')}finally{if(captchaToken)resetTurnstile()}}
+  const BF_PUBLIC_SIGNUP_ENABLED=false; // Keep public registration closed until final legal/privacy approval and live release gates are signed off.
+  async function signUp(){if(!BF_PUBLIC_SIGNUP_ENABLED){message('New account registration is temporarily paused while the final Terms of Service and Privacy Notice are reviewed. Existing users can still sign in.');return;}if(!cloud.client){status('Unavailable','pending');message('Account creation is temporarily unavailable. Please try again later.');return;}let captchaToken='';try{const c=requireClient(),email=$('bfAuthEmail').value.trim(),password=$('bfAuthPassword').value,consent=$('bfTermsConsent');if(!email||!password)throw new Error('Enter your email and choose a password.');if(password.length<12)throw new Error('Choose a password with at least 12 characters.');if(!consent||!consent.checked)throw new Error('Please read and agree to the Terms of Service and acknowledge the Privacy Notice before creating an account.');captchaToken=await getTurnstileToken();message('Creating your account…');const acceptedAt=new Date().toISOString();const {data,error}=await c.auth.signUp({email,password,options:{captchaToken,data:{boundaryflow_terms_version:'draft-0.1-2026-11-02',boundaryflow_terms_accepted_at:acceptedAt,boundaryflow_privacy_notice_version:'draft-0.1-2026-11-02',boundaryflow_privacy_notice_acknowledged_at:acceptedAt}}});if(error)throw error;$('bfAuthPassword').value='';if(data.session&&data.user){setCloudUser(data.user);message('Your account has been created successfully. You’re signed in and your private workspace is opening.');await bfCloudSyncAll()}else message('Account request received. Check your email and confirm your account, then return here and sign in. If this email already has an account, try Sign in or Reset password.')}catch(e){if(/Please read and agree|Enter your email|Choose a password|Cloudflare security verification|Cloudflare verification|security verification area/.test(e.message||'')){message(e.message);return;}cloudError(e,'Account creation failed')}finally{if(captchaToken)resetTurnstile()}}
   function showForgotPassword(){const emailPanel=$('bfForgotEmailPanel');if(emailPanel)emailPanel.style.display='block';const resetPanel=$('bfPasswordRecovery');if(resetPanel)resetPanel.style.display='none';const signedOut=$('bfSignedOutControls');if(signedOut)signedOut.style.display='none';const signedIn=$('bfSignedInControls');if(signedIn)signedIn.style.display='none';const mainEmail=$('bfAuthEmail'),recoveryEmail=$('bfRecoveryEmail');if(mainEmail&&recoveryEmail&&!recoveryEmail.value)recoveryEmail.value=mainEmail.value.trim();const heading=document.querySelector('.bf-login-heading h2');if(heading)heading.textContent='Recover your account';const sub=document.querySelector('.bf-login-heading p');if(sub)sub.textContent='We’ll verify access to your email before allowing a password change.';message('Enter the email address linked to your account to receive a secure reset link.')}
   function backToSignIn(){const emailPanel=$('bfForgotEmailPanel');if(emailPanel)emailPanel.style.display='none';const resetPanel=$('bfPasswordRecovery');if(resetPanel)resetPanel.style.display='none';const signedOut=$('bfSignedOutControls');if(signedOut)signedOut.style.display='block';const heading=document.querySelector('.bf-login-heading h2');if(heading)heading.textContent='Welcome back';const sub=document.querySelector('.bf-login-heading p');if(sub)sub.textContent='Sign in to open your private professional workspace.';message('Enter your email and password to sign in.')}
   async function resetPassword(){if(!cloud.client){status('Unavailable','pending');message('Password recovery is temporarily unavailable. Please try again later.');return;}let captchaToken='';try{const c=requireClient(),email=$('bfRecoveryEmail').value.trim();if(!email)throw new Error('Enter the email address you used to create your account.');if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new Error('Enter a valid email address.');captchaToken=await getTurnstileToken();message('Sending secure password-reset email…');const {error}=await c.auth.resetPasswordForEmail(email,{redirectTo:window.location.href.split('#')[0].split('?')[0],captchaToken});if(error)throw error;message('If an account is registered with that email, a password-reset link will arrive shortly. Open the message in that inbox and follow the link to verify ownership, then set your new password. Check your spam folder too.')}catch(e){if(/Enter the email|valid email|Cloudflare security verification|Cloudflare verification|security verification area/.test(e.message||'')){message(e.message);return;}cloudError(e,'Password reset request failed')}finally{if(captchaToken)resetTurnstile()}}

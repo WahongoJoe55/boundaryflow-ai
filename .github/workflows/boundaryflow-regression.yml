@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - work/engine-regression-suite-v1
+      - work/production-readiness-hardening-v1
       - main
   pull_request:
     branches:
@@ -25,7 +26,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Check out exact pull-request candidate
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           # This suite validates the candidate branch itself, not GitHub's
           # synthetic merge commit (which can contain stale test harness files
@@ -33,17 +34,24 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Install matching Playwright package
         run: npm install --no-save playwright@1.56.1
+      - name: Build isolated private-preview artifact
+        run: node scripts/build-private-preview.mjs
+      - name: Verify preview isolation
+        run: node tests/run-private-preview-build.mjs
+      - name: Validate billing migration security and invariants
+        run: node tests/run-billing-contract.mjs
       - name: Run isolated engine regression suite
         run: node tests/run-regression.mjs
       - name: Run browser end-to-end workflow review
         run: node tests/run-e2e.mjs
       - name: Upload regression and end-to-end reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: boundaryflow-engine-regression-results
           path: |
             index.html
+            preview/index.html
             test-results/*
           if-no-files-found: ignore
           retention-days: 14

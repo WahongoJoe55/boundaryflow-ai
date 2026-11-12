@@ -57,6 +57,54 @@ try{
   await page.waitForFunction(()=>typeof window.analyze==='function'&&typeof window.bfLedgerAdd==='function');
   check('Candidate application loads with analysis and ledger controls',true);
 
+  const policyMeta=await page.evaluate(()=>{
+    const csp=document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.content||'';
+    const referrer=document.querySelector('meta[name="referrer"]')?.content||'';
+    return {csp,referrer};
+  });
+  check('Candidate declares a restrictive baseline CSP and strict referrer policy',
+    policyMeta.csp.includes("default-src 'self'")&&policyMeta.csp.includes("object-src 'none'")&&
+    policyMeta.csp.includes("base-uri 'self'")&&policyMeta.csp.includes("https://*.supabase.co")&&
+    policyMeta.csp.includes("https://challenges.cloudflare.com")&&policyMeta.referrer==='strict-origin-when-cross-origin',
+    JSON.stringify(policyMeta));
+
+  const saveLockContract=await page.evaluate(async()=>{
+    let active=0,maximum=0,order=[];
+    const work=n=>window.bfWithAnalysisSaveLock('synthetic-account','same-analysis',async()=>{
+      active++;maximum=Math.max(maximum,active);order.push('start-'+n);
+      await new Promise(resolve=>setTimeout(resolve,25));
+      order.push('end-'+n);active--;
+    });
+    await Promise.all([work(1),work(2),work(3)]);
+    return {maximum,order};
+  });
+  check('Same-analysis cloud saves are serialized across browser tabs when Web Locks are available',
+    saveLockContract.maximum===1&&saveLockContract.order.length===6&&
+    saveLockContract.order.filter(x=>x.startsWith('start-')).length===3&&
+    saveLockContract.order.filter(x=>x.startsWith('end-')).length===3,
+    JSON.stringify(saveLockContract));
+
+  const localLedgerClear=await page.evaluate(()=>{
+    const uid='clear-local-ledger-test';
+    const keys=[
+      'boundaryflow_project_ledger_v1_legacy__'+uid,
+      'boundaryflow_project_ledger_v2_current__'+uid,
+      'boundaryflow_project_ledger_identity_v1__'+uid,
+      'boundaryflow_project_ledger_alias_v1__'+uid
+    ];
+    const foreign='boundaryflow_project_ledger_v2_foreign__other-account';
+    const unrelated='unrelated-user-preference';
+    [...keys,foreign,unrelated].forEach(k=>localStorage.setItem(k,'test'));
+    const removed=window.bfClearLocalLedgerKeys(uid);
+    return {removed,remaining:keys.filter(k=>localStorage.getItem(k)!==null),
+      foreignPreserved:localStorage.getItem(foreign)==='test',
+      unrelatedPreserved:localStorage.getItem(unrelated)==='test'};
+  });
+  check('Clear local workspace removes both legacy and v2 ledger keys without touching other accounts or unrelated settings',
+    localLedgerClear.removed===4&&localLedgerClear.remaining.length===0&&
+    localLedgerClear.foreignPreserved&&localLedgerClear.unrelatedPreserved,
+    JSON.stringify(localLedgerClear));
+
   const cloudDeleteContract=await page.evaluate(async()=>{
     const fakeClient=(existing,deletedRows,error=null)=>({
       from(){
@@ -133,6 +181,99 @@ try{
     ledgerNormalizationContract.used.some(x=>x.type==='amendment'&&x.sourceType==='email'&&x.status==='approved')&&
     ledgerNormalizationContract.reviewType==='amendment',
     JSON.stringify(ledgerNormalizationContract));
+
+  const hostileStorageContract=await page.evaluate(()=>{
+    const user=window.__bfUserId,project=document.getElementById('projectName'),priorProject=project.value;
+    window.__bfUserId='hostile-storage-test';
+    const identityKey=window.bfScopedKey('boundaryflow_project_ledger_identity_v1');
+    const aliasKey=window.bfScopedKey('boundaryflow_project_ledger_alias_v1');
+    const oldIdentity=localStorage.getItem(identityKey),oldAlias=localStorage.getItem(aliasKey);
+    try{
+      localStorage.setItem(identityKey,'{"ordinary-project":"forged-identity"}');
+      localStorage.setItem(aliasKey,'{"ordinary-project":"forged-alias"}');
+      const identities=window.bfLedgerIdentityMap(),aliases=window.bfLedgerAliasMap();
+      const names=['__proto__','constructor','toString'];
+      const ids=names.map(name=>window.bfLedgerProjectId(name));
+      project.value='__proto__';
+      const display=window.bfLedgerDisplayName();
+      return {nullPrototype:Object.getPrototypeOf(identities)===null&&Object.getPrototypeOf(aliases)===null,
+        ownIdentityValues:names.every(name=>!Object.prototype.hasOwnProperty.call(identities,name)),
+        uniqueIds:new Set(ids).size===3&&ids.every(x=>typeof x==='string'&&x.startsWith('bfp-')&&!x.includes('forged')),
+        displayNameNotForged:display==='__proto__',
+        historyCounts:['<img src=x onerror=alert(1)>','-1','1e9',null,7].map(x=>window.bfHistoryCount(x))};
+    }finally{
+      if(oldIdentity===null)localStorage.removeItem(identityKey);else localStorage.setItem(identityKey,oldIdentity);
+      if(oldAlias===null)localStorage.removeItem(aliasKey);else localStorage.setItem(aliasKey,oldAlias);
+      project.value=priorProject;window.__bfUserId=user;
+    }
+  });
+  check('Prototype-shaped project names cannot inherit forged ledger identities or aliases',
+    hostileStorageContract.nullPrototype&&hostileStorageContract.ownIdentityValues&&
+    hostileStorageContract.uniqueIds&&hostileStorageContract.displayNameNotForged,
+    JSON.stringify(hostileStorageContract));
+  check('Untrusted history counters are rendered as bounded plain numeric text',
+    JSON.stringify(hostileStorageContract.historyCounts)===JSON.stringify(['0','0','0','0','7']),
+    JSON.stringify(hostileStorageContract.historyCounts));
+
+  const legacyHistoryIds=await page.evaluate(()=>{
+    const priorUser=window.__bfUserId;
+    window.__bfUserId='legacy-history-id-migration';
+    const key=window.bfScopedKey('boundaryflow_history_v1');
+    const prior=localStorage.getItem(key);
+    try{
+      localStorage.setItem(key,JSON.stringify([
+        {name:'Legacy A',scope:'Scope A',request:'Request A'},
+        {name:'Legacy B',scope:'Scope B',request:'Request B'},
+        null,
+        'malformed'
+      ]));
+      window.renderHistory();
+      const saved=JSON.parse(localStorage.getItem(key)||'[]');
+      const ids=saved.map(x=>x.id);
+      return {count:saved.length,unique:new Set(ids).size===2,
+        strongIds:ids.every(x=>typeof x==='string'&&x.length>16&&!/^[0-9a-f]{8}$/i.test(x))};
+    }finally{
+      if(prior===null)localStorage.removeItem(key);else localStorage.setItem(key,prior);
+      window.__bfUserId=priorUser;
+      window.renderHistory();
+    }
+  });
+  check('Legacy History records receive unique non-hash IDs and malformed entries are ignored',
+    legacyHistoryIds.count===2&&legacyHistoryIds.unique&&legacyHistoryIds.strongIds,
+    JSON.stringify(legacyHistoryIds));
+
+  const storedHtmlContract=await page.evaluate(()=>{
+    const user=window.__bfUserId,project=document.getElementById('projectName'),priorProject=project.value;
+    window.__bfUserId='stored-html-xss-test';
+    const historyKey=window.bfScopedKey('boundaryflow_history_v1');
+    const priorHistory=localStorage.getItem(historyKey);
+    const priorLedgerKey=window.bfLedgerKeyForName('XSS ledger project');
+    const priorLedger=localStorage.getItem(priorLedgerKey);
+    const payload='<img src=x onerror=alert(1)><svg onload=alert(2)>';
+    try{
+      localStorage.setItem(historyKey,JSON.stringify([{id:'xss-history',name:payload,date:payload,count:payload,
+        metrics:{included:payload,clarify:payload,additional:payload,claim:payload},taskStatus:'pending'}]));
+      window.renderHistory();
+      const history=document.getElementById('historyList');
+      const historySafe=history.querySelectorAll('img,svg,script').length===0&&history.textContent.includes(payload);
+      project.value='XSS ledger project';
+      localStorage.setItem(priorLedgerKey,JSON.stringify([{id:'xss-ledger',type:'baseline',title:payload,detail:payload,
+        sourceType:'agreement',status:'not_specified',projectName:'XSS ledger project',recordedAt:new Date().toISOString()}]));
+      window.bfLedgerRender();
+      const ledger=document.getElementById('bfLedgerList');
+      const ledgerSafe=ledger.querySelectorAll('img,svg,script').length===0&&ledger.textContent.includes(payload);
+      return {historySafe,ledgerSafe};
+    }finally{
+      if(priorHistory===null)localStorage.removeItem(historyKey);else localStorage.setItem(historyKey,priorHistory);
+      if(priorLedger===null)localStorage.removeItem(priorLedgerKey);else localStorage.setItem(priorLedgerKey,priorLedger);
+      project.value=priorProject;window.__bfUserId=user;
+      window.renderHistory();window.bfLedgerRender();
+    }
+  });
+  check('Stored HTML payloads in History remain inert text',
+    storedHtmlContract.historySafe===true,JSON.stringify(storedHtmlContract));
+  check('Stored HTML payloads in the project evidence ledger remain inert text',
+    storedHtmlContract.ledgerSafe===true,JSON.stringify(storedHtmlContract));
 
   const cloudIdempotencyContract=await page.evaluate(async()=>{
     const calls=[];
@@ -216,6 +357,20 @@ try{
       output:document.getElementById('out')?.innerText||''
     }));
   }
+
+  const analysisPayload='<img src=x onerror=alert(1)>';
+  await setProject('XSS analysis output');
+  const hostileAnalysis=await analyse(
+    'The website includes a Home page. Updating headings and text on existing pages is included. '+analysisPayload,
+    'Please update the Home page heading to say '+analysisPayload
+  );
+  const analysisOutputSafe=await page.locator('#out').evaluate(el=>({
+    activeElements:el.querySelectorAll('img,svg,script').length,
+    payloadVisible:el.textContent.includes('<img src=x onerror=alert(1)>')
+  }));
+  check('Untrusted agreement and client-message HTML remains inert in generated analysis output',
+    analysisOutputSafe.activeElements===0&&analysisOutputSafe.payloadVisible,
+    JSON.stringify(analysisOutputSafe));
 
   const scope='The website includes Home, About and Services. New pages require separate approval. Two rounds of revisions per page are included.';
   await setProject('E2E Project Alpha');
@@ -661,6 +816,89 @@ try{
   check('Switching account identity isolates the same project name',await page.locator('#bfLedgerCount').innerText().then(x=>x==='0 records'));
   await page.evaluate(()=>{window.__bfUserId='e2e-account-a';document.getElementById('projectName').dispatchEvent(new Event('input',{bubbles:true}))});
   check('Returning to the original account restores its ledger',await page.locator('#bfLedgerCount').innerText().then(x=>x==='4 records'));
+
+  const xssPayload='<img src=x onerror=window.__bfXssExecuted=true>';
+  await setProject('XSS '+xssPayload);
+  await addRecord({type:'evidence',title:xssPayload,detail:xssPayload,source:'internal_note'});
+  const ledgerXss=await page.evaluate(payload=>({
+    injected:document.querySelectorAll('#bfLedgerList img, #bfLedgerList svg, #bfLedgerList script').length,
+    literalTitle:document.querySelector('#bfLedgerList')?.innerText.includes(payload)||false,
+    executed:!!window.__bfXssExecuted
+  }),xssPayload);
+  check('Untrusted ledger title and detail render as text, never executable HTML',
+    ledgerXss.injected===0&&ledgerXss.literalTitle&&!ledgerXss.executed,JSON.stringify(ledgerXss));
+  await analyse(scope,'Please review this request '+xssPayload);
+  const analysisXss=await page.evaluate(payload=>({
+    injected:document.querySelectorAll('#out img, #out svg, #out script').length,
+    literalText:document.querySelector('#out')?.innerText.includes(payload)||false,
+    executed:!!window.__bfXssExecuted
+  }),xssPayload);
+  check('Untrusted client-message text is escaped in analysis output',
+    analysisXss.injected===0&&analysisXss.literalText&&!analysisXss.executed,JSON.stringify(analysisXss));
+  const xssSave=page.locator('[data-save]').first();
+  if(await xssSave.count())await xssSave.click();
+  await page.locator('#historyBtn').click();
+  const historyXss=await page.evaluate(payload=>({
+    injected:document.querySelectorAll('#historyList img, #historyList svg, #historyList script').length,
+    literalName:document.querySelector('#historyList')?.innerText.includes(payload)||false,
+    executed:!!window.__bfXssExecuted
+  }),xssPayload);
+  check('Untrusted project names render safely in local History',
+    historyXss.injected===0&&historyXss.literalName&&!historyXss.executed,JSON.stringify(historyXss));
+  await page.locator('#closeHistory').click();
+  const analysisIdentity=await page.evaluate(()=>{
+    const a=document.getElementById('a'),r=document.getElementById('r'),p=document.getElementById('projectName');
+    const before=[a.value,r.value,p.value],cacheSource=window.__bfAnalysisIdentitySource,cacheId=window.__bfAnalysisIdentityId;
+    p.value='Project';
+    a.value='SOW';r.value='request-46u1pzoj';
+    const first=window.bfAnalysisId(),repeat=window.bfAnalysisId();
+    r.value='request-6mqdtqjf';
+    const second=window.bfAnalysisId();
+    a.value=before[0];r.value=before[1];p.value=before[2];
+    window.__bfAnalysisIdentitySource=cacheSource;window.__bfAnalysisIdentityId=cacheId;
+    return {first,repeat,second,stable:first===repeat,distinct:first!==second};
+  });
+  check('Analysis IDs remain stable for identical inputs and distinct for colliding legacy hashes',
+    analysisIdentity.stable&&analysisIdentity.distinct,JSON.stringify(analysisIdentity));
+
+  const ledgerCollision=await page.evaluate(()=>{
+    if(typeof window.bfLedgerKeyForName!=='function'||typeof window.bfLedgerLegacyKeyForName!=='function')return {supported:false};
+    const a='collision-x2nvv0h3',b='collision-8m7my3ma';
+    return {supported:true,distinctKeys:window.bfLedgerKeyForName(a)!==window.bfLedgerKeyForName(b),
+      legacyCollision:window.bfLedgerLegacyKeyForName(a)===window.bfLedgerLegacyKeyForName(b)};
+  });
+  check('New ledger keys distinguish names that collided under the legacy 32-bit hash',
+    ledgerCollision.supported&&ledgerCollision.distinctKeys&&ledgerCollision.legacyCollision,JSON.stringify(ledgerCollision));
+
+  const legacyLedgerMigration=await page.evaluate(()=>{
+    const input=document.getElementById('projectName');
+    if(!input||typeof window.bfLedgerRead!=='function'||typeof window.bfLedgerLegacyKeyForName!=='function')return {supported:false};
+    const oldName=input.value,oldUser=window.__bfUserId,oldStatus=document.getElementById('bfLedgerStatus')?.textContent;
+    const testName='Legacy Migration Exact Project',testUser='bf-legacy-migration-test';
+    window.__bfUserId=testUser;input.value=testName;
+    const legacy=window.bfLedgerLegacyKeyForName(testName),current=window.bfLedgerKeyForName(testName);
+    const oldLegacy=localStorage.getItem(legacy),oldCurrent=localStorage.getItem(current);
+    const identityKey=window.bfScopedKey('boundaryflow_project_ledger_identity_v1'),oldIdentity=localStorage.getItem(identityKey);
+    const record={id:'legacy-exact-1',title:'Legacy baseline',detail:'Recorded under the exact project',projectName:testName,type:'baseline'};
+    localStorage.setItem(legacy,JSON.stringify([record]));localStorage.removeItem(current);
+    const read=window.bfLedgerRead();
+    const exactMigrated=read.length===1&&read[0].id==='legacy-exact-1'&&JSON.parse(localStorage.getItem(current)||'[]').length===1&&localStorage.getItem(legacy)===null;
+    const ambiguousName='Legacy Ambiguous Project';input.value=ambiguousName;
+    const ambiguousKey=window.bfLedgerLegacyKeyForName(ambiguousName),ambiguousCurrent=window.bfLedgerKeyForName(ambiguousName);
+    const oldAmbiguous=localStorage.getItem(ambiguousKey),oldAmbiguousCurrent=localStorage.getItem(ambiguousCurrent);
+    localStorage.setItem(ambiguousKey,JSON.stringify([{id:'ambiguous-1',title:'No project identity'}]));
+    const ambiguousRead=window.bfLedgerRead();
+    const ambiguousPreserved=ambiguousRead.length===0&&localStorage.getItem(ambiguousKey)!==null&&localStorage.getItem(ambiguousCurrent)===null;
+    const restore=(key,value)=>value===null?localStorage.removeItem(key):localStorage.setItem(key,value);
+    restore(legacy,oldLegacy);restore(current,oldCurrent);restore(ambiguousKey,oldAmbiguous);restore(ambiguousCurrent,oldAmbiguousCurrent);restore(identityKey,oldIdentity);
+    input.value=oldName;window.__bfUserId=oldUser;
+    const status=document.getElementById('bfLedgerStatus');if(status&&oldStatus!==undefined)status.textContent=oldStatus;
+    return {supported:true,exactMigrated,ambiguousPreserved};
+  });
+  check('Legacy ledger migration preserves records with matching project identity',
+    legacyLedgerMigration.supported&&legacyLedgerMigration.exactMigrated,JSON.stringify(legacyLedgerMigration));
+  check('Ambiguous legacy ledger records are preserved, not reassigned to a project',
+    legacyLedgerMigration.supported&&legacyLedgerMigration.ambiguousPreserved,JSON.stringify(legacyLedgerMigration));
 
   check('No uncaught browser JavaScript errors occurred',pageErrors.length===0,pageErrors.join('\n'));
   fs.mkdirSync(path.join(root,'test-results'),{recursive:true});

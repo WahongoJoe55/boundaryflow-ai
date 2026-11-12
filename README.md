@@ -19,7 +19,7 @@ The candidate workflow runs:
 2. The browser end-to-end suite against the candidate `index.html`.
 3. Adversarial rendering checks for untrusted content in generated analysis output, History and the evidence ledger.
 
-The latest recorded successful candidate workflow is [run 43030737212](https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/43030737212) on candidate commit `eb65da56b400a8244ac436970e7722823e077a85`, which reported 133/133 engine and 87/87 browser E2E scenarios passing. The browser suite includes legacy/v2 local-ledger cleanup, CSP metadata and same-analysis Web Locks serialization checks. Re-run CI after every subsequent code or test change.
+The latest successful full candidate workflow before the preview-build addition is [run 43229920778](https://github.com/WahongoJoe55/boundaryflow-ai/actions/runs/43229920778) on commit `783733bb1467d48c7f03b18acb3f4b733c8729d0`: 34/34 billing contract checks, 134/134 engine regression cases and 87/87 browser E2E cases passed. The updated workflow now also builds and verifies an isolated preview artifact; its results must be checked on the new commit before sharing that artifact. Re-run CI after every subsequent code or test change.
 
 ## Important test boundary
 

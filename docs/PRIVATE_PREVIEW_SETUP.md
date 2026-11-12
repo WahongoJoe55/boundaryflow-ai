@@ -5,7 +5,7 @@
 ## Verified candidate
 
 - Candidate branch: `work/production-readiness-hardening-v1`
-- Candidate commit: `783733bb1467d48c7f03b18acb3f4b733c8729d0`
+- Last fully tested application commit: `783733bb1467d48c7f03b18acb3f4b733c8729d0`\n- Newer preview-build commit: checked separately by the updated workflow before use.
 - GitHub Actions run: `43229920778`
 - Billing migration contract checks: 34 passed, 0 failed.
 - Engine regression cases: 134 passed, 0 failed.
@@ -31,7 +31,7 @@ The candidate also must not be connected to production Supabase just to make a p
 
 ## Candidate artifact for offline UI inspection
 
-The CI run uploads the exact candidate HTML and test reports as a GitHub Actions artifact. This is suitable for inspecting the UI and source locally, but it is not a private hosted application and local-file authentication/cloud sync may not work. Artifact retention is limited; use the run's artifact link while it remains available.
+The updated CI workflow generates `preview/index.html` from the candidate source. It has no default Supabase URL/key, uses a separate browser-storage key, and enables account registration only in this preview build. It is suitable for deployment to a separately access-protected host after the staging Supabase project is configured. The CI artifact is not itself a private hosted application; because the source repository is public, do not treat its download link as confidential. Artifact retention is limited.
 
 ## Acceptance gate before sharing a private URL
 

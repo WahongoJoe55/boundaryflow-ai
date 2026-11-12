@@ -33,8 +33,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Install matching Playwright package
         run: npm install --no-save playwright@1.56.1
-      - name: Validate billing migration security and invariants
-        run: node tests/run-billing-contract.mjs
+      - name: Build isolated private-preview artifact\n        run: node scripts/build-private-preview.mjs\n      - name: Verify preview isolation\n        run: node tests/run-private-preview-build.mjs\n      - name: Validate billing migration security and invariants\n        run: node tests/run-billing-contract.mjs
       - name: Run isolated engine regression suite
         run: node tests/run-regression.mjs
       - name: Run browser end-to-end workflow review
@@ -45,7 +44,6 @@ jobs:
         with:
           name: boundaryflow-engine-regression-results
           path: |
-            index.html
-            test-results/*
+            index.html\n            preview/index.html\n            test-results/*
           if-no-files-found: ignore
           retention-days: 14

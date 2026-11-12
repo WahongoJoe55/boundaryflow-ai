@@ -37,7 +37,8 @@ jobs:
         run: node scripts/build-private-preview.mjs
       - name: Verify preview isolation
         run: node tests/run-private-preview-build.mjs
-      - name: Validate billing migration security and invariants\n        run: node tests/run-billing-contract.mjs
+      - name: Validate billing migration security and invariants
+        run: node tests/run-billing-contract.mjs
       - name: Run isolated engine regression suite
         run: node tests/run-regression.mjs
       - name: Run browser end-to-end workflow review

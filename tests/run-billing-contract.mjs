@@ -23,7 +23,9 @@ function has(source, pattern) { return pattern.test(source); }
 
 for (let i = 0; i < files.length; i++) {
   check(files[i] + ' has explicit transaction boundaries',
-    /^BEGIN;[\s\S]*COMMIT;\s*$/i.test(sql[i].trim()));
+    /\bBEGIN;[\s\S]*\bCOMMIT;\s*$/i.test(sql[i]) &&
+    (sql[i].match(/\bBEGIN;/gi) ?? []).length === 1 &&
+    (sql[i].match(/\bCOMMIT;/gi) ?? []).length === 1);
 }
 for (const table of ['plan_catalog','billing_customers','billing_subscriptions','billing_payments','billing_webhook_events','usage_events']) {
   check('Foundation defines ' + table, has(foundation, new RegExp('CREATE TABLE IF NOT EXISTS public\\.' + table + '\\b','i')));

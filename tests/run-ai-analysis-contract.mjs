@@ -22,7 +22,10 @@ check('Both OpenAI and Gemini are supported server-side',
 check('Evidence quotations are validated against exact source text',
   /sourceText\.indexOf\(quote\)/.test(source) && /char|start/.test(source));
 check('Unsubstantiated included/additional decisions abstain to clarification',
-  /classification = "Clarify"/.test(source) && /!evidence\.some\(\(entry\) => entry\.source === "agreement"\)/.test(source));
+  source.includes('const hasAgreementEvidence = evidence.some((entry) => entry.source === "agreement")')
+  && source.includes('const requiresAgreement = classification === "Likely included"')
+  && source.includes('(requiresAgreement && !hasAgreementEvidence)')
+  && source.includes('safeClassification = "Clarify"'));
 check('Completed result is stored before successful response',
   source.indexOf('finalize_analysis_usage_result') < source.indexOf('return reply(result, 200, origin)'));
 check('Idempotent retries retrieve the stored completed result',

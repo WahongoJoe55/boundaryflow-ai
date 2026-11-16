@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { applyEvidencePolicy, normalizeRequestIdentity } from '../supabase/functions/analyze-scope/scope-evidence.mjs';
+import { applyEvidencePolicy, normalizeRequestIdentity, isValidContentLengthHeader } from '../supabase/functions/analyze-scope/scope-evidence.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -110,6 +110,14 @@ check('Duplicate request identity does not collapse distinct deliverables',
   normalizeRequestIdentity('Add a Careers page') !== normalizeRequestIdentity('Add a Pricing page'));
 check('Empty request identity is rejected by the normalizer',
   normalizeRequestIdentity('  \n  ') === '');
+check('Content-Length accepts valid decimal byte counts',
+  isValidContentLengthHeader('0') && isValidContentLengthHeader('80000') && isValidContentLengthHeader('123456789'));
+check('Content-Length rejects malformed and signed values',
+  !isValidContentLengthHeader('') && !isValidContentLengthHeader('-1')
+  && !isValidContentLengthHeader('+1') && !isValidContentLengthHeader('8x')
+  && !isValidContentLengthHeader('1.5'));
+check('Missing Content-Length remains valid for streamed body-size enforcement',
+  isValidContentLengthHeader(null));
 const validAgreement = [{ source: 'agreement', quote: 'One homepage and two revisions are included.' }];
 const validMessage = [{ source: 'client_message', quote: 'Please add a second landing page.' }];
 const policyCases = [

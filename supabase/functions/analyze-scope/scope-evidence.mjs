@@ -38,3 +38,8 @@ export function applyEvidencePolicy(input) {
 export function normalizeRequestIdentity(request) {
   return String(request ?? "").toLocaleLowerCase().replace(/\s+/g, " ").trim();
 }
+
+/** Validate an HTTP Content-Length header before trusting its numeric value. */
+export function isValidContentLengthHeader(value) {
+  return value === null || /^\d+$/.test(value);
+}

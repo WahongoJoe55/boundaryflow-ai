@@ -3,7 +3,7 @@
 // Provider credentials are Edge Function secrets; never expose them to the browser.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { applyEvidencePolicy, normalizeRequestIdentity } from "./scope-evidence.mjs";
+import { applyEvidencePolicy, normalizeRequestIdentity, isValidContentLengthHeader } from "./scope-evidence.mjs";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -313,7 +313,7 @@ Deno.serve(async (request: Request) => {
     return reply({ error: "server_configuration_incomplete" }, 503, origin);
   }
   const contentLengthHeader = request.headers.get("content-length");
-  if (contentLengthHeader !== null && !/^\\d+$/.test(contentLengthHeader)) {
+  if (!isValidContentLengthHeader(contentLengthHeader)) {
     return reply({ error: "invalid_content_length" }, 400, origin);
   }
   const contentLength = contentLengthHeader === null ? 0 : Number(contentLengthHeader);

@@ -90,6 +90,16 @@ check('Confidence and boundary risk are distinct output dimensions',
   source.includes('"confidence": 0.0') && source.includes('"boundary_risk": "low|medium|high"'));
 check('Prompt limits unsupported assumptions about prices, dates and approvals',
   source.includes('Do not invent quotations, clauses, approvals, prices, dates, revision allowances, legal conclusions or promises.'));
+
+check('Every scope assessment is anchored to the actual client message',
+  source.includes('const hasClientMessageEvidence = evidence.some((entry) => entry.source === "client_message")')
+  && source.includes('(requiresClientMessage && !hasClientMessageEvidence)'));
+check('Scope conflict requires evidence from both the agreement and client message',
+  source.includes('|| classification === "Scope conflict"')
+  && source.includes('(requiresAgreement && !hasAgreementEvidence)')
+  && source.includes('(requiresClientMessage && !hasClientMessageEvidence)'));
+check('Evidence fallback distinguishes missing agreement evidence from missing request evidence',
+  source.includes('The request is not supported by a verifiable quotation from the client message'));
 const failed = checks.filter(x => x.result === 'FAIL');
 console.log(JSON.stringify({ suite: 'ai-analysis-endpoint-contract', total: checks.length, passed: checks.length - failed.length, failed: failed.length, checks }, null, 2));
 if (failed.length) process.exitCode = 1;

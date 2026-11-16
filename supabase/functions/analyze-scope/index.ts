@@ -188,6 +188,7 @@ function validateModelResult(
     }
 
     const hasAgreementEvidence = evidence.some((entry) => entry.source === "agreement");
+    const hasClientMessageEvidence = evidence.some((entry) => entry.source === "client_message");
     const hasAnyEvidence = evidence.length > 0;
     let safeClassification = classification;
     let safeConfidence = confidence;
@@ -197,13 +198,19 @@ function validateModelResult(
     // Every assessment must be auditable against at least one exact source quote.
     // Included/additional decisions specifically require agreement evidence.
     const requiresAgreement = classification === "Likely included"
-      || classification === "Likely additional";
-    if (!hasAnyEvidence || (requiresAgreement && !hasAgreementEvidence)) {
+      || classification === "Likely additional"
+      || classification === "Scope conflict";
+    const requiresClientMessage = true;
+    if (!hasAnyEvidence
+        || (requiresAgreement && !hasAgreementEvidence)
+        || (requiresClientMessage && !hasClientMessageEvidence)) {
       safeClassification = "Clarify";
       safeConfidence = Math.min(safeConfidence, 0.35);
-      safeExplanation = hasAnyEvidence
-        ? "The proposed scope classification is not supported by a verifiable agreement quotation, so this item needs clarification."
-        : "No verifiable quotation from the supplied agreement or client message supports this assessment.";
+      safeExplanation = !hasAnyEvidence
+        ? "No verifiable quotation from the supplied agreement or client message supports this assessment."
+        : requiresAgreement && !hasAgreementEvidence
+          ? "The proposed scope classification is not supported by a verifiable agreement quotation, so this item needs clarification."
+          : "The request is not supported by a verifiable quotation from the client message, so this item needs clarification.";
       safeNextMove = "Ask for the relevant agreed clause or clarify the request with the client before deciding its scope.";
     } else if (!safeExplanation || !safeNextMove) {
       throw new Error("model_rationale_incomplete");

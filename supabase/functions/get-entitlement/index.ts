@@ -82,6 +82,7 @@ Deno.serve(async (request: Request) => {
       .select("id, plan_key, plan_version, currency, status, current_period_start, current_period_end, grace_period_end")
       .eq("user_id", authData.user.id)
       .in("status", ["active", "trialing"])
+      .lte("current_period_start", now)
       .gt("current_period_end", now)
       .order("current_period_end", { ascending: false })
       .limit(2);

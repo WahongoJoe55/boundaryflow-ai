@@ -15,6 +15,9 @@ const sql = files.map(name => {
   return fs.readFileSync(file, 'utf8');
 });
 const [foundation, atomic, lease] = sql;
+const entitlementPath = path.join(root, 'supabase', 'functions', 'get-entitlement', 'index.ts');
+if (!fs.existsSync(entitlementPath)) throw new Error('Missing get-entitlement function');
+const entitlement = fs.readFileSync(entitlementPath, 'utf8');
 const checks = [];
 function check(name, ok, detail = '') {
   checks.push({ name, result: ok ? 'PASS' : 'FAIL', detail });
@@ -72,6 +75,10 @@ check('Expired reservations have a partial recovery index',
 check('Reservation and finalization retain service-role-only grants',
   has(lease,/REVOKE ALL ON FUNCTION public\.reserve_analysis_usage\(uuid, text, text\) FROM PUBLIC, anon, authenticated/i) &&
   has(lease,/REVOKE ALL ON FUNCTION public\.finalize_analysis_usage\(uuid, text\) FROM PUBLIC, anon, authenticated/i));
+check('Entitlement lookup excludes subscriptions whose billing period has not started',
+  has(entitlement,/\.lte\("current_period_start", now\)/i));
+check('Entitlement lookup excludes subscriptions whose billing period has ended',
+  has(entitlement,/\.gt\("current_period_end", now\)/i));
 
 const failed = checks.filter(x => x.result === 'FAIL');
 console.log(JSON.stringify({ suite: 'billing-schema-contract', total: checks.length, passed: checks.length - failed.length, failed: failed.length, checks }, null, 2));

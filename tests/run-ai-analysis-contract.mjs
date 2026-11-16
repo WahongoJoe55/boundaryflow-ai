@@ -47,6 +47,22 @@ check('Finalization failure attempts to release the outstanding reservation',
   source.includes('finalize_analysis_usage_result') && source.includes('await releaseReservation(admin, usageEventId)'));
 check('Malformed content length and JSON are rejected as client errors',
   source.includes('invalid_content_length') && source.includes('invalid_json'));
+check('Every assessment without verifiable source evidence abstains to clarification',
+  source.includes('if (!hasAnyEvidence || (requiresAgreement && !hasAgreementEvidence))')
+  && source.includes('safeClassification = "Clarify"'));
+check('Unsupported classifications have confidence capped at 0.35',
+  source.includes('safeConfidence = Math.min(safeConfidence, 0.35)'));
+check('Included and additional classifications require an exact agreement quotation',
+  source.includes('const requiresAgreement = classification === "Likely included"')
+  && source.includes('(requiresAgreement && !hasAgreementEvidence)'));
+check('Missing agreement evidence produces a concrete information request',
+  source.includes('Identify the relevant agreed scope clause or written approval.'));
+check('Evidence-free fallback supplies a safe explanation and next move',
+  source.includes('No verifiable quotation from the supplied agreement or client message')
+  && source.includes('Ask for the relevant agreed clause or clarify the request'));
+check('Evidence-backed decisions require both explanation and next move',
+  source.includes('else if (!safeExplanation || !safeNextMove)')
+  && source.includes('model_rationale_incomplete'));
 const failed = checks.filter(x => x.result === 'FAIL');
 console.log(JSON.stringify({ suite: 'ai-analysis-endpoint-contract', total: checks.length, passed: checks.length - failed.length, failed: failed.length, checks }, null, 2));
 if (failed.length) process.exitCode = 1;

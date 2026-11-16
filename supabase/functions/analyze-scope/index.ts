@@ -181,23 +181,42 @@ function validateModelResult(
       evidence.push({ source, quote, start, end: start + quote.length });
     }
 
-    // A confident inclusion/additional decision requires at least one exact
-    // agreement quotation. Otherwise abstain to clarification.
-    if ((classification === "Likely included" || classification === "Likely additional")
-        && !evidence.some((entry) => entry.source === "agreement")) {
-      classification = "Clarify";
+    const hasAgreementEvidence = evidence.some((entry) => entry.source === "agreement");
+    const hasAnyEvidence = evidence.length > 0;
+    let safeClassification = classification;
+    let safeConfidence = confidence;
+    let safeExplanation = shortText(row.explanation, 1_200);
+    let safeNextMove = shortText(row.next_move, 600);
+
+    // Every assessment must be auditable against at least one exact source quote.
+    // Included/additional decisions specifically require agreement evidence.
+    const requiresAgreement = classification === "Likely included"
+      || classification === "Likely additional";
+    if (!hasAnyEvidence || (requiresAgreement && !hasAgreementEvidence)) {
+      safeClassification = "Clarify";
+      safeConfidence = Math.min(safeConfidence, 0.35);
+      safeExplanation = hasAnyEvidence
+        ? "The proposed scope classification is not supported by a verifiable agreement quotation, so this item needs clarification."
+        : "No verifiable quotation from the supplied agreement or client message supports this assessment.";
+      safeNextMove = "Ask for the relevant agreed clause or clarify the request with the client before deciding its scope.";
+    } else if (!safeExplanation || !safeNextMove) {
+      throw new Error("model_rationale_incomplete");
     }
 
     const missing = Array.isArray(row.missing_information)
       ? row.missing_information.slice(0, 6).map((x) => shortText(x, 300)).filter(Boolean)
       : [];
+    if (!hasAgreementEvidence && !missing.some((item) => /agreement|scope|clause|approval/i.test(item))) {
+      missing.unshift("Identify the relevant agreed scope clause or written approval.");
+      missing.splice(6);
+    }
     return {
       request,
-      classification,
-      confidence: Math.round(confidence * 100) / 100,
+      classification: safeClassification,
+      confidence: Math.round(safeConfidence * 100) / 100,
       boundary_risk: risk,
-      explanation: shortText(row.explanation, 1_200),
-      next_move: shortText(row.next_move, 600),
+      explanation: safeExplanation,
+      next_move: safeNextMove,
       missing_information: missing,
       evidence,
     };

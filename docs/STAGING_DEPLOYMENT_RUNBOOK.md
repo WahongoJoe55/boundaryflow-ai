@@ -84,6 +84,22 @@ Use synthetic data and a dedicated staging user. Do not use real client contract
 
 Record the project reference, migration versions, function deployment version, test timestamp and pass/fail evidence. Never record secrets or access tokens.
 
+## 5A. Live model-reasoning benchmark
+
+After the function is deployed, the staging user has a test entitlement, and the frontend origin is allow-listed, run the manual synthetic benchmark from a trusted local terminal:
+
+```sh
+BF_STAGING_FUNCTION_URL=<STAGING_FUNCTION_URL> \\
+BF_STAGING_ANON_KEY=<STAGING_ANON_KEY> \\
+BF_STAGING_USER_JWT=<STAGING_TEST_USER_JWT> \\
+BF_STAGING_ORIGIN=<EXACT_STAGING_ORIGIN> \\
+node tests/run-ai-reasoning-benchmark.mjs
+```
+
+The script sends eight synthetic scenarios covering included work, additional work, missing evidence, a client claim, contradictory clauses, independent mixed requests, irrelevant evidence and prompt injection. It checks actual provider outputs, exact evidence quotations, classifications, confidence/risk fields and request separation. It prints scenario IDs and pass/fail results, not source documents or credentials. Run it only against staging. A complete pass is required before model-quality review; this is a compact release gate, not a statistically comprehensive benchmark.
+
+The staging account must have a valid test subscription and quota. Provision that entitlement through a reviewed server-side staging fixture; do not insert billing state from browser code.
+
 ## 6. Important integration status
 
 The server-side `analyze-scope` function is implemented and its static/contract checks pass in CI. The existing browser `analyze()` workflow still uses the established deterministic analysis path; it has not yet been switched to invoke this Edge Function. Therefore a successful function deployment alone would not mean the application is using AI analysis. Frontend integration and end-to-end verification are a separate release gate.

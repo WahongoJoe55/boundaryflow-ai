@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const edgePath = path.join(root, 'supabase', 'functions', 'analyze-scope', 'index.ts');
 const source = fs.readFileSync(edgePath, 'utf8');
+const policyPath = path.join(root, 'supabase', 'functions', 'analyze-scope', 'scope-evidence.mjs');
+const policySource = fs.readFileSync(policyPath, 'utf8');
 const checks = [];
 function check(name, ok) { checks.push({ name, result: ok ? 'PASS' : 'FAIL' }); }
 check('Analysis endpoint validates the caller JWT through Supabase Auth',
@@ -52,13 +54,14 @@ check('Finalization failure attempts to release the outstanding reservation',
 check('Malformed content length and JSON are rejected as client errors',
   source.includes('invalid_content_length') && source.includes('invalid_json'));
 check('Every assessment without verifiable source evidence abstains to clarification',
-  source.includes('if (!hasAnyEvidence || (requiresAgreement && !hasAgreementEvidence))')
-  && source.includes('safeClassification = "Clarify"'));
+  policySource.includes('if (!input.evidence.length || !hasClientMessageEvidence')
+  && policySource.includes('classification: "Clarify"'));
 check('Unsupported classifications have confidence capped at 0.35',
-  source.includes('safeConfidence = Math.min(safeConfidence, 0.35)'));
+  policySource.includes('confidence: Math.min(input.confidence, 0.35)'));
 check('Included and additional classifications require an exact agreement quotation',
-  source.includes('const requiresAgreement = classification === "Likely included"')
-  && source.includes('(requiresAgreement && !hasAgreementEvidence)'));
+  policySource.includes('input.classification === "Likely included"')
+  && policySource.includes('input.classification === "Likely additional"')
+  && policySource.includes('(requiresAgreement && !hasAgreementEvidence)'));
 check('Missing agreement evidence produces a concrete information request',
   source.includes('Identify the relevant agreed scope clause or written approval.'));
 check('Evidence-free fallback supplies a safe explanation and next move',
@@ -93,14 +96,14 @@ check('Prompt limits unsupported assumptions about prices, dates and approvals',
   source.includes('Do not invent quotations, clauses, approvals, prices, dates, revision allowances, legal conclusions or promises.'));
 
 check('Every scope assessment is anchored to the actual client message',
-  source.includes('const hasClientMessageEvidence = evidence.some((entry) => entry.source === "client_message")')
-  && source.includes('(requiresClientMessage && !hasClientMessageEvidence)'));
+  policySource.includes('const hasClientMessageEvidence = input.evidence.some((entry) => entry.source === "client_message")')
+  && policySource.includes('!hasClientMessageEvidence'));
 check('Scope conflict requires evidence from both the agreement and client message',
-  source.includes('|| classification === "Scope conflict"')
-  && source.includes('(requiresAgreement && !hasAgreementEvidence)')
-  && source.includes('(requiresClientMessage && !hasClientMessageEvidence)'));
+  policySource.includes('|| input.classification === "Scope conflict"')
+  && policySource.includes('(requiresAgreement && !hasAgreementEvidence)')
+  && policySource.includes('!hasClientMessageEvidence'));
 check('Evidence fallback distinguishes missing agreement evidence from missing request evidence',
-  source.includes('The request is not supported by a verifiable quotation from the client message'));
+  policySource.includes('The request is not supported by a verifiable quotation from the client message'));
 
 const validAgreement = [{ source: 'agreement', quote: 'One homepage and two revisions are included.' }];
 const validMessage = [{ source: 'client_message', quote: 'Please add a second landing page.' }];

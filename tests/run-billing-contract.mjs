@@ -8,13 +8,14 @@ const files = [
   '20261111000200_billing_foundation.sql',
   '20261111000300_atomic_analysis_usage.sql',
   '20261111000400_usage_reservation_lease.sql',
+  '20261116000100_monthly_quota_windows.sql',
 ];
 const sql = files.map(name => {
   const file = path.join(migrationDir, name);
   if (!fs.existsSync(file)) throw new Error('Missing billing migration: ' + name);
   return fs.readFileSync(file, 'utf8');
 });
-const [foundation, atomic, lease] = sql;
+const [foundation, atomic, lease, monthlyQuota] = sql;
 const entitlementPath = path.join(root, 'supabase', 'functions', 'get-entitlement', 'index.ts');
 if (!fs.existsSync(entitlementPath)) throw new Error('Missing get-entitlement function');
 const entitlement = fs.readFileSync(entitlementPath, 'utf8');
@@ -79,6 +80,17 @@ check('Entitlement lookup excludes subscriptions whose billing period has not st
   has(entitlement,/\.lte\("current_period_start", now\)/i));
 check('Entitlement lookup excludes subscriptions whose billing period has ended',
   has(entitlement,/\.gt\("current_period_end", now\)/i));
+
+check('Annual and monthly plans calculate a separate monthly quota window',
+  has(monthlyQuota,/v_quota_period_start[\\s\\S]*v_quota_period_end/i));
+check('Monthly quota window is anchored to the subscription billing start',
+  has(monthlyQuota,/current_period_start \\+ make_interval\\(months => v_month_offset\\)/i));
+check('Monthly quota window steps back when the current month anchor is still in the future',
+  has(monthlyQuota,/IF v_quota_period_start > v_now THEN[\\s\\S]*v_month_offset := v_month_offset - 1/i));
+check('Quota counting uses the derived monthly window',
+  has(monthlyQuota,/period_start = v_quota_period_start[\\s\\S]*period_end = v_quota_period_end/i));
+check('Monthly quota window is capped at subscription expiry',
+  has(monthlyQuota,/LEAST\\([\\s\\S]*current_period_end/i));
 
 const failed = checks.filter(x => x.result === 'FAIL');
 console.log(JSON.stringify({ suite: 'billing-schema-contract', total: checks.length, passed: checks.length - failed.length, failed: failed.length, checks }, null, 2));

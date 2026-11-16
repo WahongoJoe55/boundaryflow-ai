@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { applyEvidencePolicy } from '../supabase/functions/analyze-scope/scope-evidence.mjs';
+import { applyEvidencePolicy, normalizeRequestIdentity } from '../supabase/functions/analyze-scope/scope-evidence.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -104,6 +104,12 @@ check('Scope conflict requires evidence from both the agreement and client messa
 check('Evidence fallback distinguishes missing agreement evidence from missing request evidence',
   policySource.includes('The request is not supported by a verifiable quotation from the client message'));
 
+check('Duplicate request identity collapses case and repeated whitespace',
+  normalizeRequestIdentity('  Add   a Careers PAGE ') === normalizeRequestIdentity('add a careers page'));
+check('Duplicate request identity does not collapse distinct deliverables',
+  normalizeRequestIdentity('Add a Careers page') !== normalizeRequestIdentity('Add a Pricing page'));
+check('Empty request identity is rejected by the normalizer',
+  normalizeRequestIdentity('  \n  ') === '');
 const validAgreement = [{ source: 'agreement', quote: 'One homepage and two revisions are included.' }];
 const validMessage = [{ source: 'client_message', quote: 'Please add a second landing page.' }];
 const policyCases = [

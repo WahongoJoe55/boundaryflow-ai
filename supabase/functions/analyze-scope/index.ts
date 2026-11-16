@@ -3,7 +3,7 @@
 // Provider credentials are Edge Function secrets; never expose them to the browser.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { applyEvidencePolicy } from "./scope-evidence.mjs";
+import { applyEvidencePolicy, normalizeRequestIdentity } from "./scope-evidence.mjs";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -159,7 +159,7 @@ function validateModelResult(
     }
     const row = item as Record<string, unknown>;
     const request = shortText(row.request, 1_000);
-    const requestIdentity = request.toLocaleLowerCase().replace(/\s+/g, " ").trim();
+    const requestIdentity = normalizeRequestIdentity(request);
     if (requestIdentity && seenRequests.has(requestIdentity)) {
       throw new Error("model_duplicate_request");
     }

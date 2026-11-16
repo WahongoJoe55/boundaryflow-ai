@@ -33,3 +33,8 @@ export function applyEvidencePolicy(input) {
     nextMove: input.nextMove,
   };
 }
+
+/** Normalize request descriptions for case/whitespace-insensitive duplicate detection. */
+export function normalizeRequestIdentity(request) {
+  return String(request ?? "").toLocaleLowerCase().replace(/\s+/g, " ").trim();
+}

@@ -37,6 +37,16 @@ check('CORS is restricted to configured origins',
   /ALLOWED_ORIGINS\.has\(origin\)/.test(source));
 check('No request content or API key is logged',
   !/console\.(log|error)\([^\n]*(agreement_text|client_message|AI_API_KEY)/.test(source));
+check('Request bodies are read with a streaming byte limit before buffering',
+  /getReader\\(\\)/.test(source) && /total > maxBytes/.test(source) && !/request\\.text\\(\\)/.test(source));
+check('Idempotency replay rejects a different agreement or client message payload',
+  /fingerprintInput/.test(source) && /request_fingerprint !== requestFingerprint/.test(source));
+check('Stored replay payload separates private fingerprint from public analysis result',
+  /request_fingerprint: requestFingerprint/.test(source) && /priorAnalysis as Record/.test(source));
+check('Finalization failure attempts to release the outstanding reservation',
+  /finalize_analysis_usage_result[\\s\\S]*releaseReservation\\(admin, usageEventId\\)/.test(source));
+check('Malformed content length and JSON are rejected as client errors',
+  /invalid_content_length/.test(source) && /invalid_json/.test(source));
 const failed = checks.filter(x => x.result === 'FAIL');
 console.log(JSON.stringify({ suite: 'ai-analysis-endpoint-contract', total: checks.length, passed: checks.length - failed.length, failed: failed.length, checks }, null, 2));
 if (failed.length) process.exitCode = 1;

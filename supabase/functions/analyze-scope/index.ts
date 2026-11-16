@@ -93,6 +93,40 @@ function validateInput(value: unknown): {
   };
 }
 
+async function readBoundedBody(request: Request, maxBytes: number): Promise<string> {
+  if (!request.body) return "";
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel();
+        throw new Error("request_too_large");
+      }
+      chunks.push(value);
+    }
+  } finally { reader.releaseLock(); }
+  const merged = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) { merged.set(chunk, offset); offset += chunk.byteLength; }
+  return new TextDecoder("utf-8", { fatal: true }).decode(merged);
+}
+async function fingerprintInput(input: { agreement_text: string; client_message: string }): Promise<string> {
+  const canonical = JSON.stringify({ agreement_text: input.agreement_text, client_message: input.client_message });
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonical));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+async function releaseReservation(admin: ReturnType<typeof createClient>, usageEventId: string): Promise<void> {
+  if (!usageEventId) return;
+  const { error } = await admin.rpc("finalize_analysis_usage", {
+    p_usage_event_id: usageEventId, p_outcome: "released",
+  });
+  if (error) console.error("analysis_reservation_release_failed", error.code);
+}
 function parseJsonObject(value: string): Record<string, unknown> {
   const parsed: unknown = JSON.parse(value);
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
@@ -260,7 +294,11 @@ Deno.serve(async (request: Request) => {
       || ALLOWED_ORIGINS.size === 0) {
     return reply({ error: "server_configuration_incomplete" }, 503, origin);
   }
-  const contentLength = Number(request.headers.get("content-length") ?? "0");
+  const contentLengthHeader = request.headers.get("content-length");
+  if (contentLengthHeader !== null && !/^\\d+$/.test(contentLengthHeader)) {
+    return reply({ error: "invalid_content_length" }, 400, origin);
+  }
+  const contentLength = contentLengthHeader === null ? 0 : Number(contentLengthHeader);
   if (contentLength > MAX_REQUEST_BYTES) return reply({ error: "request_too_large" }, 413, origin);
   if (!(request.headers.get("content-type") ?? "").toLowerCase().includes("application/json")) {
     return reply({ error: "json_required" }, 415, origin);
@@ -273,12 +311,20 @@ Deno.serve(async (request: Request) => {
   let usageEventId = "";
   let admin: ReturnType<typeof createClient> | null = null;
   try {
-    const rawBody = await request.text();
-    if (new TextEncoder().encode(rawBody).byteLength > MAX_REQUEST_BYTES) {
-      return reply({ error: "request_too_large" }, 413, origin);
+    let rawBody: string;
+    try { rawBody = await readBoundedBody(request, MAX_REQUEST_BYTES); }
+    catch (bodyError) {
+      if (bodyError instanceof Error && bodyError.message === "request_too_large") {
+        return reply({ error: "request_too_large" }, 413, origin);
+      }
+      return reply({ error: "invalid_request_encoding" }, 400, origin);
     }
-    const input = validateInput(JSON.parse(rawBody));
+    let parsedBody: unknown;
+    try { parsedBody = JSON.parse(rawBody); }
+    catch { return reply({ error: "invalid_json" }, 400, origin); }
+    const input = validateInput(parsedBody);
     if (!input) return reply({ error: "invalid_analysis_input" }, 400, origin);
+    const requestFingerprint = await fingerprintInput(input);
 
     const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: { persistSession: false, autoRefreshToken: false },
@@ -322,7 +368,14 @@ Deno.serve(async (request: Request) => {
       }
       if (prior.reservation_status === "completed" && prior.result_payload
           && typeof prior.result_payload === "object") {
-        return reply({ ...prior.result_payload, replayed: true }, 200, origin);
+        if (prior.result_payload.request_fingerprint !== requestFingerprint) {
+          return reply({ error: "idempotency_key_payload_mismatch" }, 409, origin);
+        }
+        const priorAnalysis = prior.result_payload.analysis;
+        if (!priorAnalysis || typeof priorAnalysis !== "object" || Array.isArray(priorAnalysis)) {
+          return reply({ error: "analysis_replay_unavailable" }, 503, origin);
+        }
+        return reply({ ...(priorAnalysis as Record<string, unknown>), replayed: true }, 200, origin);
       }
       return reply({
         error: prior.reservation_status === "reserved"
@@ -336,25 +389,23 @@ Deno.serve(async (request: Request) => {
       throw new Error("validated_result_too_large");
     }
 
+    const storedPayload = { request_fingerprint: requestFingerprint, analysis: result };
     const { data: finalised, error: finaliseError } = await admin.rpc(
       "finalize_analysis_usage_result",
-      { p_usage_event_id: usageEventId, p_result: result },
+      { p_usage_event_id: usageEventId, p_result: storedPayload },
     );
     if (finaliseError || finalised !== true) {
       console.error("analysis_finalization_failed", finaliseError?.code ?? "reservation_not_finalised");
+      await releaseReservation(admin, usageEventId);
+      usageEventId = "";
       return reply({ error: "analysis_finalization_unavailable" }, 503, origin);
     }
     usageEventId = "";
     return reply(result, 200, origin);
   } catch (error) {
-    if (usageEventId && admin) {
-      const { error: releaseError } = await admin.rpc(
-        "finalize_analysis_usage",
-        { p_usage_event_id: usageEventId, p_outcome: "released" },
-      );
-      if (releaseError) console.error("analysis_reservation_release_failed", releaseError.code);
-    }
+    if (usageEventId && admin) await releaseReservation(admin, usageEventId);
     const message = error instanceof Error ? error.message : "unknown";
+    if (message === "request_too_large") return reply({ error: message }, 413, origin);
     const providerFailure = message.startsWith("model_provider_http_");
     console.error("analysis_request_failed", providerFailure ? message : "validation_or_runtime_failure");
     return reply({

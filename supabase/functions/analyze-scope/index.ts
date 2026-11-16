@@ -151,12 +151,18 @@ function validateModelResult(
   if (!Array.isArray(raw.requests) || raw.requests.length > 8) {
     throw new Error("model_request_list_invalid");
   }
+  const seenRequests = new Set<string>();
   const requests = raw.requests.map((item) => {
     if (!item || typeof item !== "object" || Array.isArray(item)) {
       throw new Error("model_request_invalid");
     }
     const row = item as Record<string, unknown>;
     const request = shortText(row.request, 1_000);
+    const requestIdentity = request.toLocaleLowerCase().replace(/\\s+/g, " ").trim();
+    if (requestIdentity && seenRequests.has(requestIdentity)) {
+      throw new Error("model_duplicate_request");
+    }
+    if (requestIdentity) seenRequests.add(requestIdentity);
     let classification = typeof row.classification === "string" ? row.classification : "";
     const confidence = Number(row.confidence);
     const risk = typeof row.boundary_risk === "string" ? row.boundary_risk.toLowerCase() : "";

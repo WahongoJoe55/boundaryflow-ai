@@ -159,11 +159,12 @@ function validateModelResult(
     }
     const row = item as Record<string, unknown>;
     const request = shortText(row.request, 1_000);
-    const requestIdentity = request.toLocaleLowerCase().replace(/\\s+/g, " ").trim();
+    const requestIdentity = request.toLocaleLowerCase().replace(/\s+/g, " ").trim();
     if (requestIdentity && seenRequests.has(requestIdentity)) {
       throw new Error("model_duplicate_request");
     }
     if (requestIdentity) seenRequests.add(requestIdentity);
+    if (!requestIdentity) throw new Error("model_request_invalid");
     let classification = typeof row.classification === "string" ? row.classification : "";
     const confidence = Number(row.confidence);
     const risk = typeof row.boundary_risk === "string" ? row.boundary_risk.toLowerCase() : "";

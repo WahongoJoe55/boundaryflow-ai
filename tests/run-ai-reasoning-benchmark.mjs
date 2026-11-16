@@ -19,8 +19,12 @@ if (!endpoint || !anonKey || !userJwt || !origin) {
   console.error("Missing staging environment. Set BF_STAGING_FUNCTION_URL, BF_STAGING_ANON_KEY, BF_STAGING_USER_JWT and BF_STAGING_ORIGIN locally.");
   process.exit(2);
 }
-if (!/^https:\/\//i.test(endpoint) || /prod/i.test(endpoint)) {
-  console.error("Refusing a non-HTTPS or production-looking endpoint. Use an isolated staging function URL.");
+let endpointHost = "";
+try { endpointHost = new URL(endpoint).hostname.toLowerCase(); } catch {}
+const productionHost = "kqgtevksdlzgquvdpvha.supabase.co";
+if (!/^https:\/\//i.test(endpoint) || !endpointHost.endsWith(".supabase.co")
+    || endpointHost === productionHost || /prod/i.test(endpointHost)) {
+  console.error("Refusing a non-Supabase, non-HTTPS or production endpoint. Use an isolated staging function URL.");
   process.exit(2);
 }
 

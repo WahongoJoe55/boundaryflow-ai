@@ -900,6 +900,52 @@ try{
   check('Ambiguous legacy ledger records are preserved, not reassigned to a project',
     legacyLedgerMigration.supported&&legacyLedgerMigration.ambiguousPreserved,JSON.stringify(legacyLedgerMigration));
 
+  // Exercise the new server-AI browser route with a deterministic mocked response.
+  // This verifies the UI mapping only; it does not claim a live provider/database call.
+  await page.locator('#projectName').fill('Server AI Mock Project');
+  await page.locator('#a').fill('New pages require separate written approval.');
+  await page.locator('#r').fill('Create a new Careers page.');
+  await page.evaluate(async()=>{
+    window.BF_SERVER_AI_ENABLED=true;
+    window.__bfMockAIRequest=null;
+    window.bfInvokeScopeAI=async payload=>{
+      window.__bfMockAIRequest=payload;
+      return {
+        summary:'A new page requires separate approval.',
+        overall_next_move:'Confirm approval before implementation.',
+        requests:[{
+          request:'Create a new Careers page',
+          classification:'Likely additional',
+          confidence:0.91,
+          boundary_risk:'medium',
+          explanation:'The agreement requires separate written approval for new pages.',
+          next_move:'Confirm written approval before implementation.',
+          client_response:'A new Careers page requires separate written approval. Let’s confirm that before I proceed.',
+          missing_information:['Written approval for the new page.'],
+          evidence:[
+            {source:'agreement',quote:'New pages require separate written approval.'},
+            {source:'client_message',quote:'Create a new Careers page.'}
+          ]
+        }]
+      };
+    };
+    await window.analyze();
+  });
+  await page.waitForFunction(()=>document.querySelector('#out')?.innerText.includes('A new Careers page requires separate written approval.'));
+  const aiMock=await page.evaluate(()=>({
+    request:window.__bfMockAIRequest,
+    status:document.querySelector('#out')?.innerText.includes('Likely additional')||false,
+    confidence:document.querySelector('#out')?.innerText.includes('Confidence: High')||false,
+    independentRisk:document.querySelector('#out')?.innerText.includes('Boundary risk: Medium')||false,
+    response:document.querySelector('#out')?.innerText.includes('Let’s confirm that before I proceed.')||false,
+    mapped:window.rows?.[0]?.c?.serverAI===true
+  }));
+  check('Mocked server AI response maps into the existing analysis UI with independent risk and a client-ready draft',
+    aiMock.status&&aiMock.confidence&&aiMock.independentRisk&&aiMock.response&&aiMock.mapped&&
+    aiMock.request?.agreement_text==='New pages require separate written approval.'&&
+    aiMock.request?.client_message==='Create a new Careers page.',
+    JSON.stringify(aiMock));
+  await page.evaluate(()=>{window.BF_SERVER_AI_ENABLED=false;delete window.bfInvokeScopeAI;delete window.__bfMockAIRequest;});
   check('No uncaught browser JavaScript errors occurred',pageErrors.length===0,pageErrors.join('\n'));
   fs.mkdirSync(path.join(root,'test-results'),{recursive:true});
   const report={generatedAt:new Date().toISOString(),mode:'local browser end-to-end; deterministic simulated user IDs; Supabase network and cloud writes disabled',total:checks.length,passed:checks.filter(x=>x.result==='PASS').length,failed:checks.filter(x=>x.result==='FAIL').length,checks};

@@ -128,3 +128,18 @@ Do not describe the engine as AI-powered or production-ready until all of these 
 - candidate UI accurately communicates what the engine can and cannot establish.
 
 No production migration, production secret change, public registration enablement, payment activation or merge is authorised by this specification.
+
+
+## 7. First server-side endpoint implementation
+
+The candidate now includes `supabase/functions/analyze-scope/index.ts` as an initial implementation for review and isolated staging tests.
+
+- Supports OpenAI and Gemini adapters selected only through Edge Function environment secrets.
+- Validates the Supabase caller JWT and derives the account ID from the verified user.
+- Reserves monthly quota before calling the model.
+- Uses bounded inputs, output schema checks, exact evidence-quotation validation and a conservative clarification fallback.
+- Stores the validated result in a private result column for idempotent replay; browser roles receive column-level grants that exclude this confidential payload.
+- Finalises usage only while the reservation lease is live; model/validation failures attempt to release the reservation.
+- Logs error codes/categories only, not agreement text, client messages, tokens or provider keys.
+
+**Not yet complete:** the endpoint is not deployed or runtime-tested; no provider secret is configured; the frontend still uses its existing browser-side `analyze()` path; plan pricing/free entitlement policy and live provider terms remain unapproved. The current paid-subscription reservation path has no free-tier entitlement path. The new SQL migration is review/staging-only.

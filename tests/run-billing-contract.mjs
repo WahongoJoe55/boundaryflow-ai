@@ -9,13 +9,14 @@ const files = [
   '20261111000300_atomic_analysis_usage.sql',
   '20261111000400_usage_reservation_lease.sql',
   '20261116000100_monthly_quota_windows.sql',
+  '20261116000200_analysis_result_replay.sql',
 ];
 const sql = files.map(name => {
   const file = path.join(migrationDir, name);
   if (!fs.existsSync(file)) throw new Error('Missing billing migration: ' + name);
   return fs.readFileSync(file, 'utf8');
 });
-const [foundation, atomic, lease, monthlyQuota] = sql;
+const [foundation, atomic, lease, monthlyQuota, resultReplay] = sql;
 const entitlementPath = path.join(root, 'supabase', 'functions', 'get-entitlement', 'index.ts');
 if (!fs.existsSync(entitlementPath)) throw new Error('Missing get-entitlement function');
 const entitlement = fs.readFileSync(entitlementPath, 'utf8');
@@ -91,6 +92,19 @@ check('Quota counting uses the derived monthly window',
   has(monthlyQuota,/period_start = v_quota_period_start[\s\S]*period_end = v_quota_period_end/i));
 check('Monthly quota window is capped at subscription expiry',
   has(monthlyQuota,/LEAST\([\s\S]*current_period_end/i));
+
+
+check('Analysis result payload is stored as a JSON object and size-limited by the finalizer',
+  has(resultReplay,/jsonb_typeof\(p_result\) <> 'object'[\s\S]*octet_length\(p_result::text\) > 65536/i));
+check('Browser roles cannot read confidential analysis result payloads',
+  has(resultReplay,/REVOKE SELECT ON public\.usage_events FROM authenticated[\s\S]*GRANT SELECT \([\s\S]*reservation_expires_at\) ON public\.usage_events TO authenticated/i)
+  && !/result_payload/.test(resultReplay.slice(resultReplay.indexOf('GRANT SELECT ('), resultReplay.indexOf(') ON public.usage_events'))));
+check('Result finalization requires a live reservation lease',
+  has(resultReplay,/reservation_status = 'reserved'[\s\S]*reservation_expires_at > clock_timestamp\(\)/i));
+check('Result finalization is restricted to service role',
+  has(resultReplay,/REVOKE ALL ON FUNCTION public\.finalize_analysis_usage_result\(uuid, jsonb\)[\s\S]*GRANT EXECUTE ON FUNCTION public\.finalize_analysis_usage_result\(uuid, jsonb\)\s+TO service_role/i));
+check('Idempotent result retrieval is restricted to service role',
+  has(resultReplay,/REVOKE ALL ON FUNCTION public\.get_analysis_usage_result\(uuid, text\)[\s\S]*GRANT EXECUTE ON FUNCTION public\.get_analysis_usage_result\(uuid, text\)\s+TO service_role/i));
 
 const failed = checks.filter(x => x.result === 'FAIL');
 console.log(JSON.stringify({ suite: 'billing-schema-contract', total: checks.length, passed: checks.length - failed.length, failed: failed.length, checks }, null, 2));

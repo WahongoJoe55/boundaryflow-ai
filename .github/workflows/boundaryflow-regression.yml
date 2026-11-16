@@ -40,6 +40,8 @@ jobs:
         run: node tests/run-private-preview-build.mjs
       - name: Validate billing migration security and invariants
         run: node tests/run-billing-contract.mjs
+      - name: Validate server-side AI analysis endpoint contract
+        run: node tests/run-ai-analysis-contract.mjs
       - name: Run isolated engine regression suite
         run: node tests/run-regression.mjs
       - name: Run browser end-to-end workflow review

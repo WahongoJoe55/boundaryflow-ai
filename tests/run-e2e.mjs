@@ -931,7 +931,9 @@ try{
     };
     await window.analyze();
   });
-  await page.waitForFunction(()=>document.querySelector('#out')?.innerText.includes('A new Careers page requires separate written approval.'));
+  await page.waitForFunction(()=>window.rows?.[0]?.c?.serverAI===true&&document.querySelector('#out')?.innerText.includes('Likely additional'));
+  await page.locator('[data-why="0"]').click();
+  await page.locator('[data-individual-response="0"]').waitFor({state:'visible'});
   const aiMock=await page.evaluate(()=>({
     request:window.__bfMockAIRequest,
     status:document.querySelector('#out')?.innerText.includes('Likely additional')||false,

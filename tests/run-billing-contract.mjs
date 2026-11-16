@@ -96,12 +96,16 @@ check('Monthly quota window is capped at subscription expiry',
 
 check('Analysis result payload is stored as a JSON object and size-limited by the finalizer',
   has(resultReplay,/jsonb_typeof\(p_result\) <> 'object'[\s\S]*octet_length\(p_result::text\) > 65536/i));
-const safeGrant = resultReplay.match(/GRANT SELECT \\(([\\s\\S]*?)\\) ON public\\.usage_events TO authenticated/i)?.[1] ?? '';
+const grantStart = resultReplay.indexOf('GRANT SELECT (');
+const grantEnd = resultReplay.indexOf(') ON public.usage_events TO authenticated', grantStart);
+const safeGrant = grantStart >= 0 && grantEnd > grantStart
+  ? resultReplay.slice(grantStart, grantEnd)
+  : '';
 check('Browser roles cannot read confidential analysis result payloads',
-  /REVOKE SELECT ON public\\.usage_events FROM authenticated/i.test(resultReplay)
+  resultReplay.includes('REVOKE SELECT ON public.usage_events FROM authenticated')
   && safeGrant.length > 0
-  && !/result_payload/i.test(safeGrant)
-  && /reservation_expires_at/i.test(safeGrant));
+  && !safeGrant.includes('result_payload')
+  && safeGrant.includes('reservation_expires_at'));
 check('Result finalization requires a live reservation lease',
   has(resultReplay,/reservation_status = 'reserved'[\s\S]*reservation_expires_at > clock_timestamp\(\)/i));
 check('Result finalization is restricted to service role',

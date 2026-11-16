@@ -38,15 +38,15 @@ check('CORS is restricted to configured origins',
 check('No request content or API key is logged',
   !/console\.(log|error)\([^\n]*(agreement_text|client_message|AI_API_KEY)/.test(source));
 check('Request bodies are read with a streaming byte limit before buffering',
-  /getReader\\(\\)/.test(source) && /total > maxBytes/.test(source) && !/request\\.text\\(\\)/.test(source));
+  source.includes('getReader()') && source.includes('total > maxBytes') && !source.includes('request.text()'));
 check('Idempotency replay rejects a different agreement or client message payload',
-  /fingerprintInput/.test(source) && /request_fingerprint !== requestFingerprint/.test(source));
+  source.includes('fingerprintInput') && source.includes('request_fingerprint !== requestFingerprint'));
 check('Stored replay payload separates private fingerprint from public analysis result',
-  /request_fingerprint: requestFingerprint/.test(source) && /priorAnalysis as Record/.test(source));
+  source.includes('request_fingerprint: requestFingerprint') && source.includes('priorAnalysis as Record'));
 check('Finalization failure attempts to release the outstanding reservation',
-  /finalize_analysis_usage_result[\\s\\S]*releaseReservation\\(admin, usageEventId\\)/.test(source));
+  source.includes('finalize_analysis_usage_result') && source.includes('await releaseReservation(admin, usageEventId)'));
 check('Malformed content length and JSON are rejected as client errors',
-  /invalid_content_length/.test(source) && /invalid_json/.test(source));
+  source.includes('invalid_content_length') && source.includes('invalid_json'));
 const failed = checks.filter(x => x.result === 'FAIL');
 console.log(JSON.stringify({ suite: 'ai-analysis-endpoint-contract', total: checks.length, passed: checks.length - failed.length, failed: failed.length, checks }, null, 2));
 if (failed.length) process.exitCode = 1;

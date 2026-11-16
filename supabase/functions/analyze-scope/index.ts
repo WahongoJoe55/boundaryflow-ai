@@ -3,6 +3,7 @@
 // Provider credentials are Edge Function secrets; never expose them to the browser.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { applyEvidencePolicy } from "./scope-evidence.mjs";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -187,34 +188,18 @@ function validateModelResult(
       evidence.push({ source, quote, start, end: start + quote.length });
     }
 
+    const gated = applyEvidencePolicy({
+      classification,
+      confidence,
+      evidence,
+      explanation: shortText(row.explanation, 1_200),
+      nextMove: shortText(row.next_move, 600),
+    });
     const hasAgreementEvidence = evidence.some((entry) => entry.source === "agreement");
-    const hasClientMessageEvidence = evidence.some((entry) => entry.source === "client_message");
-    const hasAnyEvidence = evidence.length > 0;
-    let safeClassification = classification;
-    let safeConfidence = confidence;
-    let safeExplanation = shortText(row.explanation, 1_200);
-    let safeNextMove = shortText(row.next_move, 600);
-
-    // Every assessment must be auditable against at least one exact source quote.
-    // Included/additional decisions specifically require agreement evidence.
-    const requiresAgreement = classification === "Likely included"
-      || classification === "Likely additional"
-      || classification === "Scope conflict";
-    const requiresClientMessage = true;
-    if (!hasAnyEvidence
-        || (requiresAgreement && !hasAgreementEvidence)
-        || (requiresClientMessage && !hasClientMessageEvidence)) {
-      safeClassification = "Clarify";
-      safeConfidence = Math.min(safeConfidence, 0.35);
-      safeExplanation = !hasAnyEvidence
-        ? "No verifiable quotation from the supplied agreement or client message supports this assessment."
-        : requiresAgreement && !hasAgreementEvidence
-          ? "The proposed scope classification is not supported by a verifiable agreement quotation, so this item needs clarification."
-          : "The request is not supported by a verifiable quotation from the client message, so this item needs clarification.";
-      safeNextMove = "Ask for the relevant agreed clause or clarify the request with the client before deciding its scope.";
-    } else if (!safeExplanation || !safeNextMove) {
-      throw new Error("model_rationale_incomplete");
-    }
+    const safeClassification = gated.classification;
+    const safeConfidence = gated.confidence;
+    const safeExplanation = gated.explanation;
+    const safeNextMove = gated.nextMove;
 
     const missing = Array.isArray(row.missing_information)
       ? row.missing_information.slice(0, 6).map((x) => shortText(x, 300)).filter(Boolean)

@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { applyEvidencePolicy } from '../supabase/functions/analyze-scope/scope-evidence.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -100,6 +101,37 @@ check('Scope conflict requires evidence from both the agreement and client messa
   && source.includes('(requiresClientMessage && !hasClientMessageEvidence)'));
 check('Evidence fallback distinguishes missing agreement evidence from missing request evidence',
   source.includes('The request is not supported by a verifiable quotation from the client message'));
+
+const validAgreement = [{ source: 'agreement', quote: 'One homepage and two revisions are included.' }];
+const validMessage = [{ source: 'client_message', quote: 'Please add a second landing page.' }];
+const policyCases = [
+  { name: 'included requires both exact agreement and client-message evidence', input: { classification: 'Likely included', confidence: 0.91, evidence: [...validAgreement, ...validMessage], explanation: 'Supported by both sources.', nextMove: 'Confirm delivery details.' }, expected: 'Likely included' },
+  { name: 'included without agreement evidence abstains', input: { classification: 'Likely included', confidence: 0.99, evidence: validMessage, explanation: 'Unsupported.', nextMove: 'Proceed.' }, expected: 'Clarify' },
+  { name: 'additional without agreement evidence abstains', input: { classification: 'Likely additional', confidence: 0.95, evidence: validMessage, explanation: 'Unsupported.', nextMove: 'Charge extra.' }, expected: 'Clarify' },
+  { name: 'scope conflict without agreement evidence abstains', input: { classification: 'Scope conflict', confidence: 0.9, evidence: validMessage, explanation: 'Unsupported.', nextMove: 'Escalate.' }, expected: 'Clarify' },
+  { name: 'any classification without client-message evidence abstains', input: { classification: 'Conditional', confidence: 0.8, evidence: validAgreement, explanation: 'No message evidence.', nextMove: 'Ask client.' }, expected: 'Clarify' },
+  { name: 'no evidence abstains and caps confidence', input: { classification: 'Likely additional', confidence: 1, evidence: [], explanation: 'Guess.', nextMove: 'Invoice.' }, expected: 'Clarify', confidence: 0.35 },
+  { name: 'client claim can remain a claim when both sources are evidenced', input: { classification: 'Client claim', confidence: 0.7, evidence: [...validAgreement, ...validMessage], explanation: 'The client asserts prior approval.', nextMove: 'Ask for the approval record.' }, expected: 'Client claim' },
+];
+let policyPassed = 0;
+for (const testCase of policyCases) {
+  try {
+    const result = applyEvidencePolicy(testCase.input);
+    const ok = result.classification === testCase.expected
+      && (testCase.confidence === undefined || result.confidence === testCase.confidence);
+    check('Policy behaviour: ' + testCase.name, ok);
+    if (ok) policyPassed++;
+  } catch {
+    check('Policy behaviour: ' + testCase.name, false);
+  }
+}
+const independentResults = [
+  applyEvidencePolicy({ classification: 'Likely included', confidence: 0.9, evidence: [...validAgreement, ...validMessage], explanation: 'Supported.', nextMove: 'Confirm.' }),
+  applyEvidencePolicy({ classification: 'Likely additional', confidence: 0.9, evidence: validMessage, explanation: 'Unsupported.', nextMove: 'Charge.' }),
+];
+check('Mixed multi-request results are gated independently without cross-contamination',
+  independentResults[0].classification === 'Likely included'
+  && independentResults[1].classification === 'Clarify');
 const failed = checks.filter(x => x.result === 'FAIL');
 console.log(JSON.stringify({ suite: 'ai-analysis-endpoint-contract', total: checks.length, passed: checks.length - failed.length, failed: failed.length, checks }, null, 2));
 if (failed.length) process.exitCode = 1;

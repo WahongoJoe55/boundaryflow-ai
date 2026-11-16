@@ -5,6 +5,7 @@ function check(name,ok){checks.push({name,result:ok?'PASS':'FAIL'});}
 check('Server AI is disabled by default pending staging verification',source.includes('window.BF_SERVER_AI_ENABLED = false'));
 check('Existing Analyze workflow has a guarded server AI branch',source.includes('if(window.BF_SERVER_AI_ENABLED===true)')&&source.includes('bfRunServerAIAnalysis(a,r)'));
 check('Server AI output is mapped to the existing BoundaryFlow result shape',source.includes('function bfMapServerAIResult(result)')&&source.includes("status:item.classification")&&source.includes('response:String(item.client_response'));
+check('Server AI boundary risk is displayed independently of classification',source.includes('serverAI:true')&&source.includes('const modelRisk=String(z.c.risk||\'\').toLowerCase()')&&source.includes("'risk-'+modelRisk"));
 check('AI endpoint is invoked through the signed-in Supabase client',source.includes("c.functions.invoke('analyze-scope',{body:payload})")&&source.includes('requireUser();'));
 check('AI request uses stable analysis and idempotency identity',source.includes('analysis_local_id:analysisId,idempotency_key:analysisId'));
 check('AI mode preserves local autosave and existing result renderer',source.includes('renderResults();')&&source.includes("autoSaveCurrentAnalysis==='function'"));

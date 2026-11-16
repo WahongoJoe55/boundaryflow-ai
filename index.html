@@ -3260,7 +3260,10 @@ function renderResults(){
     (distinctClaims.length?'<div class="card" style="margin-top:12px"><b>Separate client claim</b><p class="note">'+esc(distinctClaims.map(function(v){return v;}).join(' '))+'</p><p class="note">This claim is recorded separately and assessed in relation to the relevant request. It does not change the request’s classification by itself.</p></div>':'')+
     bfR2Panel(window.bfReasoningV2)+
     rows.map((z,n)=>{
-    let rr=risk(z.c.status);
+    const modelRisk=String(z.c.risk||'').toLowerCase();
+    let rr=z.c.serverAI&&['low','medium','high'].includes(modelRisk)
+      ? [modelRisk[0].toUpperCase()+modelRisk.slice(1),'risk-'+modelRisk]
+      : risk(z.c.status);
     return '<div class="req"><div class="top"><div><b>'+(String(z.c.status).toLowerCase()==='client claim'?'Client claim '+rows.slice(0,n+1).filter(function(v){return String(v.c.status).toLowerCase()==='client claim';}).length:'Request '+rows.slice(0,n+1).filter(function(v){return String(v.c.status).toLowerCase()!=='client claim' && v.c.type!=='Constraint / instruction';}).length)+'</b><div class="reqtext">'+esc(cleanRequest(z.q))+'</div></div></div>'+ 
       '<div class="badges"><span class="pill '+badge(z.c.status)+'">'+esc(z.c.status)+'</span><span class="pill">'+esc(z.c.type)+'</span><span class="pill confidence-'+z.c.confidence.toLowerCase()+'">Confidence: '+z.c.confidence+'</span><span class="pill '+rr[1]+'">Boundary risk: '+rr[0]+'</span></div>'+ 
       <!-- Request-language and professional-context diagnostics remain internal; keep client-facing results factual. -->
@@ -3568,7 +3571,7 @@ function bfMapServerAIResult(result){
       response:String(item.client_response||'I’ll review this request against the agreed scope and confirm the appropriate next step before proceeding.'),
       why:String(item.explanation||''),claims:item.classification==='Client claim'?[item.request]:[],
       missingInformation:Array.isArray(item.missing_information)?item.missing_information.slice(0,6):[],
-      aiConfidence:confidence
+      aiConfidence:confidence,serverAI:true
     }};
   });
 }

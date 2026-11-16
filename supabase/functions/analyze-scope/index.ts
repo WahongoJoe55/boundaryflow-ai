@@ -45,6 +45,7 @@ Return ONLY valid JSON with this shape:
     "boundary_risk": "low|medium|high",
     "explanation": "concise evidence-grounded rationale",
     "next_move": "practical next step",
+    "client_response": "concise client-ready draft; do not invent prices, approvals or commitments",
     "missing_information": ["..."],
     "evidence": [{"source":"agreement|client_message","quote":"exact contiguous quotation"}]
   }]
@@ -216,6 +217,7 @@ function validateModelResult(
       boundary_risk: risk,
       explanation: safeExplanation,
       next_move: safeNextMove,
+      client_response: shortText(row.client_response, 1_200) || "I’ll review this request against the agreed scope and confirm the appropriate next step before proceeding.",
       missing_information: missing,
       evidence,
     };

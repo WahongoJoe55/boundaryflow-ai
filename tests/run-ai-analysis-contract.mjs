@@ -101,6 +101,9 @@ check('Scope conflict requires evidence from both the agreement and client messa
   policySource.includes('|| input.classification === "Scope conflict"')
   && policySource.includes('(requiresAgreement && !hasAgreementEvidence)')
   && policySource.includes('!hasClientMessageEvidence'));
+check('Server prompt requires a client-ready response without invented commitments',
+  source.includes('"client_response": "concise client-ready draft; do not invent prices, approvals or commitments"')
+  && source.includes('client_response: shortText(row.client_response, 1_200)'));
 check('Evidence fallback distinguishes missing agreement evidence from missing request evidence',
   policySource.includes('The request is not supported by a verifiable quotation from the client message'));
 

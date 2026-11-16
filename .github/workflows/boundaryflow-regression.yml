@@ -44,6 +44,8 @@ jobs:
         run: node tests/run-ai-analysis-contract.mjs
       - name: Validate live AI reasoning benchmark syntax
         run: node --check tests/run-ai-reasoning-benchmark.mjs
+      - name: Validate browser AI integration contract
+        run: node tests/run-ai-frontend-contract.mjs
       - name: Run isolated engine regression suite
         run: node tests/run-regression.mjs
       - name: Run browser end-to-end workflow review

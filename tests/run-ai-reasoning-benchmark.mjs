@@ -137,6 +137,9 @@ for (const scenario of scenarios) {
         && !row.evidence.some(e => e.source === "agreement" && scenario.agreement.includes(e.quote))) {
       scenarioFailures.push(expected.match + " has a decisive classification without exact agreement evidence");
     }
+    if (typeof row.client_response !== "string" || !row.client_response.trim()) {
+      scenarioFailures.push(expected.match + " has no client-ready response draft");
+    }
     if (!Number.isFinite(row.confidence) || row.confidence < 0 || row.confidence > 1) {
       scenarioFailures.push(expected.match + " has invalid confidence");
     }

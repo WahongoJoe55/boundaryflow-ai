@@ -3546,9 +3546,57 @@ function bfClaimMatchesRequest(claim,request){
   return false;
 }
 
-function analyze(){
+// Server AI remains disabled until isolated staging verification and privacy disclosure are complete.
+window.BF_SERVER_AI_ENABLED = false;
+
+function bfMapServerAIResult(result){
+  if(!result || !Array.isArray(result.requests) || result.requests.length>8) throw new Error('The AI service returned an invalid analysis.');
+  const allowed=new Set(['Likely included','Likely additional','Scope conflict','Clarify','Conditional','Client claim']);
+  return result.requests.map(item=>{
+    if(!item || !allowed.has(item.classification) || typeof item.request!=='string' || !item.request.trim()) throw new Error('The AI service returned an invalid request classification.');
+    const confidence=Number(item.confidence);
+    if(!Number.isFinite(confidence)||confidence<0||confidence>1) throw new Error('The AI service returned an invalid confidence score.');
+    const evidence=Array.isArray(item.evidence)?item.evidence.filter(e=>e&&['agreement','client_message'].includes(e.source)&&typeof e.quote==='string').slice(0,4):[];
+    const confidenceLabel=confidence>=0.8?'High':confidence>=0.55?'Medium':'Low';
+    const risk=String(item.boundary_risk||'').toLowerCase();
+    if(!['low','medium','high'].includes(risk)) throw new Error('The AI service returned an invalid boundary-risk value.');
+    const evidenceText=evidence.length?evidence.map(e=>(e.source==='agreement'?'Agreement':'Client message')+': “'+e.quote+'”').join('\n'):'No verifiable quotation was returned.';
+    return {q:item.request,c:{
+      status:item.classification,type:'AI evidence assessment',confidence:confidenceLabel,risk,
+      evidence:evidenceText,boundary:String(item.explanation||'Evidence-grounded assessment pending review.'),
+      action:String(item.next_move||'Clarify the request before proceeding.'),
+      response:String(item.client_response||'I’ll review this request against the agreed scope and confirm the appropriate next step before proceeding.'),
+      why:String(item.explanation||''),claims:item.classification==='Client claim'?[item.request]:[],
+      missingInformation:Array.isArray(item.missing_information)?item.missing_information.slice(0,6):[],
+      aiConfidence:confidence
+    }};
+  });
+}
+
+async function bfRunServerAIAnalysis(agreement,message){
+  if(typeof window.bfInvokeScopeAI!=='function') throw new Error('The secure AI connection is not available yet.');
+  const analysisId=bfAnalysisId();
+  const result=await window.bfInvokeScopeAI({
+    agreement_text:agreement,client_message:message,
+    analysis_local_id:analysisId,idempotency_key:analysisId
+  });
+  window.rows=bfMapServerAIResult(result);
+  window.bfReasoningV2=null;
+  document.getElementById('status').textContent='AI analysis complete. '+window.rows.length+' request item'+(window.rows.length===1?'':'s')+' returned. Review every classification and quotation before acting.';
+  renderResults();
+  if(typeof autoSaveCurrentAnalysis==='function') autoSaveCurrentAnalysis();
+}
+
+async function analyze(){
   let a=document.getElementById('a').value.trim(), r=document.getElementById('r').value.trim();
   if(!a||!r){document.getElementById('status').textContent='Please provide both fields.';return}
+  if(window.BF_SERVER_AI_ENABLED===true){
+    document.getElementById('status').textContent='Analysing with BoundaryFlow AI…';
+    bfRunServerAIAnalysis(a,r).catch(error=>{
+      document.getElementById('status').textContent='AI analysis unavailable: '+(error&&error.message?error.message:'Please try again.');
+    });
+    return;
+  }
   const ledgerContext=bfLedgerAnalysisContext(a);
   a=ledgerContext.analysisScope;
   window.bfLedgerAnalysisMeta=ledgerContext;
@@ -4946,6 +4994,15 @@ async function bfCloudDeleteQueuedRow(client,userId,id){
   function cloudError(err,prefix){const m=prefix+': '+(err&&err.message?err.message:String(err));cloud.lastError=m;status('Sync needs attention','pending');message(m);console.error('[BoundaryFlow cloud]',err);}
   function requireClient(){if(!cloud.client)throw new Error('Sign-in is temporarily unavailable because the workspace service has not been configured yet. Please try again later.');return cloud.client}
   function requireUser(){if(!cloud.user)throw new Error('Sign in before syncing cloud data.');return cloud.user}
+  window.bfInvokeScopeAI=async function(payload){
+    const c=requireClient();requireUser();
+    const {data,error}=await c.functions.invoke('analyze-scope',{body:payload});
+    if(error)throw new Error(error.message||'The secure AI analysis request failed.');
+    if(!data||typeof data!=='object'||Array.isArray(data))throw new Error('The AI service returned an empty response.');
+    if(data.error)throw new Error(String(data.error));
+    return data;
+  };
+
   function currentResponse(item){try{if(item.id===bfAnalysisId()){const el=document.querySelector('.scope-response .response');return el?el.textContent:null}}catch(e){}return item.generatedResponse||null}
   function localPayload(item){return {format:'boundaryflow-analysis-v1',localId:item.id,name:item.name||'Untitled analysis',date:item.date||new Date().toLocaleString(),updatedAt:item.updatedAt||new Date().toLocaleString(),count:item.count||0,tone:item.tone||'professional',taskStatus:item.taskStatus||'in_progress',metrics:item.metrics||{},scope:item.scope||'',request:item.request||'',rows:Array.isArray(item.rows)?item.rows:[],autoSaved:!!item.autoSaved,manualSaved:!!item.manualSaved,engineVersion:item.engineVersion||'1.2.78',appVersion:'1.5.5',generatedResponse:currentResponse(item)}}
   async function ensureProfile(user){

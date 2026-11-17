@@ -102,7 +102,11 @@ The staging account must have a valid test subscription and quota. Provision tha
 
 ## 6. Important integration status
 
-The server-side `analyze-scope` function is implemented and its static/contract checks pass in CI. The existing browser `analyze()` workflow still uses the established deterministic analysis path; it has not yet been switched to invoke this Edge Function. Therefore a successful function deployment alone would not mean the application is using AI analysis. Frontend integration and end-to-end verification are a separate release gate.
+The browser `analyze()` workflow now contains a guarded integration path that invokes the signed-in Supabase client Edge Function, maps validated server results into the existing BoundaryFlow result renderer, displays boundary risk independently from classification, and preserves local autosave. A mocked browser regression exercises this path.
+
+**The integration is deliberately disabled by default** through `window.BF_SERVER_AI_ENABLED = false`. The current public application must continue using the deterministic analysis path. Do not enable the flag in a public GitHub Pages deployment. For staging browser verification, use a controlled staging-only build/origin and a reviewed, temporary enablement procedure; never publish an enabled build to the public production origin. The direct live benchmark in section 5A can independently verify the deployed function before the UI flag is enabled.
+
+A successful static CI run or function deployment alone does not establish live model quality, real database correctness, or a complete browser-to-provider production workflow.
 
 ## 7. Rollback and production protection
 

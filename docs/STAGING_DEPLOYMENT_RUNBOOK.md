@@ -1,6 +1,6 @@
 # BoundaryFlow AI — Isolated staging deployment runbook
 
-**Status:** Staging project created; migrations and function deployment not yet executed. The dedicated project reference is `zockowhjvharddpmdagh`.  
+**Status:** Staging project `boundaryflow-staging` is created and verified empty. A production-metadata-derived core baseline migration has been added to the engineering branch; it has not been applied. The dedicated project reference is `zockowhjvharddpmdagh`.  
 **Safety rule:** Do not link this procedure to the production project. Do not apply these migrations to production.
 
 ## 1. Required staging environment
@@ -11,7 +11,7 @@ Before proceeding, confirm the project reference `zockowhjvharddpmdagh` belongs 
 
 ## 2. Verify the baseline schema, then apply reviewed migrations to staging only
 
-**Important prerequisite discovered during repository inspection:** the six existing migrations are incremental billing/AI migrations, not a complete fresh-project schema. The first migration alters `public.analyses`, and the billing migrations also assume the existing application schema. The repository currently has no baseline migration that creates `profiles`, `projects`, `agreements` and `analyses`. Therefore, do not run `supabase db push` yet on this brand-new project. First verify the staging `public` tables and add/review a baseline migration if they are absent. Never copy production customer data into staging.
+**Baseline migration now present:** `20261110000100_core_application_baseline.sql` creates the four core tables (`profiles`, `projects`, `agreements`, `analyses`), production-matched defaults, constraints, foreign keys, indexes and 15 authenticated RLS policies. It intentionally uses plain `CREATE TABLE` so it fails closed if the target is not a fresh database. It has static contract coverage but still requires SQL review and execution against staging before it is considered validated. Never copy production customer data into staging.
 
 Only after the baseline schema exists and has been reviewed, from the repository root authenticate the Supabase CLI and link it to the staging project:
 

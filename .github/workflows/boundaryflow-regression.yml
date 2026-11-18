@@ -38,6 +38,8 @@ jobs:
         run: node scripts/build-private-preview.mjs
       - name: Verify preview isolation
         run: node tests/run-private-preview-build.mjs
+      - name: Validate core application baseline schema contract
+        run: node tests/run-core-schema-contract.mjs
       - name: Validate billing migration security and invariants
         run: node tests/run-billing-contract.mjs
       - name: Validate server-side AI analysis endpoint contract

@@ -1,17 +1,19 @@
 # BoundaryFlow AI — Isolated staging deployment runbook
 
-**Status:** Prepared; not executed. The repository currently has no separately created staging Supabase project.  
+**Status:** Staging project created; migrations and function deployment not yet executed. The dedicated project reference is `zockowhjvharddpmdagh`.  
 **Safety rule:** Do not link this procedure to the production project. Do not apply these migrations to production.
 
 ## 1. Required staging environment
 
 Create a new Supabase project dedicated to BoundaryFlow testing. Keep its project reference, URL and credentials separate from production. Use a test account and synthetic agreement/client-message text only.
 
-Before proceeding, confirm the project reference belongs to the new staging project. In the Supabase dashboard, verify the project name and project URL before using the CLI.
+Before proceeding, confirm the project reference `zockowhjvharddpmdagh` belongs to `boundaryflow-staging` and that the project URL is `https://zockowhjvharddpmdagh.supabase.co`. In the dashboard, verify the project name and project URL before using the CLI. Production project reference is different; never link this workflow to production.
 
-## 2. Apply the reviewed migrations to staging only
+## 2. Verify the baseline schema, then apply reviewed migrations to staging only
 
-From the repository root, authenticate the Supabase CLI and link it to the staging project:
+**Important prerequisite discovered during repository inspection:** the six existing migrations are incremental billing/AI migrations, not a complete fresh-project schema. The first migration alters `public.analyses`, and the billing migrations also assume the existing application schema. The repository currently has no baseline migration that creates `profiles`, `projects`, `agreements` and `analyses`. Therefore, do not run `supabase db push` yet on this brand-new project. First verify the staging `public` tables and add/review a baseline migration if they are absent. Never copy production customer data into staging.
+
+Only after the baseline schema exists and has been reviewed, from the repository root authenticate the Supabase CLI and link it to the staging project:
 
 ```sh
 supabase login

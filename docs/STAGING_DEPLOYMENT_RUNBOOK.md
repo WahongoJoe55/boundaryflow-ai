@@ -9,15 +9,15 @@ Create a new Supabase project dedicated to BoundaryFlow testing. Keep its projec
 
 Before proceeding, confirm the project reference `zockowhjvharddpmdagh` belongs to `boundaryflow-staging` and that the project URL is `https://zockowhjvharddpmdagh.supabase.co`. In the dashboard, verify the project name and project URL before using the CLI. Production project reference is different; never link this workflow to production.
 
-## 2. Verify the baseline schema, then apply reviewed migrations to staging only
+## 2. Review and apply the complete migration chain to staging only
 
-**Baseline migration now present:** `20261110000100_core_application_baseline.sql` creates the four core tables (`profiles`, `projects`, `agreements`, `analyses`), production-matched defaults, constraints, foreign keys, indexes and 15 authenticated RLS policies. It intentionally uses plain `CREATE TABLE` so it fails closed if the target is not a fresh database. It has static contract coverage but still requires SQL review and execution against staging before it is considered validated. Never copy production customer data into staging.
+**Baseline migration:** `20261110000100_core_application_baseline.sql` creates the four core tables (`profiles`, `projects`, `agreements`, `analyses`), production-matched defaults, constraints, foreign keys, indexes and 15 authenticated RLS policies. It intentionally uses plain `CREATE TABLE` so it fails closed if the target is not a fresh database. It has passed static contract coverage and has been reviewed against the supplied production metadata, but it is not live-validated until applied and checked on staging. Never copy production customer data into staging.
 
-Only after the baseline schema exists and has been reviewed, from the repository root authenticate the Supabase CLI and link it to the staging project:
+The staging database is currently expected to be empty. After confirming the project name and reference in the Supabase dashboard and reviewing the migration files, run the CLI from the repository root. `supabase db push` applies the baseline and all later migrations in filename order; do not manually paste the baseline SQL into the SQL editor:
 
 ```sh
 supabase login
-supabase link --project-ref <STAGING_PROJECT_REF>
+supabase link --project-ref zockowhjvharddpmdagh
 supabase migration list
 supabase db push
 supabase migration list
@@ -25,12 +25,13 @@ supabase migration list
 
 The repository migrations are intended to run in filename order:
 
-1. `20261111000100_analysis_local_id_unique.sql`
-2. `20261111000200_billing_foundation.sql`
-3. `20261111000300_atomic_analysis_usage.sql`
-4. `20261111000400_usage_reservation_lease.sql`
-5. `20261116000100_monthly_quota_windows.sql`
-6. `20261116000200_analysis_result_replay.sql`
+1. `20261110000100_core_application_baseline.sql`
+2. `20261111000100_analysis_local_id_unique.sql`
+3. `20261111000200_billing_foundation.sql`
+4. `20261111000300_atomic_analysis_usage.sql`
+5. `20261111000400_usage_reservation_lease.sql`
+6. `20261116000100_monthly_quota_windows.sql`
+7. `20261116000200_analysis_result_replay.sql`
 
 Review the CLI's target project before confirming any database change. If the linked project is not the dedicated staging project, stop. Do not use `db push` against production.
 

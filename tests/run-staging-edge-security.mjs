@@ -25,11 +25,11 @@ if (!endpoint || !anonKey || !origin) {
 let parsed;
 try { parsed = new URL(endpoint); } catch { parsed = null; }
 if (!parsed || parsed.protocol !== "https:" || parsed.hostname !== expectedHost
-    || parsed.pathname.replace(/\\/$/, "") !== "/functions/v1/analyze-scope") {
+    || !(parsed.pathname === "/functions/v1/analyze-scope" || parsed.pathname === "/functions/v1/analyze-scope/")) {
   console.error("Refusing target: expected the exact isolated staging analyze-scope endpoint.");
   process.exit(2);
 }
-if (!/^https:\\/\\//i.test(origin) || origin.includes("*") || new URL(origin).origin !== origin) {
+if (!origin.toLowerCase().startsWith("https://") || origin.includes("*") || new URL(origin).origin !== origin) {
   console.error("Refusing invalid origin: provide one exact HTTPS origin without a path or wildcard.");
   process.exit(2);
 }

@@ -11,7 +11,8 @@
     "test": "node tests/run-core-schema-contract.mjs && node tests/run-billing-contract.mjs && node tests/run-ai-analysis-contract.mjs && node tests/run-ai-frontend-contract.mjs",
     "test:browser-regression": "node tests/run-regression.mjs",
     "test:e2e": "node tests/run-e2e.mjs",
-    "test:preview": "node tests/run-private-preview-build.mjs"
+    "test:preview": "node tests/run-private-preview-build.mjs",
+    "test:staging-edge-security": "node tests/run-staging-edge-security.mjs"
   },
   "repository": {
     "type": "git",

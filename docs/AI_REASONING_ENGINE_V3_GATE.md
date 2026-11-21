@@ -1,6 +1,6 @@
 # BoundaryFlow AI reasoning engine — version 3 engineering gate
 
-**Status:** architecture and acceptance specification; not an implemented model integration.
+**Status (21 Nov 2026):** architecture and acceptance specification with an initial server-side implementation deployed to isolated staging. Live provider reasoning evaluation remains blocked; this is not a production-ready AI integration.
 **Applies to:** the candidate branch `work/production-readiness-hardening-v1`.
 **Decision principle:** the engine thinks; the freelancer decides.
 
@@ -8,13 +8,9 @@
 
 The current application executes `analyze()` in the browser. Request decomposition, classification, evidence matching, contradiction diagnostics, revision accounting and commercial safeguards are primarily deterministic JavaScript rules.
 
-The latest recorded CI run on candidate commit `b7de1dbdc0445b917b3147946e33ced373d5a9aa` passed:
-- 10 private-preview isolation checks;
-- 34 billing migration contract checks;
-- 134 engine regression scenarios;
-- 87 browser end-to-end scenarios.
+The candidate's recent GitHub Actions workflow run #544 for commit `d31c9b3017ca45f338444e7e2c382596e577c779` completed successfully. Its uploaded regression artifact reports 134/134 engine regression scenarios and 88/88 browser end-to-end scenarios passed. The local contract suite separately passed 110/110 checks. These are distinct suites; do not add them together as live integration coverage.
 
-These results establish regression consistency for the tested candidate. They do not establish general AI reasoning quality, live Supabase behaviour, payment-provider integration or production readiness. No active model-provider API invocation or trusted server-side analysis endpoint is present in the current application.
+These results establish regression consistency for the tested candidate. They do not establish general AI reasoning quality, live Supabase behaviour, payment-provider integration or production readiness. The `analyze-scope` trusted server-side endpoint is now deployed to staging (active version 1), but the live model invocation could not complete: after a test entitlement was provisioned, the provider returned HTTP 429 (`model_provider_http_429`) because the OpenAI API account had no remaining API credit. The live reasoning benchmark is therefore blocked/not passed. The browser feature flag remains disabled by default; local mocked tests do not prove live browser-to-function operation.
 
 ## 2. Target reasoning architecture
 
@@ -142,4 +138,4 @@ The candidate now includes `supabase/functions/analyze-scope/index.ts` as an ini
 - Finalises usage only while the reservation lease is live; model/validation failures attempt to release the reservation.
 - Logs error codes/categories only, not agreement text, client messages, tokens or provider keys.
 
-**Not yet complete:** the endpoint is not deployed or runtime-tested; no provider secret is configured; the frontend still uses its existing browser-side `analyze()` path; plan pricing/free entitlement policy and live provider terms remain unapproved. The current paid-subscription reservation path has no free-tier entitlement path. The new SQL migration is review/staging-only.
+**Current staging status (21 Nov 2026):** the endpoint is deployed to the isolated staging project and has been invoked. JWT validation and entitlement gating were exercised: the first benchmark attempt returned 403 `no_active_subscription`; after a staging test subscription was provisioned, the provider request returned 429 due to exhausted provider API credit. Consequently, successful model output, evidence validation against live provider responses, reservation release on provider failure, idempotent replay under live provider execution, quota concurrency and model-quality acceptance remain unverified. The frontend contains a guarded integration path exercised by mocked browser tests, but `window.BF_SERVER_AI_ENABLED` remains `false`; a real browser-to-staging-function flow has not been signed off. Free-tier policy, pricing, provider terms and public billing remain unapproved.

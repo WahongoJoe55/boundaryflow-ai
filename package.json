@@ -1,0 +1,32 @@
+{
+  "name": "boundaryflow-ai",
+  "version": "1.0.0",
+  "description": "BoundaryFlow AI is a decision-support workspace for freelancers and professionals. It compares a client's latest message with the scope and evidence supplied by the user, separates actionable requests, explains boundary decisions, and drafts client-ready responses.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "node tests/run-core-schema-contract.mjs && node tests/run-billing-contract.mjs && node tests/run-ai-analysis-contract.mjs && node tests/run-ai-frontend-contract.mjs",
+    "test:browser-regression": "node tests/run-regression.mjs",
+    "test:e2e": "node tests/run-e2e.mjs",
+    "test:preview": "node tests/run-private-preview-build.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WahongoJoe55/boundaryflow-ai.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/WahongoJoe55/boundaryflow-ai/issues"
+  },
+  "homepage": "https://github.com/WahongoJoe55/boundaryflow-ai#readme",
+  "devDependencies": {
+    "playwright": "^1.65.1"
+  },
+  "private": true
+}

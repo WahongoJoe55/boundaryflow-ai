@@ -1,11 +1,11 @@
 # BoundaryFlow AI — Isolated staging deployment runbook
 
-**Status:** Staging project `boundaryflow-staging` is created and verified empty. A production-metadata-derived core baseline migration has been added to the engineering branch; it has not been applied. The dedicated project reference is `zockowhjvharddpmdagh`.  
+**Status (21 Nov 2026):** The isolated staging project `boundaryflow-staging` (`zockowhjvharddpmdagh`) is provisioned. All seven migrations listed below have been applied and the remote migration history was checked against the local files. The `analyze-scope` Edge Function is deployed to staging (active version 1). The live provider benchmark is currently blocked by the provider returning HTTP 429 because the configured OpenAI API account has no remaining API credit. The frontend server-AI flag remains disabled by default. This runbook is therefore a record of completed staging setup plus remaining verification—not a production deployment approval.  
 **Safety rule:** Do not link this procedure to the production project. Do not apply these migrations to production.
 
 ## 1. Required staging environment
 
-Create a new Supabase project dedicated to BoundaryFlow testing. Keep its project reference, URL and credentials separate from production. Use a test account and synthetic agreement/client-message text only.
+Staging project already created: `boundaryflow-staging`, project reference `zockowhjvharddpmdagh`, URL `https://zockowhjvharddpmdagh.supabase.co`. Keep its credentials separate from production. Use dedicated test accounts and synthetic agreement/client-message text only.
 
 Before proceeding, confirm the project reference `zockowhjvharddpmdagh` belongs to `boundaryflow-staging` and that the project URL is `https://zockowhjvharddpmdagh.supabase.co`. In the dashboard, verify the project name and project URL before using the CLI. Production project reference is different; never link this workflow to production.
 
@@ -13,7 +13,7 @@ Before proceeding, confirm the project reference `zockowhjvharddpmdagh` belongs 
 
 **Baseline migration:** `20261110000100_core_application_baseline.sql` creates the four core tables (`profiles`, `projects`, `agreements`, `analyses`), production-matched defaults, constraints, foreign keys, indexes and 15 authenticated RLS policies. It intentionally uses plain `CREATE TABLE` so it fails closed if the target is not a fresh database. It has passed static contract coverage and has been reviewed against the supplied production metadata, but it is not live-validated until applied and checked on staging. Never copy production customer data into staging.
 
-The staging database is currently expected to be empty. After confirming the project name and reference in the Supabase dashboard and reviewing the migration files, run the CLI from the repository root. `supabase db push` applies the baseline and all later migrations in filename order; do not manually paste the baseline SQL into the SQL editor:
+The staging database is no longer empty: the seven migrations below have already been applied to staging and `supabase migration list --linked` was checked. For a fresh isolated environment only, after confirming its project name/reference and reviewing the migration files, the CLI commands below show the original setup procedure. Do not rerun this setup blindly or point it at production:
 
 ```sh
 supabase login
@@ -61,6 +61,8 @@ Use the actual staging browser origin. Do not add wildcard origins. Do not put p
 
 ## 4. Deploy the server function to staging
 
+**Current recorded state:** `analyze-scope` has been deployed to staging using Supabase CLI v2; the function list showed active version 1. This deployment is not a production deployment.
+
 ```sh
 supabase functions deploy analyze-scope --project-ref <STAGING_PROJECT_REF>
 supabase functions list --project-ref <STAGING_PROJECT_REF>
@@ -69,6 +71,8 @@ supabase functions list --project-ref <STAGING_PROJECT_REF>
 The function validates the caller's Supabase JWT itself and uses server-only credentials for usage reservation and provider calls. Keep platform JWT verification enabled unless a separately reviewed deployment design explicitly requires otherwise.
 
 ## 5. Required staging verification
+
+**Verification status:** schema/RLS metadata and migration history were inspected on staging. Local contract, browser-regression and E2E suites passed, but the browser suites use simulated/stubbed cloud services and do not establish live Supabase integration. The live AI benchmark reached the deployed function but initially returned 403 `no_active_subscription`; after a staging test entitlement was provisioned, the provider call returned HTTP 429 (`model_provider_http_429`) because the OpenAI API account had no remaining API credit. Do not report the live reasoning benchmark as passed. Do not purchase credits or enable the feature merely to clear this gate.
 
 Use synthetic data and a dedicated staging user. Do not use real client contracts or personal data.
 
@@ -109,7 +113,7 @@ The browser `analyze()` workflow now contains a guarded integration path that in
 
 **The integration is deliberately disabled by default** through `window.BF_SERVER_AI_ENABLED = false`. The current public application must continue using the deterministic analysis path. Do not enable the flag in a public GitHub Pages deployment. For staging browser verification, use a controlled staging-only build/origin and a reviewed, temporary enablement procedure; never publish an enabled build to the public production origin. The direct live benchmark in section 5A can independently verify the deployed function before the UI flag is enabled.
 
-A successful static CI run or function deployment alone does not establish live model quality, real database correctness, or a complete browser-to-provider production workflow.
+A successful static CI run or function deployment alone does not establish live model quality, real database correctness, or a complete browser-to-provider production workflow. Current staging deployment and local test results must be recorded separately from live provider evaluation.
 
 ## 7. Rollback and production protection
 

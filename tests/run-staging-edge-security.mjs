@@ -68,8 +68,17 @@ const cases = [
     check: r => r.status === 400,
   },
   {
-    name: "oversized body is rejected before authentication/model execution",
-    run: () => fetch(endpoint, { method: "POST", headers: { ...common, "content-type": "application/json" }, body: JSON.stringify({ padding: "x".repeat(81_000) }) }),
+    name: "oversized body is rejected before JWT verification/model execution",
+    run: () => fetch(endpoint, {
+      method: "POST",
+      headers: {
+        ...common,
+        authorization: "Bearer invalid-test-token",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ padding: "x".repeat(81_000) }),
+      signal: AbortSignal.timeout(20000),
+    }),
     check: r => r.status === 413,
   },
 ];

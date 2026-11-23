@@ -106,7 +106,9 @@ async function readBoundedBody(request: Request, maxBytes: number): Promise<stri
       if (done) break;
       total += value.byteLength;
       if (total > maxBytes) {
-        await reader.cancel();
+        // Initiate cancellation without awaiting it: some edge-runtime request streams
+        // can stall during cancellation and prevent the 413 response from being sent.
+        void reader.cancel().catch(() => {});
         throw new Error("request_too_large");
       }
       chunks.push(value);

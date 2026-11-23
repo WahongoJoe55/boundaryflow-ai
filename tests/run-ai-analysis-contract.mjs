@@ -44,6 +44,9 @@ check('No request content or API key is logged',
   !/console\.(log|error)\([^\n]*(agreement_text|client_message|AI_API_KEY)/.test(source));
 check('Request bodies are read with a streaming byte limit before buffering',
   source.includes('getReader()') && source.includes('total > maxBytes') && !source.includes('request.text()'));
+check('Oversized streamed bodies initiate non-blocking cancellation before returning 413',
+  source.includes('void reader.cancel().catch(() => {})')
+  && !source.includes('await reader.cancel()'));
 check('Idempotency replay rejects a different agreement or client message payload',
   source.includes('fingerprintInput') && source.includes('request_fingerprint !== requestFingerprint'));
 check('Stored replay payload separates private fingerprint from public analysis result',

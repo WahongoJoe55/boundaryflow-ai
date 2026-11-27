@@ -48,6 +48,8 @@ jobs:
         run: node --check tests/run-ai-reasoning-benchmark.mjs
       - name: Validate browser AI integration contract
         run: node tests/run-ai-frontend-contract.mjs
+      - name: Verify regression runner and matrix integrity
+        run: node tests/run-regression-matrix-integrity.mjs
       - name: Run isolated engine regression suite
         run: node tests/run-regression.mjs
       - name: Run browser end-to-end workflow review

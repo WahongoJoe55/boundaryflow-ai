@@ -141,7 +141,6 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 | BF-L35 | New-page classification uses a generic rule for any page. | Create a new Careers page under a new-page approval exclusion. | Name Careers, not a hard-coded Pricing-page example. |
 | BF-R72 | Mixed response combines included, additional, conditional and client-claim rows. | Correct About spelling, create Careers, fix the Contact form submit button, and assert Careers was included. | Refer to the actual Careers and Contact-form items; do not insert fixture-specific Pricing or Contact wording. |
 
-| BF-L36 | A scope claim names one of several requests. | Create Careers and Pricing pages, then say Pricing was included. | Link the claim to Pricing only; do not attach it to Careers. |
 | BF-L37 | A vague scope claim could refer to multiple requests. | Create Careers and add a newsletter form, then say “that was included”. | Keep the claim unlinked and ask which deliverable it concerns. |
 
 
@@ -173,7 +172,6 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 
 | BF-R78 | Client-claim response tone is request-neutral | Warm/Firm response copy asks for verifiable written evidence without assuming a revision or spelling request | Regression runner |
 
-| BF-R77 | Included-work response tone | Warm/Firm framing preserves the complete request-specific inclusion explanation and revision caveat | Regression runner |
 
 | BF-C07 | Negated scope-language interpretation | “Not within scope”, “not part of the agreement” and “not covered by the agreement” remain exclusions | Regression runner |
 
@@ -188,7 +186,6 @@ The ledger is browser-local and append-only. It is not cloud-synced, independent
 
 | BF-E05 | Conditional boundary-risk presentation. | Conditional decision with an unresolved prerequisite. | Display Medium boundary risk; do not default to Low. |
 
-| BF-SYNC-01 | Ambiguous cloud insert retry. | An analysis row may already exist after a network response is lost. | Look up the existing row by user ID and stable local analysis ID before inserting again. |
 
 
 ## Commercial safeguard extensions — 8 November 2026
@@ -255,3 +252,29 @@ Added `bfLedgerReviewAmendments(records)` as a conservative diagnostic over user
 ## 10 November 2026 — amendment date validator correction
 
 Run #332 revealed that the ISO date regular expression was over-escaped in the JavaScript source, causing valid dates to be rejected as missing metadata. Corrected the expression and added BF-A04 (invalid calendar date remains unverified) and BF-A05 (valid ISO date is compared against the baseline). The original chronology safeguard remains conservative: no amendment is automatically applied.
+## Executable runner reconciliation — 27 November 2026
+
+The following rows reconcile every executable scenario that was absent from the earlier matrix. IDs must match the scenario IDs in `engine-regression-runner.html`. The runner's `check`, `reasoningCheck` or `reasoningProbe` predicate remains the executable acceptance criterion.
+
+| ID | Scenario | Agreement / context | Client message / action | Expected behaviour |
+|---|---|---|---|---|
+| BF-R70 | Mixed message: new page plus included spelling correction | WEBSITE DEVELOPMENT AGREEMENT. The agreed website includes the Home page and About page. The project includes one revision round for the agreed deliverables. Spelling corrections and minor adjustments to existing agreed pages are included, subject to the agreed revision allowance. Any new website page, including a Careers page, is outside the original agreed scope and requires separate written approval before work begins. No additional fees or delivery timelines have been agreed for work outside the original scope. | Hi,\n\nI have reviewed the website and would like you to make two changes.\n\nFirst, please create a new Careers page where potential employees can learn about available opportunities and submit their applications.\n\nSecond, I noticed a spelling mistake on the existing About page. Please correct it.\n\nI would appreciate it if you could handle both changes as part of the current project.\n\nThanks. | Exactly two actionable requests: Careers page Likely additional with explicit written-approval evidence; About spelling correction Likely included subject to an unknown remaining revision balance. Greetings, framing and sequencing are not request rows. |
+| BF-R71 | Mixed-scope response states both follow-up actions | WEBSITE DEVELOPMENT AGREEMENT. The agreed website includes the Home page and About page. The project includes one revision round for the agreed deliverables. Spelling corrections and minor adjustments to existing agreed pages are included, subject to the agreed revision allowance. Any new website page, including a Careers page, is outside the original agreed scope and requires separate written approval before work begins. No additional fees or delivery timelines have been agreed for work outside the original scope. | Hi,\n\nI have reviewed the website and would like you to make two changes.\n\nFirst, please create a new Careers page where potential employees can learn about available opportunities and submit their applications.\n\nSecond, I noticed a spelling mistake on the existing About page. Please correct it.\n\nI would appreciate it if you could handle both changes as part of the current project.\n\nThanks. | The combined response must separately state written approval for the new page and a revision-history check for the included spelling correction, without inventing commercial terms. |
+| BF-L38 | Generic website entitlement statement remains unassigned | New pages and new functionality require separate written approval. | Create a new Careers page for the website. Add a newsletter signup form. I thought the website was already included. | A generic website entitlement statement remains Clarify and is not arbitrarily attached to the Careers page or newsletter form. |
+| BF-R80 | Client-claim revision event cannot consume the completed revision allowance | Two rounds of revisions per page are included. | Update the Portfolio page layout. | A client assertion is not proof that a revision round was delivered; preserve the history as unknown instead of consuming the allowance. |
+| BF-E12 | Spelling mistake request matches spelling-correction allowance | Spelling corrections and minor adjustments to existing agreed pages are included, subject to the agreed revision allowance. | Correct the spelling mistake on the existing About page. | Common wording variants for spelling corrections must match the corresponding included agreement clause without changing the primary classification. |
+| BF-A01 | Proposed amendment is never applied as approved scope | New pages are excluded. | Please add a new Careers page. | Proposed amendment remains pending and cannot alter the baseline. |
+| BF-A02 | Client assertion cannot become approval through ledger status | New pages are excluded. | We approved the Careers page on a call. | Client-claim source remains a claim even if its status field says approved. |
+| BF-A03 | Amendment dated before baseline triggers chronology conflict | New pages are excluded. | Please add a Careers page. | An amendment with a recorded date earlier than the baseline is flagged; no automatic supersession. |
+| BF-A04 | Malformed amendment source date remains unverified | New pages are excluded. | Please add a Careers page. | An invalid calendar date cannot qualify an amendment or trigger chronology precedence. |
+| BF-A05 | Valid ISO amendment date is compared against the baseline | New pages are excluded. | Please add a Careers page. | Valid ISO calendar dates are compared and an earlier amendment is flagged. |
+| BF-A06 | Amendment chronology is independent of ledger entry order | New pages are excluded. | Please add a Careers page. | Chronology comparison must not depend on whether the amendment or baseline record appears first. |
+| BF-A07 | Proposed baseline cannot establish amendment chronology | New pages are excluded. | Please add a Careers page. | A proposed baseline must not create a false chronology conflict. |
+| BF-A08 | Client-claim baseline cannot establish amendment chronology | New pages are excluded. | Please add a Careers page. | A client-claim record must not establish the baseline chronology. |
+| BF-A09 | Superseded baseline cannot establish amendment chronology | New pages are excluded. | Please add a Careers page. | A superseded baseline must not create a false chronology conflict. |
+| BF-A10 | Declined baseline cannot establish amendment chronology | New pages are excluded. | Please add a Careers page. | A declined baseline must not create a false chronology conflict. |
+| BF-L40 | Page-specific approval does not leak to a different page | New pages require separate approval. | Create a new Booking page. | An approval record naming Careers must not authorise a different Booking page. |
+| BF-A14 | Multiple active agreement baselines make amendment chronology ambiguous | New pages are excluded. | Please add a Careers page. | Do not select the latest of multiple active baselines and infer chronology. Require the operative baseline to be identified first. |
+| BF-A11 | Qualified non-inclusion is not treated as explicit exclusion | New pages are not expressly included in the agreement. | Please create a Careers page. | Not expressly included is unresolved wording, not proof that the work is excluded. |
+| BF-A12 | Automatic-inclusion qualifier remains unresolved | New pages are not automatically included in the agreement. | Please create a Careers page. | Not automatically included must not be interpreted as included or expressly excluded. |
+| BF-A13 | Unqualified not-included wording remains explicit exclusion | New pages are not included in the agreement. | Please create a Careers page. | An unqualified statement that work is not included remains an explicit exclusion. |

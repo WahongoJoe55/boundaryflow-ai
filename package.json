@@ -8,11 +8,12 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "node tests/run-core-schema-contract.mjs && node tests/run-billing-contract.mjs && node tests/run-ai-analysis-contract.mjs && node tests/run-ai-frontend-contract.mjs",
+    "test": "node tests/run-regression-matrix-integrity.mjs && node tests/run-core-schema-contract.mjs && node tests/run-billing-contract.mjs && node tests/run-ai-analysis-contract.mjs && node tests/run-ai-frontend-contract.mjs",
     "test:browser-regression": "node tests/run-regression.mjs",
     "test:e2e": "node tests/run-e2e.mjs",
     "test:preview": "node tests/run-private-preview-build.mjs",
-    "test:staging-edge-security": "node tests/run-staging-edge-security.mjs"
+    "test:staging-edge-security": "node tests/run-staging-edge-security.mjs",
+    "test:regression-matrix": "node tests/run-regression-matrix-integrity.mjs"
   },
   "repository": {
     "type": "git",

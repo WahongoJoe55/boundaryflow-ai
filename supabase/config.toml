@@ -1,0 +1,9 @@
+# Supabase Edge Function gateway configuration.
+# get-entitlement validates the bearer JWT itself via Supabase Auth so that
+# its explicit CORS preflight can be handled before authentication.
+[functions.get-entitlement]
+verify_jwt = false
+
+# analyze-scope validates the caller JWT itself to support explicit CORS preflight.
+[functions.analyze-scope]
+verify_jwt = false
